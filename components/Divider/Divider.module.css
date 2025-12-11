@@ -1,0 +1,23 @@
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+}
+
+.text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+}
