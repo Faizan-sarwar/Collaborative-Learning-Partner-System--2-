@@ -59,9 +59,9 @@ const LoginCard = () => {
           Sign In
         </button>
 
-        <Divider text="Or continue with" />
+        <Divider text="Or" />
 
-        <GoogleButton />
+        {/* <GoogleButton /> */}
 
         <p className={styles.signupText}>
           Don't have an account?{' '}
