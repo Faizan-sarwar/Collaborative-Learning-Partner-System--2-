@@ -15,8 +15,8 @@ const Help = () => {
       answer: "Our AI-powered matching system analyzes your study preferences, subjects, learning style, and availability to connect you with compatible study partners. The more you use the platform, the better our recommendations become."
     },
     {
-      question: "Is StudySync free to use?",
-      answer: "Yes! StudySync is completely free for students. We believe everyone deserves access to quality collaborative learning tools without any financial barriers."
+      question: "Is Collaborative Learning Partner System free to use?",
+      answer: "Yes! Collaborative Learning Partner System is completely free for students. We believe everyone deserves access to quality collaborative learning tools without any financial barriers."
     },
     {
       question: "How do I join a virtual study room?",
@@ -58,7 +58,7 @@ const Help = () => {
             </div>
             <h3>Email Support</h3>
             <p>Get help from our support team</p>
-            <a href="mailto:support@studysync.com" className={styles.contactLink}>support@studysync.com</a>
+            <a href="mailto:support@Collaborative Learning Partner System.com" className={styles.contactLink}>support@Collaborative Learning Partner System.com</a>
           </div>
 
           <div className={styles.contactCard}>

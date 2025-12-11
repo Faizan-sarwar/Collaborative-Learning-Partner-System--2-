@@ -69,8 +69,8 @@ const Features = () => {
           <path d="M12 2C14.5013 4.73835 15.9228 8.29203 16 12C15.9228 15.708 14.5013 19.2616 12 22C9.49872 19.2616 8.07725 15.708 8 12C8.07725 8.29203 9.49872 4.73835 12 2Z" stroke="currentColor" strokeWidth="2"/>
         </svg>
       ),
-      title: 'Global Community',
-      description: 'Connect with students worldwide and gain diverse perspectives on your subjects.',
+      title: 'Shared Community',
+      description: 'Connect with students and gain diverse perspectives on your subjects.',
       color: 'teal'
     }
   ];

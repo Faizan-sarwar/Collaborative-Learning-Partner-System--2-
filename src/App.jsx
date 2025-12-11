@@ -5,6 +5,7 @@ import Privacy from "../pages/Privacy/Privacy";
 import Terms from "../pages/Terms/Terms";
 import Help from "../pages/Help/Help";
 import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
+import Signup from "../components/Signup/Signup";
 import React from "react";
 import "./App.css";
 
@@ -18,6 +19,7 @@ function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/help" element={<Help />} />
+        <Route path="/signup" element={<Signup />} />
       </Routes>
     </Router>
   );

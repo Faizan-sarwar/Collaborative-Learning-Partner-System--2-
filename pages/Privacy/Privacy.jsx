@@ -19,7 +19,7 @@ const Privacy = () => {
         <div className={styles.content}>
           <section className={styles.section}>
             <h2>1. Information We Collect</h2>
-            <p>At StudySync, we collect information you provide directly to us, such as when you create an account, join study groups, or contact us for support.</p>
+            <p>At Collaborative Learning Partner System, we collect information you provide directly to us, such as when you create an account, join study groups, or contact us for support.</p>
             <ul>
               <li>Account information (name, email, password)</li>
               <li>Profile information (avatar, bio, study preferences)</li>
@@ -69,7 +69,7 @@ const Privacy = () => {
           <section className={styles.section}>
             <h2>6. Contact Us</h2>
             <p>If you have any questions about this Privacy Policy, please contact us at:</p>
-            <p className={styles.contactEmail}>privacy@studysync.com</p>
+            <p className={styles.contactEmail}>privacy@Collaborative Learning Partner System.com</p>
           </section>
         </div>
       </div>

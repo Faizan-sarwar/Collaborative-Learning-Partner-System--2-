@@ -19,12 +19,12 @@ const Terms = () => {
         <div className={styles.content}>
           <section className={styles.section}>
             <h2>1. Acceptance of Terms</h2>
-            <p>By accessing and using StudySync, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to these terms, please do not use our service.</p>
+            <p>By accessing and using Collaborative Learning Partner System, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to these terms, please do not use our service.</p>
           </section>
 
           <section className={styles.section}>
             <h2>2. Description of Service</h2>
-            <p>StudySync is an online platform that connects students for collaborative learning. Our services include:</p>
+            <p>Collaborative Learning Partner System is an online platform that connects students for collaborative learning. Our services include:</p>
             <ul>
               <li>Study group matching and creation</li>
               <li>Virtual study rooms and video conferencing</li>
@@ -58,12 +58,12 @@ const Terms = () => {
 
           <section className={styles.section}>
             <h2>5. Intellectual Property</h2>
-            <p>All content, features, and functionality of StudySync are owned by us and protected by international copyright, trademark, and other intellectual property laws.</p>
+            <p>All content, features, and functionality of Collaborative Learning Partner System are owned by us and protected by international copyright, trademark, and other intellectual property laws.</p>
           </section>
 
           <section className={styles.section}>
             <h2>6. Limitation of Liability</h2>
-            <p>StudySync shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
+            <p>Collaborative Learning Partner System shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
           </section>
 
           <section className={styles.section}>
@@ -74,7 +74,7 @@ const Terms = () => {
           <section className={styles.section}>
             <h2>8. Contact Information</h2>
             <p>For questions about these Terms of Service, please contact us at:</p>
-            <p className={styles.contactEmail}>legal@studysync.com</p>
+            <p className={styles.contactEmail}>legal@clps.com</p>
           </section>
         </div>
       </div>
