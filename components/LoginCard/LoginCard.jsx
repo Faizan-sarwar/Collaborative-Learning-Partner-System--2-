@@ -3,6 +3,7 @@ import styles from './LoginCard.module.css';
 import TextInput from '../TextInput/TextInput';
 import GoogleButton from '../GoogleButton/GoogleButton';
 import Divider from '../Divider/Divider';
+import { Link } from 'react-router-dom';
 
 const LoginCard = () => {
   const [email, setEmail] = useState('');
@@ -65,7 +66,7 @@ const LoginCard = () => {
 
         <p className={styles.signupText}>
           Don't have an account?{' '}
-          <a href="#" className={styles.signupLink}>Sign up for free</a>
+          <Link to="/signup" className={styles.signupLink}>Sign up</Link>
         </p>
       </form>
     </div>
