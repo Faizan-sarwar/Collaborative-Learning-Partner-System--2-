@@ -1,0 +1,124 @@
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.viewAllBtn {
+  background: transparent;
+  border: none;
+  color: var(--accent-blue);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.viewAllBtn:hover {
+  opacity: 0.8;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  transition: background var(--transition-fast);
+}
+
+.activityItem:hover {
+  background: var(--bg-tertiary);
+}
+
+.activityIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activityIcon.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.activityIcon.blue {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-blue);
+}
+
+.activityIcon.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+.activityIcon.purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent-purple);
+}
+
+.activityIcon.orange {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-orange);
+}
+
+.activityIcon.teal {
+  background: rgba(20, 184, 166, 0.15);
+  color: var(--accent-teal);
+}
+
+.activityContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityAction {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.activityMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.activityUser {
+  color: var(--text-secondary);
+}
+
+.activityTime {
+  color: var(--text-muted);
+}
+
+.activityTime::before {
+  content: '•';
+  margin-right: 8px;
+}

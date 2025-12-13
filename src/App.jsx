@@ -13,15 +13,26 @@ import Terms from "../pages/Terms/Terms";
 import Help from "../pages/Help/Help";
 import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
 import PageTransition from "../components/PageTransition/PageTransition";
+import NotFound from "../pages/NotFound";
 import React from "react";
 import "./App.css";
+
+// Admin imports
+import AdminLayout from "../pages/Admin/AdminLayout/AdminLayout";
+import AdminDashboard from "../pages/Admin/AdminDashboard/AdminDashboard";
+import StudentManagement from "../pages/Admin/StudentManagement/StudentManagement";
+import AdminManagement from "../pages/Admin/AdminManagement/AdminManagement";
+import CourseManagement from "../pages/Admin/CourseManagement/CourseManagement";
+import NotificationsPage from "../pages/Admin/NotificationsPage/NotificationsPage";
+import ActivityLogs from "../pages/Admin/ActivityLogs/ActivityLogs";
+import SettingsPage from "../pages/Admin/SettingsPage/SettingsPage";
 
 const dashboardRoutes = ['/dashboard', '/study-time', '/courses', '/social', '/analytics'];
 
 const AnimatedRoutes = () => {
   const location = useLocation();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
-  
+
   return (
     <>
       {!isDashboardRoute && <ThemeToggle />}
@@ -38,6 +49,21 @@ const AnimatedRoutes = () => {
           <Route path="/privacy" element={<PageTransition><Privacy /></PageTransition>} />
           <Route path="/terms" element={<PageTransition><Terms /></PageTransition>} />
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
+
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="students" element={<StudentManagement />} />
+            <Route path="admins" element={<AdminManagement />} />
+            <Route path="courses" element={<CourseManagement />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="logs" element={<ActivityLogs />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+
         </Routes>
       </AnimatePresence>
     </>

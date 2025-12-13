@@ -1,0 +1,144 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.statCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+}
+
+.statCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.statCard.blue::before {
+  background: var(--accent-blue);
+}
+.statCard.blue .statIcon {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-blue);
+}
+
+.statCard.green::before {
+  background: var(--accent-green);
+}
+.statCard.green .statIcon {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.statCard.red::before {
+  background: var(--accent-red);
+}
+.statCard.red .statIcon {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+.statCard.purple::before {
+  background: var(--accent-purple);
+}
+.statCard.purple .statIcon {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent-purple);
+}
+
+.statCard.teal::before {
+  background: var(--accent-teal);
+}
+.statCard.teal .statIcon {
+  background: rgba(20, 184, 166, 0.15);
+  color: var(--accent-teal);
+}
+
+.statCard.orange::before {
+  background: var(--accent-orange);
+}
+.statCard.orange .statIcon {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-orange);
+}
+
+.statIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.statChange {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.statChange.positive {
+  color: var(--accent-green);
+}
+
+.statChange.negative {
+  color: var(--accent-red);
+}
+
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .statCard {
+    padding: 16px;
+  }
+  
+  .statValue {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}

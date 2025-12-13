@@ -1,0 +1,49 @@
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.chartCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all var(--transition-normal);
+}
+
+.chartCard:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.chartHeader {
+  margin-bottom: 16px;
+}
+
+.chartHeader h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.chartSubtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.chartContent {
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .chartsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+}

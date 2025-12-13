@@ -1,0 +1,17 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.bottomGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .bottomGrid {
+    grid-template-columns: 1fr;
+  }
+}
