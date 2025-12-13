@@ -1,18 +1,51 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './LoginCard.module.css';
 import TextInput from '../TextInput/TextInput';
-import GoogleButton from '../GoogleButton/GoogleButton';
 import Divider from '../Divider/Divider';
+import Alert from '../Alert/Alert';
 import { Link } from 'react-router-dom';
 
 const LoginCard = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [alert, setAlert] = useState(null); // { type: 'error' | 'success', message: string }
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login submitted:', { email, password, rememberMe });
+    setAlert(null);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAlert({ type: 'error', message: data.message || 'Login failed' });
+        return;
+      }
+
+      // Save token
+      if (rememberMe) localStorage.setItem('token', data.token);
+      else sessionStorage.setItem('token', data.token);
+
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Show success alert
+      setAlert({ type: 'success', message: 'Login successful! Redirecting...' });
+
+      // Redirect after short delay so user sees the alert
+      setTimeout(() => navigate('/dashboard'), 1000);
+    } catch (err) {
+      console.error('Login error:', err);
+      setAlert({ type: 'error', message: 'Server error. Please try again.' });
+    }
   };
 
   return (
@@ -22,11 +55,19 @@ const LoginCard = () => {
           <span className={styles.greenDot}></span>
           <span>Secure</span>
         </div>
-        <h1 className={styles.title}>Welcome Back</h1>
+        <h1 className={styles.title}>Welcome</h1>
         <p className={styles.subtitle}>Sign in to continue your learning journey</p>
       </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
+        {alert && (
+          <Alert
+            type={alert.type}
+            message={alert.message}
+            onClose={() => setAlert(null)}
+          />
+        )}
+
         <TextInput
           label="Email Address"
           type="email"
@@ -61,8 +102,6 @@ const LoginCard = () => {
         </button>
 
         <Divider text="Or" />
-
-        {/* <GoogleButton /> */}
 
         <p className={styles.signupText}>
           Don't have an account?{' '}

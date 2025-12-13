@@ -182,12 +182,47 @@ const Signup = () => {
 
         setIsSubmitting(true);
 
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+            const formPayload = new FormData();
 
-        setSuccess('Profile created successfully! Redirecting to login...');
-        setIsSubmitting(false);
+            Object.keys(formData).forEach((key) => {
+                if (Array.isArray(formData[key])) {
+                    formData[key].forEach((item) => formPayload.append(key, item));
+                } else {
+                    formPayload.append(key, formData[key]);
+                }
+            });
+
+            const response = await fetch("http://localhost:5000/api/auth/signup", {
+                method: "POST",
+                body: formPayload,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Registration failed");
+            }
+
+            // Save user to localStorage including picture URL
+            // Assuming your backend returns `data.user` with `pictureUrl`
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+            }
+
+            setSuccess("Profile created successfully! Redirecting to dashboard...");
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1500);
+
+        } catch (error) {
+            setAlertError(error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+
 
     return (
         <PageTransition>
