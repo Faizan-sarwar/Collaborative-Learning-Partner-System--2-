@@ -4,6 +4,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import auth from '../server/routes/auth.js';
 import StudyGroup from '../server/models/StudyGroup.js';
+import ActivityLog from '../server/models/ActivityLog.js'; // <--- Added Import
+import User from '../server/models/User.js'; // <--- Added Import
+import activityLogsRoutes from '../server/routes/activitylogs.js';
+
 
 // Load environment variables
 dotenv.config();
@@ -27,7 +31,7 @@ mongoose.connect(MONGO_URI)
 
 // Routes
 app.use('/api/auth', auth);
-;
+app.use('/api/activity-logs', activityLogsRoutes);
 
 app.get('/', (req, res) => {
   res.json({
@@ -85,6 +89,21 @@ app.post('/studygroup', async (req, res) => {
     });
 
     const savedGroup = await newGroup.save();
+
+    // 🔹 LOG ACTIVITY: Group Created
+    try {
+      const creator = await User.findById(creatorId);
+      await ActivityLog.create({
+        action: `Created Group: ${savedGroup.name}`,
+        user: creator ? creator.fullName : 'Unknown User',
+        userType: 'student',
+        ip: req.ip || '127.0.0.1',
+        status: 'success'
+      });
+    } catch (logErr) {
+      console.error('Logging failed:', logErr);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Study group created successfully',
@@ -178,6 +197,20 @@ app.post('/studygroup/:id/join', async (req, res) => {
 
     group.members.push(userId);
     await group.save();
+
+    // 🔹 LOG ACTIVITY: Joined Group
+    try {
+      const joiner = await User.findById(userId);
+      await ActivityLog.create({
+        action: `Joined Group: ${group.name}`,
+        user: joiner ? joiner.fullName : 'Unknown User',
+        userType: 'student',
+        ip: req.ip || '127.0.0.1',
+        status: 'success'
+      });
+    } catch (logErr) {
+      console.error('Logging failed:', logErr);
+    }
 
     res.json({
       success: true,

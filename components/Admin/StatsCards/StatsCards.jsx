@@ -1,64 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './StatsCards.module.css';
 
-const stats = [
-  {
-    id: 'total-students',
-    label: 'Total Students',
-    value: '2,847',
-    change: '+12.5%',
-    isPositive: true,
-    icon: 'students',
-    color: 'blue',
-  },
-  {
-    id: 'active-students',
-    label: 'Active Students',
-    value: '2,156',
-    change: '+8.2%',
-    isPositive: true,
-    icon: 'active',
-    color: 'green',
-  },
-  {
-    id: 'blocked-students',
-    label: 'Blocked Students',
-    value: '23',
-    change: '-5.1%',
-    isPositive: true,
-    icon: 'blocked',
-    color: 'red',
-  },
-  {
-    id: 'new-today',
-    label: 'New Today',
-    value: '47',
-    change: '+23.1%',
-    isPositive: true,
-    icon: 'new',
-    color: 'purple',
-  },
-  {
-    id: 'total-courses',
-    label: 'Total Courses',
-    value: '128',
-    change: '+3 new',
-    isPositive: true,
-    icon: 'courses',
-    color: 'teal',
-  },
-  {
-    id: 'total-admins',
-    label: 'Total Admins',
-    value: '8',
-    change: 'No change',
-    isPositive: null,
-    icon: 'admins',
-    color: 'orange',
-  },
-];
-
 const StatsCards = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // ================= FETCH ADMIN STATS =================
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('http://localhost:5000/api/auth/admin/stats');
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch stats');
+      }
+
+      setStats(data.stats);
+      setError(null);
+    } catch (err) {
+      console.error('Stats fetch error:', err);
+      setError('Unable to load statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+
+    // Auto refresh every 30 seconds (real-time feel)
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ================= ICON RENDERER =================
   const renderIcon = (iconName) => {
     const icons = {
       students: (
@@ -101,18 +78,95 @@ const StatsCards = () => {
         </svg>
       ),
     };
+
     return icons[iconName] || null;
   };
 
+  // ================= LOADING / ERROR STATES =================
+  if (loading) {
+    return <div className={styles.statsGrid}>Loading statistics...</div>;
+  }
+
+  if (error) {
+    return <div className={styles.statsGrid}>{error}</div>;
+  }
+
+  // ================= MAP DATABASE DATA TO CARDS =================
+  const cards = [
+    {
+      id: 'total-students',
+      label: 'Total Students',
+      value: stats.totalStudents,
+      change: 'Live',
+      isPositive: true,
+      icon: 'students',
+      color: 'blue',
+    },
+    {
+      id: 'active-students',
+      label: 'Active Students',
+      value: stats.activeStudents,
+      change: 'Live',
+      isPositive: true,
+      icon: 'active',
+      color: 'green',
+    },
+    {
+      id: 'blocked-students',
+      label: 'Blocked Students',
+      value: stats.blockedStudents,
+      change: 'Live',
+      isPositive: false,
+      icon: 'blocked',
+      color: 'red',
+    },
+    {
+      id: 'new-today',
+      label: 'New Today',
+      value: stats.newToday,
+      change: 'Today',
+      isPositive: true,
+      icon: 'new',
+      color: 'purple',
+    },
+    {
+      id: 'total-courses',
+      label: 'Total Courses',
+      value: stats.totalCourses,
+      change: 'Live',
+      isPositive: true,
+      icon: 'courses',
+      color: 'teal',
+    },
+    {
+      id: 'total-admins',
+      label: 'Total Admins',
+      value: stats.totalAdmins,
+      change: 'No change',
+      isPositive: null,
+      icon: 'admins',
+      color: 'orange',
+    },
+  ];
+
+  // ================= RENDER =================
   return (
     <div className={styles.statsGrid}>
-      {stats.map((stat) => (
+      {cards.map((stat) => (
         <div key={stat.id} className={`${styles.statCard} ${styles[stat.color]}`}>
           <div className={styles.statIcon}>{renderIcon(stat.icon)}</div>
           <div className={styles.statInfo}>
             <span className={styles.statLabel}>{stat.label}</span>
             <span className={styles.statValue}>{stat.value}</span>
-            <span className={`${styles.statChange} ${stat.isPositive === true ? styles.positive : stat.isPositive === false ? styles.negative : ''}`}>
+            <span
+              className={`${styles.statChange} ${
+                stat.isPositive === true
+                  ? styles.positive
+                  : stat.isPositive === false
+                  ? styles.negative
+                  : ''
+              }`}
+            >
               {stat.change}
             </span>
           </div>

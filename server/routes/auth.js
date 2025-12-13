@@ -4,9 +4,30 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import StudyGroup from '../models/StudyGroup.js';
+import ActivityLog from '../models/ActivityLog.js';
 import multer from 'multer';
 
 const router = express.Router();
+// --- Helper: Get Client IP Robustly ---
+const getClientIp = (req) => {
+  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+
+  // Handle array or comma-separated list (if behind proxy)
+  if (Array.isArray(ip)) ip = ip[0];
+  if (ip.includes(',')) ip = ip.split(',')[0].trim();
+
+  // Clean up IPv6 prefixes
+  if (ip.includes('::ffff:')) {
+    ip = ip.replace('::ffff:', '');
+  }
+
+  // Strictly convert IPv6 localhost to IPv4
+  if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') {
+    return '127.0.0.1';
+  }
+
+  return ip;
+};
 
 // Multer config for memory storage
 const storage = multer.memoryStorage();
@@ -105,7 +126,7 @@ const validateSignupData = (data) => {
 };
 
 // Signup route with image upload
-router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
+router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
     const {
       fullName,
@@ -119,6 +140,8 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
       studyStyle,
       availability
     } = req.body;
+
+    // ❌ REMOVED THE INCORRECT BLOCK FROM HERE
 
     // Validate input
     const validationErrors = validateSignupData(req.body);
@@ -150,7 +173,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
       });
     }
 
-    // Parse array fields if they're strings
+    // Parse array fields
     let parsedStrengths = academicStrengths;
     let parsedDifficulties = subjectsOfDifficulty;
 
@@ -170,7 +193,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
       }
     }
 
-    // Create user data
+    // ✅ 1. Define userData first
     const userData = {
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
@@ -184,7 +207,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
       availability: availability?.trim() || ''
     };
 
-    // Handle profile picture
+    // ✅ 2. Now it is safe to add the picture to userData
     if (req.file) {
       userData.picture = {
         data: req.file.buffer,
@@ -192,12 +215,27 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
       };
     }
 
-    // Create user (password will be hashed by pre-save hook)
+    // Create user
     const newUser = new User(userData);
     await newUser.save();
 
     // Generate token
     const token = generateToken(newUser._id);
+
+    // Activity Log logic (ensure this matches your previous context)
+    try {
+      if (typeof ActivityLog !== 'undefined') { // Safety check
+          await ActivityLog.create({
+            action: 'New User Registered',
+            user: newUser.fullName,
+            userType: 'student',
+            ip: req.ip || '127.0.0.1', 
+            status: 'success'
+          });
+      }
+    } catch (logErr) {
+      console.error('Logging failed:', logErr);
+    }
 
     res.status(201).json({
       success: true,
@@ -207,35 +245,19 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) =>  {
     });
   } catch (err) {
     console.error('Signup error:', err);
-
-    // Handle mongoose validation errors
+    // ... error handling remains the same
     if (err.name === 'ValidationError') {
       const errors = Object.values(err.errors).map(e => ({
         field: e.path,
         message: e.message
       }));
-      return res.status(400).json({
-        success: false,
-        message: errors[0].message,
-        errors
-      });
+      return res.status(400).json({ success: false, message: errors[0].message, errors });
     }
-
-    // Handle duplicate key errors
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field === 'email' ? 'Email' : 'Roll number'} already exists`,
-        field
-      });
+      return res.status(409).json({ success: false, message: `${field === 'email' ? 'Email' : 'Roll number'} already exists`, field });
     }
-
-    res.status(500).json({
-      success: false,
-      message: 'Something went wrong',
-      error: err.message
-    });
+    res.status(500).json({ success: false, message: 'Something went wrong', error: err.message });
   }
 });
 
@@ -289,6 +311,19 @@ router.post('/login', async (req, res) => {
 
     // Generate token
     const token = generateToken(user._id);
+
+    // 🔹 LOG ACTIVITY: User Logged In
+    try {
+      await ActivityLog.create({
+        action: 'User Logged In',
+        user: user.fullName,
+        userType: user.role || 'student', // default to student if role not present
+        ip: req.ip || '127.0.0.1',
+        status: 'success'
+      });
+    } catch (logErr) {
+      console.error('Logging failed:', logErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -355,6 +390,157 @@ router.get('/admin/dashboard', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// ================= GET ALL STUDENTS =================
+router.get('/admin/students', async (req, res) => {
+  try {
+    // Fetch all users sorted by newest first
+    const students = await User.find()
+      .select('fullName email rollNumber department approved createdAt studyStyle')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: students.length,
+      students: students.map(student => ({
+        id: student._id,
+        name: student.fullName,
+        email: student.email,
+        username: student.rollNumber || 'N/A', // Using Roll Number as username
+        department: student.department || 'Unassigned',
+        status: student.approved ? 'active' : 'inactive', // Simple status logic
+        joinedDate: new Date(student.createdAt).toLocaleDateString()
+      }))
+    });
+  } catch (err) {
+    console.error('Error fetching students:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch students'
+    });
+  }
+});
+// ================= ADMIN STATS (REAL DATA) =================
+router.get('/admin/stats', async (req, res) => {
+  try {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [
+      totalStudents,
+      activeStudents,
+      blockedStudents,
+      newToday,
+      totalAdmins,
+      totalCourses
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ approved: true }),
+      User.countDocuments({ approved: false }),
+      User.countDocuments({ createdAt: { $gte: startOfToday } }),
+      User.countDocuments({ plan: { $in: ['pro', 'pro-trial'] } }), // or role === 'admin' if you add roles
+      StudyGroup.countDocuments()
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalStudents,
+        activeStudents,
+        blockedStudents,
+        newToday,
+        totalCourses,
+        totalAdmins
+      }
+    });
+  } catch (err) {
+    console.error('Admin stats error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admin stats'
+    });
+  }
+});
+// ================= RECENT REGISTRATIONS =================
+router.get('/admin/recent-registrations', async (req, res) => {
+  try {
+    const recentUsers = await User.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('fullName email approved createdAt');
+
+    res.json({
+      success: true,
+      users: recentUsers
+    });
+  } catch (err) {
+    console.error('Recent registrations error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent registrations'
+    });
+  }
+});
+// ================= RECENT ACTIVITY =================
+router.get('/admin/recent-activity', async (req, res) => {
+  try {
+    const activities = [];
+
+    // Recent registrations
+    const recentUsers = await User.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('fullName approved createdAt');
+
+    recentUsers.forEach(user => {
+      activities.push({
+        action: 'New student registered',
+        user: user.fullName,
+        type: 'registration',
+        createdAt: user.createdAt
+      });
+
+      if (!user.approved) {
+        activities.push({
+          action: 'Student blocked',
+          user: user.fullName,
+          type: 'moderation',
+          createdAt: user.createdAt
+        });
+      }
+    });
+
+    // Recent study groups (courses)
+    const recentGroups = await StudyGroup.find()
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate('creator', 'fullName');
+
+    recentGroups.forEach(group => {
+      activities.push({
+        action: 'New course created',
+        user: group.creator?.fullName || 'Admin',
+        type: 'course',
+        createdAt: group.createdAt
+      });
+    });
+
+    // Sort everything by time
+    activities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({
+      success: true,
+      activities: activities.slice(0, 8)
+    });
+  } catch (err) {
+    console.error('Recent activity error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent activity'
+    });
+  }
+});
+
 
 // Get profile picture by user id
 router.get('/student/:id/picture', async (req, res) => {

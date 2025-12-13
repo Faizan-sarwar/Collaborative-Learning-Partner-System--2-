@@ -1,16 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './RecentActivity.module.css';
 
-const activities = [
-  { id: 1, action: 'New student registered', user: 'John Smith', time: '2 min ago', type: 'registration' },
-  { id: 2, action: 'Course published', user: 'Admin User', time: '15 min ago', type: 'course' },
-  { id: 3, action: 'Student blocked', user: 'Super Admin', time: '1 hour ago', type: 'moderation' },
-  { id: 4, action: 'Settings updated', user: 'Admin User', time: '2 hours ago', type: 'settings' },
-  { id: 5, action: 'Bulk notification sent', user: 'Super Admin', time: '3 hours ago', type: 'notification' },
-  { id: 6, action: 'New admin created', user: 'Super Admin', time: '5 hours ago', type: 'admin' },
-];
-
 const RecentActivity = () => {
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // ================= FETCH ACTIVITY =================
+  const fetchRecentActivity = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('http://localhost:5000/api/auth/admin/recent-activity');
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch activity');
+      }
+
+      setActivities(data.activities);
+      setError(null);
+    } catch (err) {
+      console.error('Activity fetch error:', err);
+      setError('Unable to load recent activity');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentActivity();
+
+    // Auto refresh every 30 seconds
+    const interval = setInterval(fetchRecentActivity, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ================= TIME FORMAT =================
+  const timeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+
+    const intervals = [
+      { label: 'hour', seconds: 3600 },
+      { label: 'min', seconds: 60 },
+    ];
+
+    for (const interval of intervals) {
+      const count = Math.floor(seconds / interval.seconds);
+      if (count >= 1) {
+        return `${count} ${interval.label}${count > 1 ? 's' : ''} ago`;
+      }
+    }
+    return 'Just now';
+  };
+
+  // ================= ICONS =================
   const getTypeIcon = (type) => {
     const icons = {
       registration: (
@@ -33,25 +76,8 @@ const RecentActivity = () => {
           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
         </svg>
       ),
-      settings: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      ),
-      notification: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
-      ),
-      admin: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-      ),
     };
-    return icons[type] || null;
+    return icons[type] || icons.registration;
   };
 
   const getTypeColor = (type) => {
@@ -59,13 +85,20 @@ const RecentActivity = () => {
       registration: 'green',
       course: 'blue',
       moderation: 'red',
-      settings: 'purple',
-      notification: 'orange',
-      admin: 'teal',
     };
     return colors[type] || 'blue';
   };
 
+  // ================= LOADING / ERROR =================
+  if (loading) {
+    return <div className={styles.card}>Loading recent activity...</div>;
+  }
+
+  if (error) {
+    return <div className={styles.card}>{error}</div>;
+  }
+
+  // ================= RENDER =================
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -74,20 +107,26 @@ const RecentActivity = () => {
       </div>
 
       <div className={styles.activityList}>
-        {activities.map((activity) => (
-          <div key={activity.id} className={styles.activityItem}>
-            <div className={`${styles.activityIcon} ${styles[getTypeColor(activity.type)]}`}>
-              {getTypeIcon(activity.type)}
-            </div>
-            <div className={styles.activityContent}>
-              <p className={styles.activityAction}>{activity.action}</p>
-              <div className={styles.activityMeta}>
-                <span className={styles.activityUser}>{activity.user}</span>
-                <span className={styles.activityTime}>{activity.time}</span>
+        {activities.length === 0 ? (
+          <p style={{ textAlign: 'center' }}>No recent activity</p>
+        ) : (
+          activities.map((activity, index) => (
+            <div key={index} className={styles.activityItem}>
+              <div className={`${styles.activityIcon} ${styles[getTypeColor(activity.type)]}`}>
+                {getTypeIcon(activity.type)}
+              </div>
+              <div className={styles.activityContent}>
+                <p className={styles.activityAction}>{activity.action}</p>
+                <div className={styles.activityMeta}>
+                  <span className={styles.activityUser}>{activity.user}</span>
+                  <span className={styles.activityTime}>
+                    {timeAgo(activity.createdAt)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
