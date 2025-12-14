@@ -128,6 +128,7 @@ const validateSignupData = (data) => {
 // Signup route with image upload
 router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
+    // 1. EXTRACT DATA FIRST (Fixes ReferenceError)
     const {
       fullName,
       email,
@@ -141,9 +142,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       availability
     } = req.body;
 
-    // ❌ REMOVED THE INCORRECT BLOCK FROM HERE
-
-    // Validate input
+    // 2. Validate input
     const validationErrors = validateSignupData(req.body);
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -153,7 +152,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       });
     }
 
-    // Check email duplicate
+    // 3. Check duplicates
     const emailExists = await User.findOne({ email: email.toLowerCase() });
     if (emailExists) {
       return res.status(409).json({
@@ -163,7 +162,6 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       });
     }
 
-    // Check roll number duplicate
     const rollExists = await User.findOne({ rollNumber });
     if (rollExists) {
       return res.status(409).json({
@@ -173,27 +171,19 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       });
     }
 
-    // Parse array fields
+    // 4. Parse array fields
     let parsedStrengths = academicStrengths;
     let parsedDifficulties = subjectsOfDifficulty;
 
     if (typeof academicStrengths === 'string') {
-      try {
-        parsedStrengths = JSON.parse(academicStrengths);
-      } catch {
-        parsedStrengths = [];
-      }
+      try { parsedStrengths = JSON.parse(academicStrengths); } catch { parsedStrengths = []; }
     }
 
     if (typeof subjectsOfDifficulty === 'string') {
-      try {
-        parsedDifficulties = JSON.parse(subjectsOfDifficulty);
-      } catch {
-        parsedDifficulties = [];
-      }
+      try { parsedDifficulties = JSON.parse(subjectsOfDifficulty); } catch { parsedDifficulties = []; }
     }
 
-    // ✅ 1. Define userData first
+    // 5. Create user data object (Now safe because variables are defined)
     const userData = {
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
@@ -204,10 +194,13 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       academicStrengths: parsedStrengths || [],
       subjectsOfDifficulty: parsedDifficulties || [],
       studyStyle: studyStyle || 'Individual Study',
-      availability: availability?.trim() || ''
+      availability: availability?.trim() || '',
+      
+      // 🔹 SECURITY LOGIC: Grant Admin role ONLY to this email
+      role: email.toLowerCase().trim() === 'faizan@admin.com' ? 'admin' : 'student'
     };
 
-    // ✅ 2. Now it is safe to add the picture to userData
+    // 6. Handle profile picture
     if (req.file) {
       userData.picture = {
         data: req.file.buffer,
@@ -215,23 +208,23 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       };
     }
 
-    // Create user
+    // 7. Save User
     const newUser = new User(userData);
     await newUser.save();
 
-    // Generate token
+    // 8. Generate Token
     const token = generateToken(newUser._id);
 
-    // Activity Log logic (ensure this matches your previous context)
+    // 9. Log Activity
     try {
-      if (typeof ActivityLog !== 'undefined') { // Safety check
-          await ActivityLog.create({
-            action: 'New User Registered',
-            user: newUser.fullName,
-            userType: 'student',
-            ip: req.ip || '127.0.0.1', 
-            status: 'success'
-          });
+      if (typeof ActivityLog !== 'undefined') {
+        await ActivityLog.create({
+          action: 'New User Registered',
+          user: newUser.fullName,
+          userType: newUser.role, 
+          ip: req.ip || '127.0.0.1',
+          status: 'success'
+        });
       }
     } catch (logErr) {
       console.error('Logging failed:', logErr);
@@ -243,20 +236,20 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       token,
       user: newUser.toSafeObject()
     });
+
   } catch (err) {
     console.error('Signup error:', err);
-    // ... error handling remains the same
+
     if (err.name === 'ValidationError') {
-      const errors = Object.values(err.errors).map(e => ({
-        field: e.path,
-        message: e.message
-      }));
+      const errors = Object.values(err.errors).map(e => ({ field: e.path, message: e.message }));
       return res.status(400).json({ success: false, message: errors[0].message, errors });
     }
+
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern)[0];
       return res.status(409).json({ success: false, message: `${field === 'email' ? 'Email' : 'Roll number'} already exists`, field });
     }
+
     res.status(500).json({ success: false, message: 'Something went wrong', error: err.message });
   }
 });
@@ -291,18 +284,35 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // --- Helper to log failure ---
+    const logFailure = async (reason) => {
+      try {
+        await ActivityLog.create({
+          action: `Login Failed: ${reason}`,
+          user: email, // Log the email used for the attempt
+          userType: 'unknown',
+          ip: getClientIp(req), // Uses the helper function defined at the top of auth.js
+          status: 'failed'
+        });
+      } catch (e) { console.error('Log error', e); }
+    };
+
     // Find user with password field
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    
+    // ❌ CASE 1: User Not Found
     if (!user) {
+      await logFailure('User not found');
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
-    // Check password
+    // ❌ CASE 2: Wrong Password
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
+      await logFailure('Incorrect password');
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -318,7 +328,7 @@ router.post('/login', async (req, res) => {
         action: 'User Logged In',
         user: user.fullName,
         userType: user.role || 'student', // default to student if role not present
-        ip: req.ip || '127.0.0.1',
+        ip: getClientIp(req),
         status: 'success'
       });
     } catch (logErr) {

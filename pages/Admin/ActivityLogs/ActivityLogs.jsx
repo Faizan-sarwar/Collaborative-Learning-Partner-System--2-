@@ -8,32 +8,36 @@ const ActivityLogs = () => {
   const [loading, setLoading] = useState(true);
 
   // 🔹 Fetch logs from backend
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/activity-logs');
-        const data = await res.json();
-        setLogs(data);
-      } catch (err) {
-        console.error('Failed to fetch activity logs', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/activity-logs');
+      const data = await res.json();
+      setLogs(data);
+    } catch (err) {
+      console.error('Failed to fetch activity logs', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLogs();
   }, []);
 
-  // 🔹 Filtering (same logic as before)
+  // 🔹 Filtering Logic
   const filteredLogs = logs.filter((log) => {
-    const matchesSearch =
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.user.toLowerCase().includes(searchTerm.toLowerCase());
+    // Safety check: ensure properties exist before calling toLowerCase
+    const action = log.action ? log.action.toLowerCase() : '';
+    const user = log.user ? log.user.toLowerCase() : '';
+    const term = searchTerm.toLowerCase();
+
+    const matchesSearch = action.includes(term) || user.includes(term);
 
     const matchesFilter =
       filter === 'all' ||
-      log.userType === filter ||
-      log.status === filter;
+      (log.userType && log.userType === filter) ||
+      (log.status && log.status === filter);
 
     return matchesSearch && matchesFilter;
   });
@@ -59,9 +63,15 @@ const ActivityLogs = () => {
             {filteredLogs.length} entries
           </span>
         </div>
-        <button className={styles.exportBtn}>
-          Export Logs
-        </button>
+        <div className={styles.headerActions}>
+          {/* Added a refresh button for convenience */}
+          <button className={styles.refreshBtn} onClick={fetchLogs} title="Refresh Logs">
+            ↻
+          </button>
+          <button className={styles.exportBtn}>
+            Export Logs
+          </button>
+        </div>
       </div>
 
       <div className={styles.filters}>
@@ -103,13 +113,13 @@ const ActivityLogs = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
                     Loading...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
                     No activity found
                   </td>
                 </tr>
@@ -117,10 +127,10 @@ const ActivityLogs = () => {
                 filteredLogs.map((log) => (
                   <tr key={log._id}>
                     <td>{log.action}</td>
-                    <td>{log.user}</td>
+                    <td>{log.user || 'Unknown User'}</td>
                     <td>
                       <span className={`${styles.userType} ${getUserTypeClass(log.userType)}`}>
-                        {log.userType}
+                        {log.userType === 'unknown' ? 'Visitor' : log.userType}
                       </span>
                     </td>
                     <td>{log.ip}</td>
@@ -129,7 +139,7 @@ const ActivityLogs = () => {
                     </td>
                     <td>
                       <span className={`${styles.status} ${getStatusClass(log.status)}`}>
-                        {log.status}
+                        {log.status.toUpperCase()}
                       </span>
                     </td>
                   </tr>
@@ -140,15 +150,12 @@ const ActivityLogs = () => {
         </div>
       </div>
 
-      {/* Pagination kept as UI only (no backend logic changed) */}
       <div className={styles.pagination}>
         <button className={styles.pageBtn} disabled>Previous</button>
         <div className={styles.pageNumbers}>
           <button className={`${styles.pageNum} ${styles.active}`}>1</button>
-          <button className={styles.pageNum}>2</button>
-          <button className={styles.pageNum}>3</button>
         </div>
-        <button className={styles.pageBtn}>Next</button>
+        <button className={styles.pageBtn} disabled>Next</button>
       </div>
     </div>
   );

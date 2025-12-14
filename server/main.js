@@ -255,6 +255,86 @@ app.post('/studygroup/:id/leave', async (req, res) => {
   }
 });
 
+// ================= UPDATE COURSE (Study Group) =================
+app.put('/studygroup/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, subjects, meetingTime, active } = req.body; // 1. Extract 'active'
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID' });
+    }
+
+    const group = await StudyGroup.findById(id);
+    if (!group) return res.status(404).json({ success: false, message: 'Course not found' });
+
+    // Parse subjects if necessary
+    let parsedSubjects = subjects;
+    if (typeof subjects === 'string') {
+        try { parsedSubjects = JSON.parse(subjects); } 
+        catch { parsedSubjects = subjects.split(',').map(s => s.trim()).filter(Boolean); }
+    }
+
+    // Update fields
+    if (name !== undefined) group.name = name;
+    if (description !== undefined) group.description = description;
+    if (parsedSubjects !== undefined) group.subjects = parsedSubjects;
+    if (meetingTime !== undefined) group.meetingTime = meetingTime;
+    
+    // 2. Explicitly update 'active' status
+    if (active !== undefined) {
+        group.active = active; 
+    }
+
+    await group.save();
+
+    // Log Activity
+    try {
+        await ActivityLog.create({
+            action: `Updated Course: ${group.name} (Status: ${group.active ? 'Active' : 'Disabled'})`,
+            user: 'Admin',
+            userType: 'admin',
+            ip: req.ip || '127.0.0.1',
+            status: 'success'
+        });
+    } catch(e) {}
+
+    res.json({ success: true, message: 'Course updated successfully', group });
+  } catch (err) {
+    console.error('Update course error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ================= DELETE COURSE =================
+app.delete('/studygroup/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID' });
+    }
+
+    const group = await StudyGroup.findByIdAndDelete(id);
+    if (!group) return res.status(404).json({ success: false, message: 'Course not found' });
+
+    // Log Activity
+    try {
+        await ActivityLog.create({
+            action: `Deleted Course: ${group.name}`,
+            user: 'Admin',
+            userType: 'admin',
+            ip: req.ip || '127.0.0.1',
+            status: 'success'
+        });
+    } catch(e) {}
+
+    res.json({ success: true, message: 'Course deleted successfully' });
+  } catch (err) {
+    console.error('Delete course error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);

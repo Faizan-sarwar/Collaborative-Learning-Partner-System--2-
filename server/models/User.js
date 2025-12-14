@@ -101,6 +101,12 @@ const userSchema = new mongoose.Schema({
   approved: {
     type: Boolean,
     default: true
+  },
+  // 🔹 ADDED ROLE FIELD
+  role: { 
+    type: String, 
+    enum: ['student', 'admin'], 
+    default: 'student' 
   }
 }, {
   timestamps: true

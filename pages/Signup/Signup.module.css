@@ -394,6 +394,27 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+/* ... existing styles ... */
+
+.disabledLabel {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.disabledLabel:hover {
+  border-color: #e5e7eb; /* Prevent hover color change */
+  transform: none; /* Prevent hover movement */
+}
+
+.disabledLabel input {
+  cursor: not-allowed;
+}
+
+.disabledText {
+  color: #9ca3af;
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {

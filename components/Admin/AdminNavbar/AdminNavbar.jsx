@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './AdminNavbar.module.css';
 import ThemeToggle from '../../ThemeToggle/ThemeToggle';
 
 const AdminNavbar = ({ onMenuClick }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -17,7 +18,13 @@ const AdminNavbar = ({ onMenuClick }) => {
     if (path.includes('notifications')) return 'Notifications';
     if (path.includes('logs')) return 'Activity Logs';
     if (path.includes('settings')) return 'Settings';
+    if (path.includes('profile')) return 'Profile';
     return 'Admin Panel';
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setShowProfile(false);
   };
 
   const notifications = [
@@ -94,29 +101,29 @@ const AdminNavbar = ({ onMenuClick }) => {
           {showProfile && (
             <div className={styles.dropdown}>
               <div className={styles.dropdownContent}>
-                <a href="#" className={styles.dropdownItem}>
+                <button onClick={() => handleNavigation('/admin/profile')} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   Profile
-                </a>
-                <a href="#" className={styles.dropdownItem}>
+                </button>
+                <button onClick={() => handleNavigation('/admin/settings')} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3" />
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                   </svg>
                   Settings
-                </a>
+                </button>
                 <div className={styles.dropdownDivider}></div>
-                <a href="/" className={styles.dropdownItem}>
+                <button onClick={() => handleNavigation('/')} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                     <polyline points="16 17 21 12 16 7" />
                     <line x1="21" y1="12" x2="9" y2="12" />
                   </svg>
                   Logout
-                </a>
+                </button>
               </div>
             </div>
           )}

@@ -10,7 +10,7 @@ const LoginCard = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [alert, setAlert] = useState(null); // { type: 'error' | 'success', message: string }
+  const [alert, setAlert] = useState(null); 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -31,17 +31,33 @@ const LoginCard = () => {
         return;
       }
 
-      // Save token
-      if (rememberMe) localStorage.setItem('token', data.token);
-      else sessionStorage.setItem('token', data.token);
+      // 🔹 1. Handle Token Storage (Remember Me logic)
+      if (rememberMe) {
+        localStorage.setItem('token', data.token);
+      } else {
+        sessionStorage.setItem('token', data.token);
+      }
 
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // 🔹 2. Handle User Storage (Security Fix)
+      // Always store user object in sessionStorage so it clears on browser close.
+      // This prevents the admin panel from being accessible after closing the tab.
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Clear any potential stale user data from local storage
+      localStorage.removeItem('user');
 
       // Show success alert
       setAlert({ type: 'success', message: 'Login successful! Redirecting...' });
 
-      // Redirect after short delay so user sees the alert
-      setTimeout(() => navigate('/dashboard'), 1000);
+      // 🔹 3. Role-Based Redirect
+      setTimeout(() => {
+        if (data.user.role === 'admin') {
+          navigate('/admin'); // Redirect to Admin Panel
+        } else {
+          navigate('/dashboard'); // Redirect to Student Dashboard
+        }
+      }, 1000);
+
     } catch (err) {
       console.error('Login error:', err);
       setAlert({ type: 'error', message: 'Server error. Please try again.' });
