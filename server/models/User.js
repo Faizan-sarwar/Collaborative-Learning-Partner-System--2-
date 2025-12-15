@@ -102,18 +102,33 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  // 🔹 ADDED ROLE FIELD
-  role: { 
-    type: String, 
-    enum: ['student', 'admin'], 
-    default: 'student' 
-  }
+  role: {
+    type: String,
+    enum: ['student', 'admin', 'moderator', 'super-admin'],
+    default: 'student'
+  },
+  // 🔹 ADDED PHONE AND BIO HERE
+  phone: {
+    type: String,
+    default: ''
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Bio cannot exceed 1000 characters'],
+    default: ''
+  },
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  isOnline: { type: Boolean, default: false },
 }, {
   timestamps: true
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
@@ -123,12 +138,12 @@ userSchema.pre('save', async function(next) {
 });
 
 // Match password method
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Get safe user object (without password and picture buffer)
-userSchema.methods.toSafeObject = function() {
+userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.picture;

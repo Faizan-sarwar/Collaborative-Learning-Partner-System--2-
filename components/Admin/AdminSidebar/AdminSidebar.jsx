@@ -12,7 +12,7 @@ const menuItems = [
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/admin/settings' },
 ];
 
-const AdminSidebar = ({ collapsed, onToggle }) => {
+const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
   const location = useLocation();
 
   const renderIcon = (iconName) => {
@@ -73,7 +73,7 @@ const AdminSidebar = ({ collapsed, onToggle }) => {
   };
 
   return (
-    <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
+    <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}>
       <div className={styles.header}>
         <div className={styles.logo}>
           <div className={styles.logoIcon}>

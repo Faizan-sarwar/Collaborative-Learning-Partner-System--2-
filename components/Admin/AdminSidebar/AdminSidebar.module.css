@@ -157,6 +157,10 @@
     transform: translateX(-100%);
   }
   
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+  }
+  
   .sidebar.collapsed {
     transform: translateX(-100%);
   }

@@ -22,97 +22,138 @@
   gap: 24px;
 }
 
-.profileCard,
-.detailsCard,
-.securityCard,
-.activityCard {
+/* Profile Card */
+.profileCard {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 24px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.avatarSection {
+.profileHeader {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 16px;
   padding-bottom: 24px;
   border-bottom: 1px solid var(--border-color);
 }
 
+.avatarWrapper {
+  position: relative;
+  width: 100px; /* 1. Fixed width */
+  height: 100px; /* 2. Fixed height (must match width) */
+  margin-right: 20px;
+}
+
 .avatar {
-  width: 100px;
-  height: 100px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
   font-weight: 700;
   color: white;
-  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
-
-.avatarInfo h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 4. Crops image to center instead of stretching */
+  border-radius: 50%;
+  display: block;
 }
-
-.role {
-  font-size: 0.85rem;
-  color: var(--accent-blue);
-  background: rgba(99, 102, 241, 0.1);
-  padding: 4px 12px;
-  border-radius: 20px;
-  display: inline-block;
-  margin-bottom: 16px;
-}
-
-.changeAvatarBtn {
+.avatarEditBtn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  justify-content: center;
   color: var(--text-primary);
-  font-size: 0.85rem;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.changeAvatarBtn:hover {
+.avatarEditBtn:hover {
+  background: var(--accent-blue);
   border-color: var(--accent-blue);
+  color: white;
+}
+
+.profileInfo h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.roleBadge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 500;
   color: var(--accent-blue);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
-.statsRow {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 24px;
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 
-.statItem {
+.statCard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 16px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.statCard:hover {
+  border-color: var(--accent-blue);
+  transform: translateY(-2px);
 }
 
 .statValue {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .statLabel {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Cards Common Styles */
+.infoCard,
+.securityCard,
+.activityCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
 }
 
 .cardHeader {
@@ -124,6 +165,23 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+.cardTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cardIcon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
 .cardHeader h3 {
   font-size: 1.1rem;
   font-weight: 600;
@@ -133,13 +191,14 @@
 .editBtn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 10px 18px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -155,12 +214,13 @@
 }
 
 .cancelBtn {
-  padding: 8px 14px;
+  padding: 10px 18px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -171,21 +231,39 @@
 }
 
 .saveBtn {
-  padding: 8px 14px;
+  padding: 10px 18px;
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: white;
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .saveBtn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
+.viewAllBtn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.viewAllBtn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Info Grid */
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -195,7 +273,7 @@
 .infoItem {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .infoItem.fullWidth {
@@ -203,8 +281,8 @@
 }
 
 .infoItem label {
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -213,13 +291,19 @@
 .infoItem span {
   font-size: 0.95rem;
   color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.roleText {
+  color: var(--accent-blue) !important;
+  font-weight: 500;
 }
 
 .input {
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.9rem;
   outline: none;
@@ -228,13 +312,14 @@
 
 .input:focus {
   border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .textarea {
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.9rem;
   outline: none;
@@ -245,38 +330,51 @@
 
 .textarea:focus {
   border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+/* Security List */
 .securityList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .securityItem {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px;
+  gap: 16px;
+  padding: 18px;
   background: var(--bg-tertiary);
   border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.securityItem:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.securityIcon {
+  width: 42px;
+  height: 42px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
 }
 
 .securityInfo {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.securityInfo svg {
-  color: var(--accent-blue);
+  flex: 1;
 }
 
 .securityInfo h4 {
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .securityInfo p {
@@ -285,12 +383,13 @@
 }
 
 .actionBtn {
-  padding: 8px 16px;
+  padding: 10px 20px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -298,44 +397,70 @@
 .actionBtn:hover {
   border-color: var(--accent-blue);
   color: var(--accent-blue);
+  background: rgba(99, 102, 241, 0.05);
 }
 
+/* Activity List */
 .activityList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .activityItem {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px;
+  padding: 14px;
   background: var(--bg-tertiary);
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.activityItem:hover {
+  transform: translateX(4px);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .activityIcon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  flex-shrink: 0;
+}
+
+.activityIcon.blue {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+}
+
+.activityIcon.purple {
+  background: linear-gradient(135deg, var(--accent-purple), #a855f7);
+}
+
+.activityIcon.green {
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-teal));
+}
+
+.activityIcon.teal {
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
 }
 
 .activityInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .activityInfo span {
   font-size: 0.9rem;
   color: var(--text-primary);
+  font-weight: 500;
 }
 
 .activityInfo small {
@@ -343,9 +468,14 @@
   color: var(--text-secondary);
 }
 
-@media (max-width: 1024px) {
+/* Responsive */
+@media (max-width: 1200px) {
   .profileGrid {
     grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -353,24 +483,38 @@
   .infoGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .infoItem.fullWidth {
     grid-column: span 1;
   }
-  
-  .statsRow {
+
+  .cardHeader {
     flex-direction: column;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 12px;
   }
-  
+
+  .editActions {
+    width: 100%;
+  }
+
+  .cancelBtn,
+  .saveBtn {
+    flex: 1;
+  }
+
   .securityItem {
     flex-direction: column;
-    gap: 12px;
     align-items: flex-start;
+    gap: 14px;
   }
-  
+
   .actionBtn {
     width: 100%;
     text-align: center;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
   }
 }

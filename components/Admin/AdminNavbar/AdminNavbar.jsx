@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './AdminNavbar.module.css';
 import ThemeToggle from '../../ThemeToggle/ThemeToggle';
+
+// Simple notification sound (Beep)
+const NOTIFICATION_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
 
 const AdminNavbar = ({ onMenuClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  
+  // 🔹 Notification State
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const audioRef = useRef(new Audio(NOTIFICATION_SOUND));
+  const lastNotificationId = useRef(null); // Track the last ID to detect "new" ones
 
+  // 🔹 Get Page Title
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/admin') return 'Dashboard';
@@ -27,11 +37,61 @@ const AdminNavbar = ({ onMenuClick }) => {
     setShowProfile(false);
   };
 
-  const notifications = [
-    { id: 1, text: 'New student registration', time: '5 min ago', unread: true },
-    { id: 2, text: 'System backup completed', time: '1 hour ago', unread: true },
-    { id: 3, text: 'New course published', time: '2 hours ago', unread: false },
-  ];
+  // 🔹 Helper: Format Time (e.g., "5 min ago")
+  const formatTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return date.toLocaleDateString();
+  };
+
+  // 🔹 Fetch Notifications Logic
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/activity-logs/latest');
+      const data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        const latestLog = data[0];
+
+        // CHECK IF NEW NOTIFICATION ARRIVED
+        if (lastNotificationId.current && lastNotificationId.current !== latestLog._id) {
+          // 🔊 Play Sound
+          audioRef.current.play().catch(e => console.log("Audio play blocked (interaction needed first)"));
+          setUnreadCount(prev => prev + 1); // Increment badge
+        }
+
+        // Update state
+        setNotifications(data);
+        lastNotificationId.current = latestLog._id;
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications", err);
+    }
+  };
+
+  // 🔹 Setup Polling (Live Updates)
+  useEffect(() => {
+    fetchNotifications(); // Initial fetch
+
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reset unread count when opening dropdown
+  const handleToggleNotifications = () => {
+    if (!showNotifications) {
+      setUnreadCount(0);
+    }
+    setShowNotifications(!showNotifications);
+  };
 
   return (
     <header className={styles.navbar}>
@@ -57,42 +117,55 @@ const AdminNavbar = ({ onMenuClick }) => {
 
         <ThemeToggle />
 
+        {/* 🔔 Notification Bell */}
         <div className={styles.notificationWrapper}>
           <button 
             className={styles.iconBtn}
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={handleToggleNotifications}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
-            <span className={styles.notificationBadge}>3</span>
+            {unreadCount > 0 && <span className={styles.notificationBadge}>{unreadCount}</span>}
           </button>
 
           {showNotifications && (
             <div className={styles.dropdown}>
               <div className={styles.dropdownHeader}>
-                <span>Notifications</span>
-                <button className={styles.markAllRead}>Mark all read</button>
+                <span>Recent Activity</span>
+                <button className={styles.markAllRead} onClick={() => setUnreadCount(0)}>Mark read</button>
               </div>
               <div className={styles.dropdownContent}>
-                {notifications.map((notif) => (
-                  <div key={notif.id} className={`${styles.notificationItem} ${notif.unread ? styles.unread : ''}`}>
-                    <p>{notif.text}</p>
-                    <span>{notif.time}</span>
-                  </div>
-                ))}
+                {notifications.length === 0 ? (
+                   <div className={styles.emptyState}>No notifications yet</div>
+                ) : (
+                  notifications.map((notif) => (
+                    <div key={notif._id} className={styles.notificationItem}>
+                      <p className={styles.notifText}>
+                        <strong>{notif.action}</strong>
+                        <br/>
+                        <span className={styles.notifUser}>by {notif.user || 'System'}</span>
+                      </p>
+                      <span className={styles.notifTime}>{formatTimeAgo(notif.createdAt)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className={styles.dropdownFooter} onClick={() => handleNavigation('/admin/logs')}>
+                 View all logs
               </div>
             </div>
           )}
         </div>
 
+        {/* 👤 Profile Dropdown */}
         <div className={styles.profileWrapper}>
           <button 
             className={styles.profileBtn}
             onClick={() => setShowProfile(!showProfile)}
           >
-            <div className={styles.profileAvatar}>SA</div>
+            <div className={styles.profileAvatar}>AD</div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -116,7 +189,12 @@ const AdminNavbar = ({ onMenuClick }) => {
                   Settings
                 </button>
                 <div className={styles.dropdownDivider}></div>
-                <button onClick={() => handleNavigation('/')} className={styles.dropdownItem}>
+                {/* Updated logout to clear storage */}
+                <button onClick={() => {
+                    sessionStorage.removeItem('user');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                }} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                     <polyline points="16 17 21 12 16 7" />

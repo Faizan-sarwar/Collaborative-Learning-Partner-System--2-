@@ -5,11 +5,28 @@ import styles from './WelcomeBanner.module.css';
 const WelcomeBanner = () => {
   const [user, setUser] = useState(null);
 
-  // Load logged-in user from localStorage
   useEffect(() => {
+    // 1. Load user from storage for display
     const storedUser = localStorage.getItem('user');
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    }
+
+    // 🔹 FIX: Send "I am Online" signal to backend
+    if (token) {
+      fetch('http://localhost:5000/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Optional: Update local storage with fresh data from server
+          localStorage.setItem('user', JSON.stringify(data.user)); 
+        }
+      })
+      .catch(err => console.error("Failed to update status", err));
     }
   }, []);
 
@@ -31,7 +48,7 @@ const WelcomeBanner = () => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
             </svg>
-            Level 1
+            Level {user?.level || 1}
           </div>
           <p className={styles.subtitle}>
             This week's progress is still in progress. You've got this!
@@ -46,7 +63,7 @@ const WelcomeBanner = () => {
                 transition={{ duration: 1, delay: 0.5 }}
               />
             </div>
-            <span className={styles.progressText}>25% to Level 2</span>
+            <span className={styles.progressText}>25% to Level {user ? (user.level || 1) + 1 : 2}</span>
           </div>
         </div>
 
@@ -59,7 +76,7 @@ const WelcomeBanner = () => {
             </div>
             <div className={styles.planInfo}>
               <span className={styles.planLabel}>Plan Type</span>
-              <span className={styles.planType}>Pro Trial</span>
+              <span className={styles.planType}>{user?.plan || 'Pro Trial'}</span>
               <span className={styles.planExpiry}>Expiry: 1/10/2026 (88 days left)</span>
             </div>
             <div className={styles.onlineStatus}>

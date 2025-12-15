@@ -7,10 +7,15 @@ import PageTransition from '../../../components/PageTransition/PageTransition';
 
 const AdminLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
   };
 
   return (
@@ -19,10 +24,13 @@ const AdminLayout = () => {
         <AdminSidebar 
           collapsed={sidebarCollapsed} 
           onToggle={toggleSidebar}
+          mobileOpen={mobileMenuOpen}
         />
         
+        {mobileMenuOpen && <div className={styles.overlay} onClick={() => setMobileMenuOpen(false)} />}
+        
         <div className={`${styles.mainArea} ${sidebarCollapsed ? styles.expanded : ''}`}>
-          <AdminNavbar onMenuClick={toggleSidebar} />
+          <AdminNavbar onMenuClick={toggleMobileMenu} />
           
           <main className={styles.content}>
             <Outlet />

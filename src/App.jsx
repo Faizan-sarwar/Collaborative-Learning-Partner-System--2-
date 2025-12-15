@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import React, { useEffect } from "react"; // 🔹 Added useEffect here
 import Index from "../pages/Index";
 import Login from "../pages/Login/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
@@ -14,8 +15,7 @@ import Help from "../pages/Help/Help";
 import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
 import PageTransition from "../components/PageTransition/PageTransition";
 import NotFound from "../pages/NotFound";
-import ProtectedRoute from "../pages/ProtectedRoutes"; // 🔹 Import ProtectedRoute
-import React from "react";
+import ProtectedRoute from "../pages/ProtectedRoutes"; 
 import "./App.css";
 
 // Admin imports
@@ -35,6 +35,18 @@ const AnimatedRoutes = () => {
   const location = useLocation();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
 
+  // 🔹 NEW: Session Heartbeat
+  // This runs once when the app loads (refresh or new tab) to update "Last Active" time in DB
+  useEffect(() => {
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    
+    if (token) {
+      fetch('http://localhost:5000/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).catch(err => console.log("Background session update failed", err));
+    }
+  }, []);
+
   return (
     <>
       {!isDashboardRoute && <ThemeToggle />}
@@ -50,19 +62,17 @@ const AnimatedRoutes = () => {
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
 
           {/* ================= STUDENT ROUTES (Protected) ================= */}
-          {/* Only 'student' and 'admin' roles can access these */}
-          <Route element={<ProtectedRoute allowedRoles={['student', 'admin']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/study-time" element={<StudyTime />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/social" element={<Social />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
 
-
-          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          {/* ================= ADMIN ROUTES (Protected) ================= */}
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'super-admin']} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="students" element={<StudentManagement />} />
@@ -71,6 +81,7 @@ const AnimatedRoutes = () => {
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="logs" element={<ActivityLogs />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="profile" element={<AdminProfile />} />
             </Route>
           </Route>
 

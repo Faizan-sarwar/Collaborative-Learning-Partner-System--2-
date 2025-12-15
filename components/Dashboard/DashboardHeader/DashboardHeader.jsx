@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './DashboardHeader.module.css';
 
@@ -7,16 +7,20 @@ const DashboardHeader = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState(null);
+  const [imgError, setImgError] = useState(false);
+  
   const menuRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Load user from localStorage on mount
+  // Load user data
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
   }, []);
 
+  // Close menu on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -34,15 +38,69 @@ const DashboardHeader = () => {
     localStorage.setItem('theme', newTheme);
   };
 
+  // 🔹 ROBUST LOGOUT FUNCTION
+  const handleLogout = async () => {
+    // 1. Get token BEFORE clearing storage
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    
+    if (token) {
+      try {
+        // 2. Send request to backend
+        // We use 'await' to ensure the request fires before we redirect
+        await fetch('http://localhost:5000/api/auth/logout', {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (error) {
+        console.error("Logout backend failed", error);
+      }
+    }
+
+    // 3. Clear Storage
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    
+    // 4. Force Redirect
+    navigate('/login');
+  };
+
   const userName = user?.fullName || 'Student';
   const userEmail = user?.email || 'student@email.com';
-  const userPicture = user?.pictureUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=student';
+  
+  // Profile Picture Component
+  const ProfileAvatar = ({ size = "40px", fontSize = "1.2rem" }) => {
+    if (user && user._id && !imgError) {
+      return (
+        <img 
+          src={`http://localhost:5000/api/auth/student/${user._id}/picture`} 
+          alt="Profile" 
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+        />
+      );
+    }
+    return (
+      <div style={{
+        width: '100%', height: '100%', borderRadius: '50%', 
+        backgroundColor: '#e0e7ff', color: '#4f46e5',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontWeight: 'bold', fontSize: fontSize
+      }}>
+        {userName.split(' ').map(n => n[0]).join('')}
+      </div>
+    );
+  };
 
   return (
     <header className={styles.header}>
       <div className={styles.userInfo}>
         <div className={styles.avatar}>
-          <img src={userPicture} alt="User" />
+          <ProfileAvatar />
         </div>
         <div className={styles.greeting}>
           <span className={styles.hello}>Hi, {userName}</span>
@@ -57,7 +115,7 @@ const DashboardHeader = () => {
         </svg>
         <input
           type="text"
-          placeholder="Search for friends by email or username..."
+          placeholder="Search for friends..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className={styles.searchInput}
@@ -72,14 +130,14 @@ const DashboardHeader = () => {
           </svg>
         </button>
 
-        {/* Other buttons like Notifications, Timer, Study Rooms... */}
-        
         <div className={styles.profileSection} ref={menuRef}>
           <button 
             className={styles.profileBtn}
             onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
-            <img src={userPicture} alt="Profile" />
+            <div style={{width: '32px', height: '32px'}}>
+               <ProfileAvatar size="32px" fontSize="0.9rem" />
+            </div>
           </button>
 
           <AnimatePresence>
@@ -92,7 +150,9 @@ const DashboardHeader = () => {
                 transition={{ duration: 0.2 }}
               >
                 <div className={styles.menuHeader}>
-                  <img src={userPicture} alt="Profile" />
+                  <div style={{width: '40px', height: '40px', marginRight: '10px'}}>
+                    <ProfileAvatar />
+                  </div>
                   <div>
                     <span className={styles.menuName}>{userName}</span>
                     <span className={styles.menuEmail}>{userEmail}</span>
@@ -102,11 +162,7 @@ const DashboardHeader = () => {
                 <Link to="/profile" className={styles.menuItem}>Profile</Link>
                 <Link to="/settings" className={styles.menuItem}>Settings</Link>
                 <div className={styles.menuDivider} />
-                <button className={styles.menuItemLogout} onClick={() => {
-                  localStorage.removeItem('user');
-                  localStorage.removeItem('token');
-                  window.location.href = '/login';
-                }}>Log out</button>
+                <button className={styles.menuItemLogout} onClick={handleLogout}>Log out</button>
               </motion.div>
             )}
           </AnimatePresence>
