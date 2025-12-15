@@ -1,11 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './SettingsPage.module.css';
 
 const SettingsPage = () => {
-  const [platformName, setPlatformName] = useState('StudyPal');
-  const [allowRegistrations, setAllowRegistrations] = useState(true);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [loading, setLoading] = useState(true);
+  
+  // 🔹 State for all settings
+  const [formData, setFormData] = useState({
+    platformName: 'StudyPal',
+    logoUrl: '',
+    supportEmail: '',
+    allowRegistrations: true,
+    maintenanceMode: false,
+    sessionTimeout: 60,
+    emailNotifications: true,
+    welcomeEmail: true,
+    adminAlerts: true,
+    autoBackup: 'weekly',
+    dataRetention: 30
+  });
+
+  // 🔹 Fetch Settings on Load
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/admin/settings');
+        const data = await res.json();
+        if (data.success && data.settings) {
+          setFormData(prev => ({ ...prev, ...data.settings }));
+        }
+      } catch (err) {
+        console.error('Failed to load settings', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // 🔹 Handle Change Helper
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // 🔹 Save Settings
+  const handleSave = async () => {
+    try {
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/auth/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert('Settings saved successfully!');
+      } else {
+        alert('Failed to save settings');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Server error occurred');
+    }
+  };
+
+  if (loading) return <div className={styles.container}>Loading settings...</div>;
 
   return (
     <div className={styles.container}>
@@ -15,6 +77,8 @@ const SettingsPage = () => {
       </div>
 
       <div className={styles.settingsGrid}>
+        
+        {/* === GENERAL SETTINGS === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
             <div className={styles.cardIcon}>
@@ -34,8 +98,8 @@ const SettingsPage = () => {
               </div>
               <input 
                 type="text" 
-                value={platformName}
-                onChange={(e) => setPlatformName(e.target.value)}
+                value={formData.platformName}
+                onChange={(e) => handleChange('platformName', e.target.value)}
                 className={styles.textInput}
               />
             </div>
@@ -47,6 +111,8 @@ const SettingsPage = () => {
               </div>
               <input 
                 type="text" 
+                value={formData.logoUrl}
+                onChange={(e) => handleChange('logoUrl', e.target.value)}
                 placeholder="https://example.com/logo.png"
                 className={styles.textInput}
               />
@@ -59,6 +125,8 @@ const SettingsPage = () => {
               </div>
               <input 
                 type="email" 
+                value={formData.supportEmail}
+                onChange={(e) => handleChange('supportEmail', e.target.value)}
                 placeholder="support@studypal.com"
                 className={styles.textInput}
               />
@@ -66,6 +134,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* === SECURITY SETTINGS === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
             <div className={styles.cardIcon}>
@@ -85,8 +154,8 @@ const SettingsPage = () => {
               <label className={styles.toggle}>
                 <input 
                   type="checkbox" 
-                  checked={allowRegistrations}
-                  onChange={(e) => setAllowRegistrations(e.target.checked)}
+                  checked={formData.allowRegistrations}
+                  onChange={(e) => handleChange('allowRegistrations', e.target.checked)}
                 />
                 <span className={styles.slider}></span>
               </label>
@@ -100,8 +169,8 @@ const SettingsPage = () => {
               <label className={styles.toggle}>
                 <input 
                   type="checkbox" 
-                  checked={maintenanceMode}
-                  onChange={(e) => setMaintenanceMode(e.target.checked)}
+                  checked={formData.maintenanceMode}
+                  onChange={(e) => handleChange('maintenanceMode', e.target.checked)}
                 />
                 <span className={styles.slider}></span>
               </label>
@@ -112,7 +181,11 @@ const SettingsPage = () => {
                 <label>Session Timeout (minutes)</label>
                 <span>Auto logout after inactivity</span>
               </div>
-              <select className={styles.selectInput}>
+              <select 
+                className={styles.selectInput}
+                value={formData.sessionTimeout}
+                onChange={(e) => handleChange('sessionTimeout', Number(e.target.value))}
+              >
                 <option value="30">30 minutes</option>
                 <option value="60">1 hour</option>
                 <option value="120">2 hours</option>
@@ -122,6 +195,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* === NOTIFICATION SETTINGS === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
             <div className={styles.cardIcon}>
@@ -141,9 +215,9 @@ const SettingsPage = () => {
               </div>
               <label className={styles.toggle}>
                 <input 
-                  type="checkbox" 
-                  checked={emailNotifications}
-                  onChange={(e) => setEmailNotifications(e.target.checked)}
+                    type="checkbox" 
+                    checked={formData.emailNotifications}
+                    onChange={(e) => handleChange('emailNotifications', e.target.checked)}
                 />
                 <span className={styles.slider}></span>
               </label>
@@ -155,7 +229,11 @@ const SettingsPage = () => {
                 <span>Send welcome email to new users</span>
               </div>
               <label className={styles.toggle}>
-                <input type="checkbox" defaultChecked />
+                <input 
+                    type="checkbox" 
+                    checked={formData.welcomeEmail}
+                    onChange={(e) => handleChange('welcomeEmail', e.target.checked)}
+                />
                 <span className={styles.slider}></span>
               </label>
             </div>
@@ -166,13 +244,18 @@ const SettingsPage = () => {
                 <span>Get alerts for admin actions</span>
               </div>
               <label className={styles.toggle}>
-                <input type="checkbox" defaultChecked />
+                <input 
+                    type="checkbox" 
+                    checked={formData.adminAlerts}
+                    onChange={(e) => handleChange('adminAlerts', e.target.checked)}
+                />
                 <span className={styles.slider}></span>
               </label>
             </div>
           </div>
         </div>
 
+        {/* === DATA MANAGEMENT === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
             <div className={styles.cardIcon}>
@@ -191,7 +274,11 @@ const SettingsPage = () => {
                 <label>Auto Backup</label>
                 <span>Automatically backup database</span>
               </div>
-              <select className={styles.selectInput}>
+              <select 
+                className={styles.selectInput}
+                value={formData.autoBackup}
+                onChange={(e) => handleChange('autoBackup', e.target.value)}
+              >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
@@ -203,7 +290,11 @@ const SettingsPage = () => {
                 <label>Data Retention (days)</label>
                 <span>Keep deleted user data for</span>
               </div>
-              <select className={styles.selectInput}>
+              <select 
+                className={styles.selectInput}
+                value={formData.dataRetention}
+                onChange={(e) => handleChange('dataRetention', Number(e.target.value))}
+              >
                 <option value="30">30 days</option>
                 <option value="60">60 days</option>
                 <option value="90">90 days</option>
@@ -232,7 +323,7 @@ const SettingsPage = () => {
       </div>
 
       <div className={styles.saveSection}>
-        <button className={styles.saveBtn}>
+        <button className={styles.saveBtn} onClick={handleSave}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
             <polyline points="17 21 17 13 7 13 7 21" />

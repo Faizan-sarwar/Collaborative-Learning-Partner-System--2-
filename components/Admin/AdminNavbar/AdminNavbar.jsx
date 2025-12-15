@@ -9,14 +9,28 @@ const NOTIFICATION_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2869/286
 const AdminNavbar = ({ onMenuClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // 🔹 User & UI State
+  const [user, setUser] = useState(null);
+  const [imgError, setImgError] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
   // 🔹 Notification State
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Sound & Tracking Refs
   const audioRef = useRef(new Audio(NOTIFICATION_SOUND));
-  const lastNotificationId = useRef(null); // Track the last ID to detect "new" ones
+  const lastNotificationId = useRef(null); 
+
+  // 🔹 Load User Info on Mount
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   // 🔹 Get Page Title
   const getPageTitle = () => {
@@ -37,7 +51,7 @@ const AdminNavbar = ({ onMenuClick }) => {
     setShowProfile(false);
   };
 
-  // 🔹 Helper: Format Time (e.g., "5 min ago")
+  // 🔹 Helper: Format Time
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -52,45 +66,90 @@ const AdminNavbar = ({ onMenuClick }) => {
   // 🔹 Fetch Notifications Logic
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/activity-logs/latest');
+      const res = await fetch('http://localhost:5000/api/auth/admin/notifications');
       const data = await res.json();
 
-      if (Array.isArray(data) && data.length > 0) {
-        const latestLog = data[0];
+      if (data.success && Array.isArray(data.notifications) && data.notifications.length > 0) {
+        const latestNotif = data.notifications[0];
 
         // CHECK IF NEW NOTIFICATION ARRIVED
-        if (lastNotificationId.current && lastNotificationId.current !== latestLog._id) {
-          // 🔊 Play Sound
-          audioRef.current.play().catch(e => console.log("Audio play blocked (interaction needed first)"));
-          setUnreadCount(prev => prev + 1); // Increment badge
+        if (lastNotificationId.current && lastNotificationId.current !== latestNotif._id) {
+          audioRef.current.play().catch(e => console.log("Audio play blocked"));
+          setUnreadCount(prev => prev + 1); 
         }
 
-        // Update state
-        setNotifications(data);
-        lastNotificationId.current = latestLog._id;
+        if (!lastNotificationId.current) {
+            lastNotificationId.current = latestNotif._id;
+        } else {
+            lastNotificationId.current = latestNotif._id;
+        }
+
+        setNotifications(data.notifications);
       }
     } catch (err) {
       console.error("Failed to fetch notifications", err);
     }
   };
 
-  // 🔹 Setup Polling (Live Updates)
+  // 🔹 Polling (Every 5 seconds)
   useEffect(() => {
-    fetchNotifications(); // Initial fetch
-
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 10000); // Poll every 10 seconds
-
+    fetchNotifications(); 
+    const interval = setInterval(fetchNotifications, 5000); 
     return () => clearInterval(interval);
   }, []);
 
-  // Reset unread count when opening dropdown
   const handleToggleNotifications = () => {
     if (!showNotifications) {
-      setUnreadCount(0);
+      setUnreadCount(0); // Clear badge on open
     }
     setShowNotifications(!showNotifications);
+  };
+
+  // 🔹 Profile Picture Helper
+  const renderProfileImage = () => {
+    // 1. Image found (and no error loading it)
+    if (user && user._id && !imgError) {
+      return (
+        <div style={{
+            width: '32px', 
+            height: '32px', 
+            minWidth: '32px', // Prevent shrinking
+            borderRadius: '50%', 
+            overflow: 'hidden',
+            marginRight: '8px',
+            border: '1px solid var(--border-color)'
+        }}>
+            <img 
+              src={`http://localhost:5000/api/auth/student/${user._id}/picture`} 
+              alt="Admin"
+              onError={() => setImgError(true)}
+              style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', // Ensures image fills circle without stretching
+                  display: 'block'
+              }}
+            />
+        </div>
+      );
+    }
+
+    // 2. Fallback: Initials Circle
+    const initials = user?.fullName 
+      ? user.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() 
+      : 'AD';
+      
+    return (
+        <div className={styles.profileAvatar} style={{
+            width: '32px', 
+            height: '32px', 
+            minWidth: '32px',
+            fontSize: '12px',
+            marginRight: '8px'
+        }}>
+            {initials}
+        </div>
+    );
   };
 
   return (
@@ -133,7 +192,7 @@ const AdminNavbar = ({ onMenuClick }) => {
           {showNotifications && (
             <div className={styles.dropdown}>
               <div className={styles.dropdownHeader}>
-                <span>Recent Activity</span>
+                <span>Notifications</span>
                 <button className={styles.markAllRead} onClick={() => setUnreadCount(0)}>Mark read</button>
               </div>
               <div className={styles.dropdownContent}>
@@ -143,17 +202,14 @@ const AdminNavbar = ({ onMenuClick }) => {
                   notifications.map((notif) => (
                     <div key={notif._id} className={styles.notificationItem}>
                       <p className={styles.notifText}>
-                        <strong>{notif.action}</strong>
+                        <strong>{notif.title}</strong>
                         <br/>
-                        <span className={styles.notifUser}>by {notif.user || 'System'}</span>
+                        <span className={styles.notifUser}>{notif.message}</span>
                       </p>
                       <span className={styles.notifTime}>{formatTimeAgo(notif.createdAt)}</span>
                     </div>
                   ))
                 )}
-              </div>
-              <div className={styles.dropdownFooter} onClick={() => handleNavigation('/admin/logs')}>
-                 View all logs
               </div>
             </div>
           )}
@@ -164,8 +220,11 @@ const AdminNavbar = ({ onMenuClick }) => {
           <button 
             className={styles.profileBtn}
             onClick={() => setShowProfile(!showProfile)}
+            style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '0' }}
           >
-            <div className={styles.profileAvatar}>AD</div>
+            {/* ⚡ UPDATED: Renders Image or Initials */}
+            {renderProfileImage()}
+            
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -173,6 +232,10 @@ const AdminNavbar = ({ onMenuClick }) => {
 
           {showProfile && (
             <div className={styles.dropdown}>
+              <div className={styles.dropdownHeader} style={{padding: '10px 15px', borderBottom: '1px solid var(--border-color)'}}>
+                  <strong style={{display:'block', color: 'var(--text-primary)'}}>{user?.fullName || 'Admin'}</strong>
+                  <span style={{fontSize:'0.8rem', color: 'var(--text-secondary)'}}>{user?.email}</span>
+              </div>
               <div className={styles.dropdownContent}>
                 <button onClick={() => handleNavigation('/admin/profile')} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -184,15 +247,14 @@ const AdminNavbar = ({ onMenuClick }) => {
                 <button onClick={() => handleNavigation('/admin/settings')} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                   </svg>
                   Settings
                 </button>
                 <div className={styles.dropdownDivider}></div>
-                {/* Updated logout to clear storage */}
                 <button onClick={() => {
-                    sessionStorage.removeItem('user');
-                    localStorage.removeItem('user');
+                    sessionStorage.clear();
+                    localStorage.clear();
                     window.location.href = '/login';
                 }} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

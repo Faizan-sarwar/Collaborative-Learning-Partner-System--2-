@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import styles from './AdminSidebar.module.css';
 
@@ -14,6 +14,44 @@ const menuItems = [
 
 const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
   const location = useLocation();
+  
+  // 🔹 State for Dynamic User Info
+  const [user, setUser] = useState(null);
+  const [imgError, setImgError] = useState(false);
+
+  // 🔹 Load User Info on Mount
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  // 🔹 Helper: Render Sidebar Profile Image
+  const renderProfileImage = () => {
+    if (user && user._id && !imgError) {
+      return (
+        <img 
+          src={`http://localhost:5000/api/auth/student/${user._id}/picture`} 
+          alt="Admin"
+          onError={() => setImgError(true)}
+          style={{ 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: '50%', 
+            objectFit: 'cover',
+            border: '2px solid rgba(255,255,255,0.2)'
+          }}
+        />
+      );
+    }
+    // Fallback Initials
+    const initials = user?.fullName 
+      ? user.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() 
+      : 'AD';
+
+    return <div className={styles.adminAvatar}>{initials}</div>;
+  };
 
   const renderIcon = (iconName) => {
     const icons = {
@@ -110,13 +148,16 @@ const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
         ))}
       </nav>
 
+      {/* 🔹 FOOTER: Dynamic Admin Info */}
       <div className={styles.footer}>
         {!collapsed && (
           <div className={styles.adminInfo}>
-            <div className={styles.adminAvatar}>SA</div>
+            {renderProfileImage()}
             <div className={styles.adminDetails}>
-              <span className={styles.adminName}>Super Admin</span>
-              <span className={styles.adminRole}>Administrator</span>
+              <span className={styles.adminName}>{user?.fullName || 'Admin User'}</span>
+              <span className={styles.adminRole}>
+                {user?.role === 'super-admin' ? 'Super Administrator' : 'Administrator'}
+              </span>
             </div>
           </div>
         )}

@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import StudyGroup from '../models/StudyGroup.js';
 import ActivityLog from '../models/ActivityLog.js';
+import Settings from '../models/Settings.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -375,20 +376,6 @@ router.delete('/admin/students/:id', async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
-  try {
-    // ... (token verification) ...
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // 🔹 KEEP ALIVE
-    user.lastLogin = new Date();
-    user.isOnline = true; // Ensure True while browsing
-    await user.save();
-
-    res.json({ success: true, user: user.toSafeObject() });
-  } catch (err) { /* ... */ }
-});
 // ================= UPDATE PROFILE (With Photo) =================
 router.put('/profile', upload.single('profilePicture'), async (req, res) => {
   try {
@@ -469,26 +456,38 @@ router.get('/admin/dashboard', async (req, res) => {
   }
 });
 
-// ================= ADMIN STATS (REAL DATA) =================
+// ================= 2. ADMIN DASHBOARD STATS =================
 router.get('/admin/stats', async (req, res) => {
   try {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
     const [
-      totalStudents,
-      activeStudents,
-      blockedStudents,
-      newToday,
-      totalAdmins,
-      totalCourses
+        totalStudents, 
+        activeStudents, 
+        blockedStudents, 
+        newToday, 
+        totalCourses, 
+        totalAdmins
     ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ approved: true }),
-      User.countDocuments({ approved: false }),
-      User.countDocuments({ createdAt: { $gte: startOfToday } }),
-      User.countDocuments({ plan: { $in: ['pro', 'pro-trial'] } }), // or role === 'admin' if you add roles
-      StudyGroup.countDocuments()
+      // 1. Total Students
+      User.countDocuments({ role: 'student' }),
+
+      // 2. Active Students
+      User.countDocuments({ role: 'student', approved: true }),
+
+      // 3. Blocked Students
+      User.countDocuments({ role: 'student', approved: false }),
+
+      // 4. New Registrations Today
+      User.countDocuments({ role: 'student', createdAt: { $gte: startOfToday } }),
+
+      // 5. Total Courses
+      StudyGroup.countDocuments(),
+
+      // 6. Total Admins (STRICT FIX)
+      // Only count if role is EXACTLY 'admin' or 'super-admin'
+      User.countDocuments({ role: { $in: ['super-admin', 'admin'] } })
     ]);
 
     res.json({
@@ -499,15 +498,12 @@ router.get('/admin/stats', async (req, res) => {
         blockedStudents,
         newToday,
         totalCourses,
-        totalAdmins
+        totalAdmins // This should now return 1
       }
     });
   } catch (err) {
-    console.error('Admin stats error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch admin stats'
-    });
+    console.error("Stats Error:", err);
+    res.status(500).json({ success: false, message: 'Failed to fetch admin stats' });
   }
 });
 // ================= RECENT REGISTRATIONS =================
@@ -871,5 +867,146 @@ router.get('/matches/:userId', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+// ================= PLATFORM SETTINGS ROUTES =================
 
+// 1. GET SETTINGS
+router.get('/admin/settings', async (req, res) => {
+  try {
+    // Return the first settings document, or create default if none exists
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = await Settings.create({});
+    }
+    res.json({ success: true, settings });
+  } catch (err) {
+    console.error('Error fetching settings:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 2. UPDATE SETTINGS
+router.put('/admin/settings', async (req, res) => {
+  try {
+    const { 
+      platformName, logoUrl, supportEmail, 
+      allowRegistrations, maintenanceMode, sessionTimeout,
+      emailNotifications, welcomeEmail, adminAlerts,
+      autoBackup, dataRetention
+    } = req.body;
+
+    // Update or Create (upsert)
+    const settings = await Settings.findOneAndUpdate(
+      {}, // filter (empty matches first doc)
+      { 
+        platformName, logoUrl, supportEmail, 
+        allowRegistrations, maintenanceMode, sessionTimeout,
+        emailNotifications, welcomeEmail, adminAlerts,
+        autoBackup, dataRetention
+      }, 
+      { new: true, upsert: true } // Return new doc, create if missing
+    );
+
+    // 🔹 Log Activity
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+        // Optional: decode token to get admin name for log
+        // const decoded = jwt.verify(token, ...);
+        await ActivityLog.create({
+            action: 'Platform Settings Updated',
+            user: 'Admin', 
+            target: 'System',
+            status: 'success',
+            date: new Date()
+        });
+    }
+
+    res.json({ success: true, message: 'Settings updated successfully', settings });
+  } catch (err) {
+    console.error('Error updating settings:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+// ================= ANALYTICS CHART DATA =================
+router.get('/admin/analytics', async (req, res) => {
+  try {
+    // 1. Student Registrations (Last 7 Months)
+    const sevenMonthsAgo = new Date();
+    sevenMonthsAgo.setMonth(sevenMonthsAgo.getMonth() - 6);
+
+    const registrationStats = await User.aggregate([
+      { 
+        $match: { 
+          role: 'student',
+          createdAt: { $gte: sevenMonthsAgo }
+        } 
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 },
+          date: { $first: "$createdAt" } // Keep date to format month name
+        }
+      },
+      { $sort: { "date": 1 } }
+    ]);
+
+    // Format for Recharts (e.g., { month: 'Jan', students: 10 })
+    const formattedRegistrations = registrationStats.map(stat => ({
+      month: new Date(stat.date).toLocaleString('default', { month: 'short' }),
+      students: stat.count
+    }));
+
+    // 2. Course Engagement (Group by Course/Subject Name)
+    // Assuming 'StudyGroup' represents courses.
+    const courseStats = await StudyGroup.aggregate([
+      {
+        $project: {
+          name: "$name", // or "$subject" depending on your schema
+          enrolled: { $size: "$members" },
+          // Estimating completion as 70% of enrolled since completion data might not exist yet
+          completed: { $floor: { $multiply: [{ $size: "$members" }, 0.7] } }
+        }
+      },
+      { $limit: 5 } // Only top 5 courses
+    ]);
+
+    // 3. Student Status Distribution
+    const activeCount = await User.countDocuments({ role: 'student', approved: true });
+    const blockedCount = await User.countDocuments({ role: 'student', approved: false });
+    
+    // Logic: Inactive = Approved but hasn't logged in for 30 days
+    const inactiveDate = new Date();
+    inactiveDate.setDate(inactiveDate.getDate() - 30);
+    
+    const inactiveCount = await User.countDocuments({ 
+      role: 'student', 
+      approved: true, 
+      lastLogin: { $lt: inactiveDate } 
+    });
+
+    // "Active" in chart means "Approved AND Logged in recently"
+    const reallyActiveCount = activeCount - inactiveCount;
+
+    const studentStatusData = [
+      { name: 'Active', value: reallyActiveCount > 0 ? reallyActiveCount : 0, color: '#10B981' },
+      { name: 'Inactive', value: inactiveCount, color: '#F59E0B' },
+      { name: 'Blocked', value: blockedCount, color: '#EF4444' }
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        registrations: formattedRegistrations,
+        courses: courseStats,
+        status: studentStatusData
+      }
+    });
+
+  } catch (err) {
+    console.error('Analytics Error:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
 export default router;
