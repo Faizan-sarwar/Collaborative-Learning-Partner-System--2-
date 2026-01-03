@@ -68,7 +68,7 @@ const Navbar = () => {
 
         <div className={styles.navActions}>
           <Link to="/login" className={styles.loginBtn}>Login</Link>
-          <button className={styles.getStartedBtn}>Sign Up</button>
+          <Link to="/signup" className={styles.getStartedBtn}>Sign Up</Link>
         </div>
 
         <button

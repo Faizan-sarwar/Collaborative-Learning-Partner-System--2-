@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import StudyGroup from '../models/StudyGroup.js';
+import Notification from '../models/Notifications.js';
 import ActivityLog from '../models/ActivityLog.js';
 import Settings from '../models/Settings.js';
 import multer from 'multer';
@@ -265,7 +266,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-  
+
 // ================= LOGOUT ROUTE (Sets User Offline) =================
 router.post('/logout', async (req, res) => {
   try {
@@ -463,12 +464,12 @@ router.get('/admin/stats', async (req, res) => {
     startOfToday.setHours(0, 0, 0, 0);
 
     const [
-        totalStudents, 
-        activeStudents, 
-        blockedStudents, 
-        newToday, 
-        totalCourses, 
-        totalAdmins
+      totalStudents,
+      activeStudents,
+      blockedStudents,
+      newToday,
+      totalCourses,
+      totalAdmins
     ] = await Promise.all([
       // 1. Total Students
       User.countDocuments({ role: 'student' }),
@@ -843,30 +844,86 @@ router.get('/student/:id/picture', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-// ================= MATCHES ROUTE =================
+// ================= GET STUDY MATCHES (With Dynamic Status) =================
 router.get('/matches/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ success: false, message: 'Invalid ID' });
 
+    // 1. Fetch current user to check their connections
     const currentUser = await User.findById(userId);
-    if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const query = {
+    // 2. Find candidates
+    const candidates = await User.find({ 
       _id: { $ne: userId },
-      role: 'student',
-      $or: [
-        { academicStrengths: { $in: currentUser.subjectsOfDifficulty } },
-        { subjectsOfDifficulty: { $in: currentUser.academicStrengths } }
-      ]
-    };
+      role: { $nin: ['super-admin', 'admin'] }
+    }).select('-password').limit(50);
 
-    const candidates = await User.find(query).limit(20);
-    res.json({ success: true, matches: candidates.map(user => user.toSafeObject()) });
+    // 3. Format & Calculate Status
+    const formattedCandidates = candidates.map(user => {
+      let status = 'none';
+      
+      // Check arrays to determine status
+      if (currentUser.connections.includes(user._id)) status = 'connected';
+      else if (currentUser.sentRequests.includes(user._id)) status = 'pending';
+      else if (currentUser.receivedRequests.includes(user._id)) status = 'received';
+
+      return {
+        id: user._id,
+        fullName: user.fullName,
+        rollNumber: user.rollNumber,
+        department: user.department || 'General',
+        semester: user.semester || '1',
+        studyStyle: user.studyStyle || 'Individual',
+        academicStrengths: user.academicStrengths || [],
+        level: user.level || 1,
+        xp: user.xp || 0,
+        studyHours: user.studyHours || 0,
+        plan: user.plan || 'free',
+        availability: user.availability || 'Flexible',
+        reliability: 85,
+        connectionStatus: status // 👈 DYNAMIC STATUS
+      };
+    });
+
+    res.json({ success: true, matches: formattedCandidates });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// ================= SEND CONNECTION REQUEST =================
+router.post('/connect/:targetId', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const senderId = decoded.id;
+    const { targetId } = req.params;
+
+    if (senderId === targetId) return res.status(400).json({ message: 'Cannot connect to self' });
+
+    // Update Sender
+    await User.findByIdAndUpdate(senderId, { $addToSet: { sentRequests: targetId } });
+    
+    // Update Receiver
+    await User.findByIdAndUpdate(targetId, { $addToSet: { receivedRequests: senderId } });
+
+    // Log Activity
+    await ActivityLog.create({
+        action: 'Connection Request Sent',
+        user: senderId, // Should store name ideally, but ID works for logic
+        target: targetId,
+        status: 'success'
+    });
+
+    res.json({ success: true, message: 'Request sent' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); 
 // ================= PLATFORM SETTINGS ROUTES =================
 
 // 1. GET SETTINGS
@@ -887,8 +944,8 @@ router.get('/admin/settings', async (req, res) => {
 // 2. UPDATE SETTINGS
 router.put('/admin/settings', async (req, res) => {
   try {
-    const { 
-      platformName, logoUrl, supportEmail, 
+    const {
+      platformName, logoUrl, supportEmail,
       allowRegistrations, maintenanceMode, sessionTimeout,
       emailNotifications, welcomeEmail, adminAlerts,
       autoBackup, dataRetention
@@ -897,27 +954,27 @@ router.put('/admin/settings', async (req, res) => {
     // Update or Create (upsert)
     const settings = await Settings.findOneAndUpdate(
       {}, // filter (empty matches first doc)
-      { 
-        platformName, logoUrl, supportEmail, 
+      {
+        platformName, logoUrl, supportEmail,
         allowRegistrations, maintenanceMode, sessionTimeout,
         emailNotifications, welcomeEmail, adminAlerts,
         autoBackup, dataRetention
-      }, 
+      },
       { new: true, upsert: true } // Return new doc, create if missing
     );
 
     // 🔹 Log Activity
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
-        // Optional: decode token to get admin name for log
-        // const decoded = jwt.verify(token, ...);
-        await ActivityLog.create({
-            action: 'Platform Settings Updated',
-            user: 'Admin', 
-            target: 'System',
-            status: 'success',
-            date: new Date()
-        });
+      // Optional: decode token to get admin name for log
+      // const decoded = jwt.verify(token, ...);
+      await ActivityLog.create({
+        action: 'Platform Settings Updated',
+        user: 'Admin',
+        target: 'System',
+        status: 'success',
+        date: new Date()
+      });
     }
 
     res.json({ success: true, message: 'Settings updated successfully', settings });
@@ -936,11 +993,11 @@ router.get('/admin/analytics', async (req, res) => {
     sevenMonthsAgo.setMonth(sevenMonthsAgo.getMonth() - 6);
 
     const registrationStats = await User.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           role: 'student',
           createdAt: { $gte: sevenMonthsAgo }
-        } 
+        }
       },
       {
         $group: {
@@ -975,15 +1032,15 @@ router.get('/admin/analytics', async (req, res) => {
     // 3. Student Status Distribution
     const activeCount = await User.countDocuments({ role: 'student', approved: true });
     const blockedCount = await User.countDocuments({ role: 'student', approved: false });
-    
+
     // Logic: Inactive = Approved but hasn't logged in for 30 days
     const inactiveDate = new Date();
     inactiveDate.setDate(inactiveDate.getDate() - 30);
-    
-    const inactiveCount = await User.countDocuments({ 
-      role: 'student', 
-      approved: true, 
-      lastLogin: { $lt: inactiveDate } 
+
+    const inactiveCount = await User.countDocuments({
+      role: 'student',
+      approved: true,
+      lastLogin: { $lt: inactiveDate }
     });
 
     // "Active" in chart means "Approved AND Logged in recently"
@@ -1006,6 +1063,43 @@ router.get('/admin/analytics', async (req, res) => {
 
   } catch (err) {
     console.error('Analytics Error:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+router.get('/admin/notifications', async (req, res) => {
+  try {
+    const notifications = await Notification.find()
+      .sort({ createdAt: -1 })
+      .limit(10);
+    res.json({ success: true, notifications });
+  } catch (err) {
+    console.error("Notification Fetch Error:", err);
+    res.status(500).json({ success: false, message: 'Failed to fetch notifications' });
+  }
+});
+// ================= GET PUBLIC PROFILE (Single User) =================
+router.get('/public-profile/:id', async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    
+    // Check if ID is valid MongoDB Object ID
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ID format' });
+    }
+
+    // Fetch user
+    const targetUser = await User.findById(targetUserId).select('-password');
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check connection status logic (same as before)...
+    // ...
+
+    res.json({ success: true, user: targetUser.toSafeObject() }); // Simplify for testing if needed
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 });

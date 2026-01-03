@@ -63,28 +63,33 @@ const AdminNavbar = ({ onMenuClick }) => {
     return date.toLocaleDateString();
   };
 
-  // 🔹 Fetch Notifications Logic
+  // 🔹 Fetch Notifications Logic (FIXED & ROBUST)
   const fetchNotifications = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/auth/admin/notifications');
       const data = await res.json();
 
-      if (data.success && Array.isArray(data.notifications) && data.notifications.length > 0) {
-        const latestNotif = data.notifications[0];
-
-        // CHECK IF NEW NOTIFICATION ARRIVED
-        if (lastNotificationId.current && lastNotificationId.current !== latestNotif._id) {
-          audioRef.current.play().catch(e => console.log("Audio play blocked"));
-          setUnreadCount(prev => prev + 1); 
-        }
-
-        if (!lastNotificationId.current) {
-            lastNotificationId.current = latestNotif._id;
-        } else {
-            lastNotificationId.current = latestNotif._id;
-        }
-
+      if (data.success && Array.isArray(data.notifications)) {
+        // 1. Always update the list, even if empty
         setNotifications(data.notifications);
+
+        // 2. Handle Sound & Badge if there is data
+        if (data.notifications.length > 0) {
+            const latestNotif = data.notifications[0];
+
+            // If we have a tracked ID and it's different => New Notification!
+            if (lastNotificationId.current && lastNotificationId.current !== latestNotif._id) {
+                // Play Sound
+                audioRef.current.currentTime = 0;
+                audioRef.current.play().catch(() => console.log("Audio blocked: User interaction required"));
+                
+                // Increment Badge
+                setUnreadCount(prev => prev + 1);
+            }
+
+            // Update tracker
+            lastNotificationId.current = latestNotif._id;
+        }
       }
     } catch (err) {
       console.error("Failed to fetch notifications", err);
@@ -93,8 +98,8 @@ const AdminNavbar = ({ onMenuClick }) => {
 
   // 🔹 Polling (Every 5 seconds)
   useEffect(() => {
-    fetchNotifications(); 
-    const interval = setInterval(fetchNotifications, 5000); 
+    fetchNotifications(); // Run immediately on mount
+    const interval = setInterval(fetchNotifications, 5000); // Run every 5s
     return () => clearInterval(interval);
   }, []);
 
@@ -107,45 +112,30 @@ const AdminNavbar = ({ onMenuClick }) => {
 
   // 🔹 Profile Picture Helper
   const renderProfileImage = () => {
-    // 1. Image found (and no error loading it)
     if (user && user._id && !imgError) {
       return (
         <div style={{
-            width: '32px', 
-            height: '32px', 
-            minWidth: '32px', // Prevent shrinking
-            borderRadius: '50%', 
-            overflow: 'hidden',
-            marginRight: '8px',
+            width: '32px', height: '32px', minWidth: '32px', 
+            borderRadius: '50%', overflow: 'hidden', marginRight: '8px',
             border: '1px solid var(--border-color)'
         }}>
             <img 
               src={`http://localhost:5000/api/auth/student/${user._id}/picture`} 
               alt="Admin"
               onError={() => setImgError(true)}
-              style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'cover', // Ensures image fills circle without stretching
-                  display: 'block'
-              }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
         </div>
       );
     }
-
-    // 2. Fallback: Initials Circle
     const initials = user?.fullName 
       ? user.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() 
       : 'AD';
       
     return (
         <div className={styles.profileAvatar} style={{
-            width: '32px', 
-            height: '32px', 
-            minWidth: '32px',
-            fontSize: '12px',
-            marginRight: '8px'
+            width: '32px', height: '32px', minWidth: '32px',
+            fontSize: '12px', marginRight: '8px'
         }}>
             {initials}
         </div>
@@ -178,10 +168,7 @@ const AdminNavbar = ({ onMenuClick }) => {
 
         {/* 🔔 Notification Bell */}
         <div className={styles.notificationWrapper}>
-          <button 
-            className={styles.iconBtn}
-            onClick={handleToggleNotifications}
-          >
+          <button className={styles.iconBtn} onClick={handleToggleNotifications}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -222,9 +209,7 @@ const AdminNavbar = ({ onMenuClick }) => {
             onClick={() => setShowProfile(!showProfile)}
             style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '0' }}
           >
-            {/* ⚡ UPDATED: Renders Image or Initials */}
             {renderProfileImage()}
-            
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -247,14 +232,16 @@ const AdminNavbar = ({ onMenuClick }) => {
                 <button onClick={() => handleNavigation('/admin/settings')} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                   </svg>
                   Settings
                 </button>
                 <div className={styles.dropdownDivider}></div>
                 <button onClick={() => {
-                    sessionStorage.clear();
-                    localStorage.clear();
+                    sessionStorage.removeItem('user');
+                    sessionStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('token');
                     window.location.href = '/login';
                 }} className={styles.dropdownItem}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

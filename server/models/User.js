@@ -123,6 +123,9 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   isOnline: { type: Boolean, default: false },
+  connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  receivedRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, {
   timestamps: true
 });

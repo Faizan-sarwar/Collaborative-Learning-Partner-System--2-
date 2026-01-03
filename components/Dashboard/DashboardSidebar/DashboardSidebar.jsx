@@ -7,7 +7,10 @@ const navItems = [
   { id: 'dashboard', icon: 'grid', label: 'Dashboard', path: '/dashboard' },
   { id: 'study-time', icon: 'clock', label: 'Study Time', path: '/study-time' },
   { id: 'courses', icon: 'book', label: 'Courses', path: '/courses' },
+  { id: 'study-matches', icon: 'match', label: 'Study Matches', path: '/study-matches' },
+  { id: 'messages', icon: 'message', label: 'Messages', path: '/messages' },
   { id: 'social', icon: 'users', label: 'Social', path: '/social' },
+  { id: 'gamification', icon: 'trophy', label: 'Gamification', path: '/gamification' },
   { id: 'analytics', icon: 'chart', label: 'Analytics', path: '/analytics' },
 ];
 
@@ -59,6 +62,29 @@ const DashboardSidebar = () => {
           <path d="M6 20v-6" />
         </svg>
       ),
+      match: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <line x1="20" y1="8" x2="20" y2="14" />
+          <line x1="23" y1="11" x2="17" y2="11" />
+        </svg>
+      ),
+      message: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+      trophy: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+          <path d="M4 22h16" />
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+        </svg>
+      ),
     };
     return icons[iconName] || null;
   };
@@ -79,7 +105,7 @@ const DashboardSidebar = () => {
               </defs>
             </svg>
           </div>
-          <span className={styles.logoText}>CLPS</span>
+          <span className={styles.logoText}>AcademyNC</span>
         </div>
       </div>
 

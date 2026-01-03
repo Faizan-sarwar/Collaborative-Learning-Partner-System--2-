@@ -4,8 +4,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import auth from '../server/routes/auth.js';
 import StudyGroup from '../server/models/StudyGroup.js';
-import ActivityLog from '../server/models/ActivityLog.js'; // <--- Added Import
-import User from '../server/models/User.js'; // <--- Added Import
+import ActivityLog from '../server/models/ActivityLog.js';
+import ChatRoutes from '../server/routes/chat.js';
+import User from '../server/models/User.js';
 import activityLogsRoutes from '../server/routes/activitylogs.js';
 
 
@@ -32,6 +33,7 @@ mongoose.connect(MONGO_URI)
 // Routes
 app.use('/api/auth', auth);
 app.use('/api/activity-logs', activityLogsRoutes);
+app.use('/api/chat', ChatRoutes);
 
 app.get('/', (req, res) => {
   res.json({

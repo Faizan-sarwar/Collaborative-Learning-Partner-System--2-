@@ -165,9 +165,9 @@ const Courses = () => {
             <h1 className={styles.title}>My Courses</h1>
             <p className={styles.subtitle}>Manage and track your course progress</p>
           </div>
-          <button className={styles.addBtn} onClick={() => openModal('add')}>
+          {/* <button className={styles.addBtn} onClick={() => openModal('add')}>
             <span>+</span> Add New Course
-          </button>
+          </button> */}
         </motion.div>
 
         <motion.div className={styles.stats} variants={itemVariants}>

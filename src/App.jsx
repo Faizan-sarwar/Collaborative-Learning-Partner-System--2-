@@ -15,7 +15,14 @@ import Help from "../pages/Help/Help";
 import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
 import PageTransition from "../components/PageTransition/PageTransition";
 import NotFound from "../pages/NotFound";
-import ProtectedRoute from "../pages/ProtectedRoutes"; 
+import ProtectedRoute from "../pages/ProtectedRoutes";
+import StudyRoom from "../pages/StudyRoom/StudyRoom";
+import UserProfile from "../pages/UserProfile/UserProfile";
+import Messages from "../pages/Messages/Messages";
+import Quiz from "../pages/Quiz/Quiz";
+import Gamification from "../pages/Gamification/Gamification";
+import Refer from "../pages/Refer/Refer";
+import StudyMatches from "../pages/StudyMatches/StudyMatches";
 import "./App.css";
 
 // Admin imports
@@ -39,7 +46,7 @@ const AnimatedRoutes = () => {
   // This runs once when the app loads (refresh or new tab) to update "Last Active" time in DB
   useEffect(() => {
     const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-    
+
     if (token) {
       fetch('http://localhost:5000/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -69,6 +76,15 @@ const AnimatedRoutes = () => {
             <Route path="/social" element={<Social />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/study-room" element={<StudyRoom />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/quiz" element={<Quiz />} />
+            <Route path="/gamification" element={<Gamification />} />
+            <Route path="/refer" element={<Refer />} />
+            <Route path="/study-matches" element={<StudyMatches />} />
+            <Route path="/user-profile/:userId" element={<UserProfile />} />
+            <Route path="/messages" element={<Messages />} />
           </Route>
 
           {/* ================= ADMIN ROUTES (Protected) ================= */}
