@@ -7,8 +7,9 @@ import StudyGroup from '../server/models/StudyGroup.js';
 import ActivityLog from '../server/models/ActivityLog.js';
 import ChatRoutes from '../server/routes/chat.js';
 import User from '../server/models/User.js';
+import gamificationRoutes from '../server/routes/gamification.js';
 import activityLogsRoutes from '../server/routes/activitylogs.js';
-
+import notificationRoutes from '../server/routes/notification.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,8 @@ mongoose.connect(MONGO_URI)
 app.use('/api/auth', auth);
 app.use('/api/activity-logs', activityLogsRoutes);
 app.use('/api/chat', ChatRoutes);
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.json({

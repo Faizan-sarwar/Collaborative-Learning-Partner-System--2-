@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
     data: Buffer,
     contentType: String
   },
+  gender: { type: String, enum: ['Male', 'Female'], required: true },
   department: {
     type: String,
     required: [true, 'Department is required'],
@@ -50,6 +51,9 @@ const userSchema = new mongoose.Schema({
       message: 'Semester must be between 1 and 8'
     }
   },
+  bio: { type: String },
+  availability: { type: String },
+  phone: { type: String },
   academicStrengths: {
     type: [String],
     default: []
@@ -126,9 +130,33 @@ const userSchema = new mongoose.Schema({
   connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   receivedRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-}, {
-  timestamps: true
-});
+  
+// Gamification Fields
+  xp: { type: Number, default: 0 },
+  level: { type: Number, default: 1 },
+  streak: { type: Number, default: 0 },
+  lastLogin: { type: Date, default: Date.now },
+  achievements: [{ type: Number }],
+
+  settings: {
+    notifications: {
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      studyReminders: { type: Boolean, default: true },
+      showAvatar: { type: Boolean, default: true },
+      messages: { type: Boolean, default: true }
+    },
+    privacy: {
+      showProfile: { type: Boolean, default: true },
+      showActivity: { type: Boolean, default: true }
+    },
+    theme: { type: String, default: 'dark' },
+    language: { type: String, default: 'en' }
+  }
+},
+  {
+    timestamps: true
+  });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -154,4 +182,35 @@ userSchema.methods.toSafeObject = function () {
   return obj;
 };
 
+//Centralized XP Logic
+userSchema.methods.awardXP = async function (amount) {
+  this.xp += amount;
+
+  // Level Thresholds (Must match your Frontend 'levels' array)
+  const levels = [
+    { level: 1, xp: 0 },
+    { level: 2, xp: 200 },
+    { level: 3, xp: 500 },
+    { level: 4, xp: 1000 },
+    { level: 5, xp: 2000 },
+    { level: 6, xp: 4000 },
+    { level: 7, xp: 8000 }
+  ];
+
+
+  let newLevel = this.level;
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (this.xp >= levels[i].xp) {
+      newLevel = levels[i].level;
+      break;
+    }
+  }
+
+  if (newLevel > this.level) {
+    this.level = newLevel;
+  }
+
+  await this.save();
+  return { xp: this.xp, level: this.level, added: amount };
+};
 export default mongoose.model('User', userSchema);

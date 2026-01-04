@@ -63,24 +63,37 @@
   flex-direction: column;
   align-items: center;
   padding: 2rem 1.5rem;
+  margin-bottom: 2rem;
   background: var(--card-header-bg);
   border-bottom: 1px solid var(--border-color);
 }
 
 .avatar {
-  width: 100px;
-  height: 100px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 2rem;
+  font-size: 0.9rem;
   color: white;
   margin-bottom: 1rem;
 }
-
+.avatarImg {
+  width: 102px;
+  height: 102px;
+  border-radius: 50%;
+  object-fit: cover; /* Prevents image stretching */
+  margin-bottom: 1rem;
+  border: 2px solid #374151;
+  display: block;
+}
 .userName {
   font-size: 1.35rem;
   font-weight: 600;
@@ -239,10 +252,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+  margin: 1rem 1rem;
 }
 
 .infoSection h4 {
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 1rem;
@@ -346,7 +360,11 @@
   flex-direction: column;
   align-items: center;
   padding: 1.5rem 1rem;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   border-radius: 10px;
   text-align: center;
 }

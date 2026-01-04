@@ -1,67 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Connections.module.css';
 
-// Mock data for connections
-const mockConnections = [
-  {
-    id: '1',
-    name: 'Priya Patel',
-    institution: 'Delhi University',
-    department: 'Computer Science',
-    isFavorite: true,
-  },
-  {
-    id: '2',
-    name: 'Aryan Sharma',
-    institution: 'IIT Bombay',
-    department: 'Electronics Engineering',
-    isFavorite: false,
-  },
-  {
-    id: '3',
-    name: 'Sneha Gupta',
-    institution: 'BITS Pilani',
-    department: 'Mathematics',
-    isFavorite: false,
-  },
-];
-
 const Connections = () => {
   const navigate = useNavigate();
-  const [connections, setConnections] = useState(mockConnections);
+  const [connections, setConnections] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const totalConnections = connections.length;
-  const totalFavorites = connections.filter(c => c.isFavorite).length;
+  // 🔹 FETCH REAL CONNECTIONS
+  useEffect(() => {
+    const fetchConnections = async () => {
+      try {
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/auth/connections', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          // Add an 'isFavorite' property locally for UI interaction if backend doesn't have it
+          const formatted = data.connections.map(c => ({ ...c, isFavorite: false }));
+          setConnections(formatted);
+        }
+      } catch (err) {
+        console.error("Failed to load connections", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredConnections = connections.filter(conn =>
-    conn.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conn.institution.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    fetchConnections();
+  }, []);
 
   const getInitials = (name) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
+  };
+
+  // 🔹 REMOVE CONNECTION
+  const removeConnection = async (id) => {
+    if (!window.confirm("Are you sure you want to remove this connection?")) return;
+
+    try {
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/api/auth/connections/${id}/remove`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setConnections(prev => prev.filter(conn => conn._id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to remove connection", err);
+    }
   };
 
   const toggleFavorite = (id) => {
     setConnections(prev =>
       prev.map(conn =>
-        conn.id === id ? { ...conn, isFavorite: !conn.isFavorite } : conn
+        conn._id === id ? { ...conn, isFavorite: !conn.isFavorite } : conn
       )
     );
   };
 
-  const removeConnection = (id) => {
-    setConnections(prev => prev.filter(conn => conn.id !== id));
-  };
+  // Filter Logic
+  const filteredConnections = connections.filter(conn =>
+    conn.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (conn.department && conn.department.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const totalConnections = connections.length;
+  const totalFavorites = connections.filter(c => c.isFavorite).length;
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } }
   };
+
+  if (loading) return <DashboardLayout title="Your Connections"><div style={{padding:'20px'}}>Loading connections...</div></DashboardLayout>;
 
   return (
     <DashboardLayout title="Your Connections">
@@ -134,7 +153,7 @@ const Connections = () => {
           </svg>
           <input
             type="text"
-            placeholder="Search connections by name or institution..."
+            placeholder="Search connections by name or department..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
@@ -152,7 +171,7 @@ const Connections = () => {
             <div className={styles.connectionsGrid}>
               {filteredConnections.map(conn => (
                 <motion.div
-                  key={conn.id}
+                  key={conn._id}
                   className={styles.connectionCard}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -160,17 +179,22 @@ const Connections = () => {
                 >
                   <div className={styles.cardHeader}>
                     <div className={styles.avatar}>
-                      {getInitials(conn.name)}
+                        <img 
+                            src={`http://localhost:5000/api/auth/student/${conn._id}/picture`} 
+                            onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${conn.fullName}`}
+                            alt={conn.fullName} 
+                            style={{width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover'}}
+                        />
                     </div>
                     <div className={styles.userInfo}>
-                      <h3 className={styles.userName}>{conn.name}</h3>
-                      <p className={styles.userDetails}>{conn.institution} • {conn.department}</p>
+                      <h3 className={styles.userName}>{conn.fullName}</h3>
+                      <p className={styles.userDetails}>{conn.department}</p>
                     </div>
                   </div>
                   <div className={styles.cardActions}>
                     <button
                       className={styles.profileBtn}
-                      onClick={() => navigate(`/user-profile/${conn.id}`)}
+                      onClick={() => navigate(`/user-profile/${conn._id}`)}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -191,7 +215,7 @@ const Connections = () => {
                   <div className={styles.cardFooter}>
                     <button
                       className={`${styles.favoriteBtn} ${conn.isFavorite ? styles.favorited : ''}`}
-                      onClick={() => toggleFavorite(conn.id)}
+                      onClick={() => toggleFavorite(conn._id)}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill={conn.isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -200,7 +224,7 @@ const Connections = () => {
                     </button>
                     <button
                       className={styles.removeBtn}
-                      onClick={() => removeConnection(conn.id)}
+                      onClick={() => removeConnection(conn._id)}
                       title="Remove connection"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

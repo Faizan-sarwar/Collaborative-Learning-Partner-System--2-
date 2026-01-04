@@ -5,7 +5,6 @@ import DashboardLayout from '../../components/Dashboard/DashboardLayout/Dashboar
 import styles from './UserProfile.module.css';
 
 const UserProfile = () => {
-  // 🔹 FIX: Ensure parameter matches route definition in App.jsx
   const { userId } = useParams(); 
   const navigate = useNavigate();
   
@@ -22,7 +21,6 @@ const UserProfile = () => {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         if (!token) { navigate('/login'); return; }
 
-        // Use the ID from the URL
         const res = await fetch(`http://localhost:5000/api/auth/public-profile/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -50,7 +48,6 @@ const UserProfile = () => {
     try {
       const token = sessionStorage.getItem('token') || localStorage.getItem('token');
       
-      // Optimistic Update (Immediate UI Feedback)
       setUser(prev => ({ ...prev, connectionStatus: 'pending' }));
 
       const res = await fetch(`http://localhost:5000/api/auth/connect/${user._id || user.id}`, {
@@ -64,7 +61,6 @@ const UserProfile = () => {
       const data = await res.json();
       if (!data.success) {
         alert(data.message);
-        // Revert if failed
         setUser(prev => ({ ...prev, connectionStatus: 'none' }));
       }
     } catch (err) {
@@ -76,11 +72,9 @@ const UserProfile = () => {
 
   // 🔹 3. HANDLE CANCEL
   const handleCancelRequest = () => {
-    // For now, just UI update. You can add a cancel endpoint later.
     setUser(prev => ({ ...prev, connectionStatus: 'none' }));
   };
 
-  // Helpers
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
   const maskEmail = (email) => {
     if (!email) return 'Hidden';
@@ -88,50 +82,38 @@ const UserProfile = () => {
     return username.substring(0, 2) + '***@' + domain;
   };
 
+  // 🔹 4. FIXED AVATAR RENDERER
   const renderAvatar = () => {
     if (user && (user._id || user.id) && !imgError) {
       return (
-        <img 
-          src={`http://localhost:5000/api/auth/student/${user._id || user.id}/picture`}
-          alt={user.fullName}
-          className={styles.avatarImg}
-          onError={() => setImgError(true)}
-        />
+        <div className={styles.avatarContainer}>
+            <img 
+            src={`http://localhost:5000/api/auth/student/${user._id || user.id}/picture`}
+            alt={user.fullName}
+            className={styles.avatarImg}
+            onError={() => setImgError(true)}
+            />
+        </div>
       );
     }
     return <div className={styles.avatar}>{getInitials(user.fullName)}</div>;
   };
 
   const tabs = [
-    { id: 'about', label: 'About' },
-    { id: 'academic', label: 'Academic' },
-    { id: 'skills', label: 'Skills' },
-    { id: 'schedule', label: 'Schedule' }
+    { id: 'about', label: 'About', icon: '👤' },
+    { id: 'academic', label: 'Academic', icon: '📚' },
+    { id: 'skills', label: 'Skills', icon: '🎖️' },
+    { id: 'schedule', label: 'Schedule', icon: '📅' }
   ];
 
   const getConnectionButton = () => {
     switch(user?.connectionStatus) {
       case 'connected':
-        return (
-          <button className={styles.connectedBtn}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20,6 9,17 4,12"></polyline></svg>
-            Connected
-          </button>
-        );
+        return <button className={styles.connectedBtn}>✓ Connected</button>;
       case 'pending':
-        return (
-          <button className={styles.cancelBtn} onClick={handleCancelRequest}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            Cancel Request
-          </button>
-        );
+        return <button className={styles.cancelBtn} onClick={handleCancelRequest}>Cancel Request</button>;
       default:
-        return (
-          <button className={styles.connectBtn} onClick={handleConnect}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-            Send Request
-          </button>
-        );
+        return <button className={styles.connectBtn} onClick={handleConnect}>+ Send Request</button>;
     }
   };
 
@@ -162,7 +144,7 @@ const UserProfile = () => {
               <div className={styles.tabsList}>
                 {tabs.map(tab => (
                   <button key={tab.id} className={`${styles.tabBtn} ${activeTab === tab.id ? styles.active : ''}`} onClick={() => setActiveTab(tab.id)}>
-                    {tab.label}
+                    <span className={styles.tabIcon}>{tab.icon}</span> {tab.label}
                   </button>
                 ))}
               </div>
@@ -185,10 +167,12 @@ const UserProfile = () => {
                         <h4>Personal Details</h4>
                         <div className={styles.infoList}>
                             <div className={styles.infoItem}>
-                                <div><span className={styles.infoLabel}>Full Name</span><span className={styles.infoValue}>{user.fullName}</span></div>
+                                <div className={styles.infoLabel}>Full Name</div>
+                                <div className={styles.infoValue}>{user.fullName}</div>
                             </div>
                             <div className={styles.infoItem}>
-                                <div><span className={styles.infoLabel}>Roll Number</span><span className={styles.infoValue}>{user.rollNumber}</span></div>
+                                <div className={styles.infoLabel}>Roll Number</div>
+                                <div className={styles.infoValue}>{user.rollNumber}</div>
                             </div>
                         </div>
                     </div>
@@ -205,7 +189,7 @@ const UserProfile = () => {
                           <span className={styles.academicLabel}>Semester</span>
                           <span className={styles.academicValue}>Semester {user.semester}</span>
                       </div>
-                      <div className={styles.statsGrid} style={{ gridColumn: '1 / -1', marginTop: '20px' }}>
+                      <div className={styles.statsGrid}>
                           <div className={styles.statBox}><span className={styles.statNumber}>{user.level || 1}</span><span className={styles.statTitle}>Level</span></div>
                           <div className={styles.statBox}><span className={styles.statNumber}>{user.xp || 0}</span><span className={styles.statTitle}>XP</span></div>
                           <div className={styles.statBox}><span className={styles.statNumber}>{user.studyHours || 0}h</span><span className={styles.statTitle}>Hours</span></div>
@@ -233,7 +217,7 @@ const UserProfile = () => {
               {activeTab === 'schedule' && (
                   <div className={styles.scheduleCard}>
                       <h4>Available Times</h4>
-                      <p>{user.availability || 'No schedule set'}</p>
+                      <p className={styles.availabilityText}>{user.availability || 'No schedule set'}</p>
                   </div>
               )}
             </div>

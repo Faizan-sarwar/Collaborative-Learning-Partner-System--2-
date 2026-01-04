@@ -297,14 +297,19 @@
 
 .lockedAvatar {
   filter: grayscale(100%) blur(2px);
-  opacity: 0.35;
+  opacity: 0.85;
 }
 
 .levelItem.unlocked .levelAvatar,
 .levelItem.current .levelAvatar {
   border-color: var(--border-glow);
 }
-
+.levelAvatarContainer > img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 .genderLabel {
   font-size: 0.7rem;
   color: var(--text-tertiary);

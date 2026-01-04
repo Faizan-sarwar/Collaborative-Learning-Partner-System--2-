@@ -4,9 +4,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import StudyGroup from '../models/StudyGroup.js';
-import Notification from '../models/Notifications.js';
 import ActivityLog from '../models/ActivityLog.js';
 import Settings from '../models/Settings.js';
+import Notification from '../models/Notifications.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -132,7 +132,7 @@ const validateSignupData = (data) => {
 router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
     const {
-      fullName, email, password, rollNumber, department, semester,
+      fullName, email, password, rollNumber, gender, department, semester,
       academicStrengths, subjectsOfDifficulty, studyStyle, availability
     } = req.body;
 
@@ -153,8 +153,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     try { parsedStrengths = JSON.parse(academicStrengths); } catch { }
     try { parsedDifficulties = JSON.parse(subjectsOfDifficulty); } catch { }
 
-    // 🔹 DETERMINE ROLE
-    // Only 'faizan@admin.com' becomes 'super-admin'. Everyone else is 'student'.
+    //  DETERMINE ROLE
     let role = 'student';
     if (email.toLowerCase().trim() === 'faizan@admin.com') {
       role = 'super-admin';
@@ -165,6 +164,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       email: email.toLowerCase().trim(),
       password,
       rollNumber: rollNumber.trim(),
+      gender,
       department,
       semester,
       academicStrengths: parsedStrengths,
@@ -206,63 +206,63 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 });
+
+//  LOGIN ROUTE (With Daily Login Streak & XP)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Basic Validation
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password required' });
+    // 1. Find User (Select password to compare)
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Find User
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    // 2. 🔹 CALCULATE LOGIN STREAK & XP
+    const today = new Date();
+    const lastLogin = new Date(user.lastLogin);
+
+    // Reset hours to compare dates only (ignore time)
+    const isSameDay = today.toDateString() === lastLogin.toDateString();
+
+    // Check if last login was yesterday (for streak)
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = yesterday.toDateString() === lastLogin.toDateString();
+
+    let xpMessage = '';
+
+    if (!isSameDay) {
+      if (isYesterday) {
+        // Continuation of streak
+        user.streak += 1;
+      } else {
+        // Broken streak
+        user.streak = 1;
+      }
+
+      // Calculate XP: 10 base + 10 per streak day (Capped at 50)
+      const streakBonus = Math.min(10 + (user.streak * 10), 50);
+      await user.awardXP(streakBonus);
+      xpMessage = `Daily Login! +${streakBonus} XP (Streak: ${user.streak})`;
+
+      user.lastLogin = Date.now();
+      await user.save();
     }
 
-    // Check Password
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
-    }
+    // 3. Generate Token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_fallback_secret_key', // Added fallback here
+      { expiresIn: '30d' });
 
-    // Check if Blocked
-    if (user.approved === false) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are blocked or disabled. Contact admin.'
-      });
-    }
-
-    // Generate Token
-    const token = generateToken(user._id);
-
-    // 1. UPDATE USER STATUS
-    user.lastLogin = new Date();
-    user.isOnline = true;
-    await user.save();
-
-    // 2. 🔹 CREATE ACTIVITY LOG
-    await ActivityLog.create({
-      user: user.fullName,
-      action: `User Logged In`,
-      target: 'System',
-      status: 'success', // Lowercase to match Schema Enum
-      details: `User ${user.email} logged in successfully.`,
-      date: new Date()
-    });
-
-    // Send Success Response
-    res.status(200).json({
+    res.json({
       success: true,
-      message: 'Login successful',
       token,
-      user: user.toSafeObject()
+      user: user.toSafeObject(),
+      message: xpMessage || 'Logged in successfully'
     });
 
   } catch (err) {
-    console.error("Login Error:", err);
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -377,7 +377,7 @@ router.delete('/admin/students/:id', async (req, res) => {
   }
 });
 
-// ================= UPDATE PROFILE (With Photo) =================
+// 5. UPDATE PROFILE & SETTINGS
 router.put('/profile', upload.single('profilePicture'), async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -388,19 +388,40 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const { fullName, email, phone, bio, department } = req.body;
+    // 1. Update Basic Info
+    const { fullName, email, phone, bio, department, semester, studyStyle, settings } = req.body;
+
     if (fullName) user.fullName = fullName;
     if (email) user.email = email;
     if (phone) user.phone = phone;
     if (bio) user.bio = bio;
     if (department) user.department = department;
+    if (semester) user.semester = semester;
+    if (studyStyle) user.studyStyle = studyStyle;
 
+    // 2. Update Settings (Parse JSON if coming from FormData)
+    if (settings) {
+      try {
+        const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : settings;
+        user.settings = { ...user.settings, ...parsedSettings };
+      } catch (e) {
+        console.error("Error parsing settings", e);
+      }
+    }
+
+    // 3. Update Image if provided
     if (req.file) {
       user.picture = { data: req.file.buffer, contentType: req.file.mimetype };
     }
 
     await user.save();
-    res.json({ success: true, message: 'Profile updated successfully', user: user.toSafeObject() });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: user.toSafeObject()
+    });
+
   } catch (err) {
     console.error('Profile update error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -854,7 +875,7 @@ router.get('/matches/:userId', async (req, res) => {
     const currentUser = await User.findById(userId);
 
     // 2. Find candidates
-    const candidates = await User.find({ 
+    const candidates = await User.find({
       _id: { $ne: userId },
       role: { $nin: ['super-admin', 'admin'] }
     }).select('-password').limit(50);
@@ -862,7 +883,7 @@ router.get('/matches/:userId', async (req, res) => {
     // 3. Format & Calculate Status
     const formattedCandidates = candidates.map(user => {
       let status = 'none';
-      
+
       // Check arrays to determine status
       if (currentUser.connections.includes(user._id)) status = 'connected';
       else if (currentUser.sentRequests.includes(user._id)) status = 'pending';
@@ -893,29 +914,33 @@ router.get('/matches/:userId', async (req, res) => {
 });
 
 // ================= SEND CONNECTION REQUEST =================
+// SEND CONNECTION REQUEST
 router.post('/connect/:targetId', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
     const senderId = decoded.id;
     const { targetId } = req.params;
 
     if (senderId === targetId) return res.status(400).json({ message: 'Cannot connect to self' });
 
-    // Update Sender
+    const senderUser = await User.findById(senderId);
+    if (!senderUser) return res.status(404).json({ message: 'User not found' });
+
+    // Update Arrays
     await User.findByIdAndUpdate(senderId, { $addToSet: { sentRequests: targetId } });
-    
-    // Update Receiver
     await User.findByIdAndUpdate(targetId, { $addToSet: { receivedRequests: senderId } });
 
-    // Log Activity
-    await ActivityLog.create({
-        action: 'Connection Request Sent',
-        user: senderId, // Should store name ideally, but ID works for logic
-        target: targetId,
-        status: 'success'
+    // 🟢 CREATE NOTIFICATION (Updated Link)
+    await Notification.create({
+      recipient: targetId,
+      sender: senderId,
+      type: 'connection',
+      title: 'New Connection Request',
+      message: `${senderUser.fullName} wants to connect with you.`,
+      link: '/requests', // 👈 CHANGED: Redirects to Requests Page
+      unread: true
     });
 
     res.json({ success: true, message: 'Request sent' });
@@ -923,7 +948,107 @@ router.post('/connect/:targetId', async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
+// 2. GET SENT REQUESTS
+router.get('/requests/sent', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const user = await User.findById(decoded.id).populate('sentRequests', 'fullName department picture email');
+    
+    res.json({ success: true, requests: user ? user.sentRequests : [] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+// 3. NEW: GET PENDING REQUESTS
+router.get('/requests', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+
+    const user = await User.findById(decoded.id).populate('receivedRequests', 'fullName email department picture level');
+    
+    res.json({ success: true, requests: user.receivedRequests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 4. NEW: ACCEPT REQUEST
+router.post('/requests/:senderId/accept', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const userId = decoded.id;
+    const { senderId } = req.params;
+
+    const receiver = await User.findById(userId);
+
+    // 1. Add to connections (Mutual)
+    await User.findByIdAndUpdate(userId, { 
+      $addToSet: { connections: senderId },
+      $pull: { receivedRequests: senderId }
+    });
+
+    await User.findByIdAndUpdate(senderId, { 
+      $addToSet: { connections: userId },
+      $pull: { sentRequests: userId }
+    });
+
+    // 2. Notify Sender
+    await Notification.create({
+      recipient: senderId,
+      sender: userId,
+      type: 'achievement', // Using generic type or add 'connection_accepted'
+      title: 'Request Accepted',
+      message: `${receiver.fullName} accepted your connection request. You can now chat!`,
+      link: '/messages',
+      unread: true
+    });
+
+    res.json({ success: true, message: 'Connected successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 5. NEW: DECLINE REQUEST
+router.post('/requests/:senderId/decline', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const userId = decoded.id;
+    const { senderId } = req.params;
+
+    // Remove from arrays
+    await User.findByIdAndUpdate(userId, { $pull: { receivedRequests: senderId } });
+    await User.findByIdAndUpdate(senderId, { $pull: { sentRequests: userId } });
+
+    res.json({ success: true, message: 'Request declined' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+// 6. GET RECEIVED REQUESTS (Fixes your 404 error)
+router.get('/requests/received', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const user = await User.findById(decoded.id).populate('receivedRequests', 'fullName department picture email');
+    
+    res.json({ success: true, requests: user ? user.receivedRequests : [] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 // ================= PLATFORM SETTINGS ROUTES =================
 
 // 1. GET SETTINGS
@@ -1082,7 +1207,7 @@ router.get('/admin/notifications', async (req, res) => {
 router.get('/public-profile/:id', async (req, res) => {
   try {
     const targetUserId = req.params.id;
-    
+
     // Check if ID is valid MongoDB Object ID
     if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
       return res.status(400).json({ success: false, message: 'Invalid User ID format' });
@@ -1101,6 +1226,43 @@ router.get('/public-profile/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+// ... existing code ...
+
+// 🔹 GET ACCEPTED CONNECTIONS
+router.get('/connections', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+
+    const user = await User.findById(decoded.id).populate('connections', 'fullName department picture email level');
+    
+    // Sort logic can be added here if needed
+    res.json({ success: true, connections: user.connections || [] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 🔹 REMOVE CONNECTION
+router.post('/connections/:targetId/remove', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const userId = decoded.id;
+    const { targetId } = req.params;
+
+    // Remove from BOTH users' connection arrays
+    await User.findByIdAndUpdate(userId, { $pull: { connections: targetId } });
+    await User.findByIdAndUpdate(targetId, { $pull: { connections: userId } });
+
+    res.json({ success: true, message: 'Connection removed' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 export default router;

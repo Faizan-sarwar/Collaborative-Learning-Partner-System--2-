@@ -22,7 +22,10 @@ import Messages from "../pages/Messages/Messages";
 import Quiz from "../pages/Quiz/Quiz";
 import Gamification from "../pages/Gamification/Gamification";
 import Refer from "../pages/Refer/Refer";
+import PendingConnections from "../pages/PendingConnections/PendingConnections";
+import Connections from "../pages/Connections/Connections";
 import StudyMatches from "../pages/StudyMatches/StudyMatches";
+import Settings from "../pages/Settings/Settings";
 import "./App.css";
 
 // Admin imports
@@ -75,7 +78,6 @@ const AnimatedRoutes = () => {
             <Route path="/courses" element={<Courses />} />
             <Route path="/social" element={<Social />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/study-room" element={<StudyRoom />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/messages" element={<Messages />} />
@@ -85,6 +87,9 @@ const AnimatedRoutes = () => {
             <Route path="/study-matches" element={<StudyMatches />} />
             <Route path="/user-profile/:userId" element={<UserProfile />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/pending-connections" element={<PendingConnections />} />
+            <Route path="/connections" element={<Connections />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
 
           {/* ================= ADMIN ROUTES (Protected) ================= */}

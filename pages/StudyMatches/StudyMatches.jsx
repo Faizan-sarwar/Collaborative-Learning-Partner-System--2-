@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './StudyMatches.module.css';
 
@@ -173,7 +173,7 @@ const StudyMatches = () => {
             <h1 className={styles.title}>Study Matches</h1>
             <p className={styles.subtitle}>Find your perfect study partner</p>
           </div>
-          <button className={styles.myConnectionsBtn}>My Connections</button>
+          <Link to='/Connections' className={styles.myConnectionsBtn}>My Connections</Link>
         </div>
 
         <div className={styles.searchSection}>

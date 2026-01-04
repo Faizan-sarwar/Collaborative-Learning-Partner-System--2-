@@ -6,9 +6,6 @@ import PageTransition from '../../components/PageTransition/PageTransition';
 
 const departments = [
     'Information Technology',
-    'Computer Science',
-    'Software Engineering',
-    'Data Science'
 ];
 
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -16,7 +13,7 @@ const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
 const studyStyles = [
     'Individual Study',
     'Group Collaboration',
-    'One-on-One Mentoring',
+    'One-on-One Mentoring'
 ];
 
 // Fallback now includes active status
@@ -45,6 +42,7 @@ const Signup = () => {
         profilePicture: null,
         email: '',
         password: '',
+        gender: '',
         department: '',
         semester: '',
         academicStrengths: [],
@@ -115,6 +113,9 @@ const Signup = () => {
                 return '';
             case 'rollNumber':
                 if (!value.trim()) return 'Roll number is required';
+                return '';
+            case 'gender':
+                if (!value) return 'Please select a gender';
                 return '';
             case 'email':
                 if (!value.trim()) return 'Email is required';
@@ -188,7 +189,7 @@ const Signup = () => {
         setSuccess('');
 
         const newErrors = {};
-        ['fullName', 'email', 'password', 'rollNumber'].forEach(f => {
+        ['fullName', 'email', 'password', 'rollNumber', 'gender'].forEach(f => {
             const err = validateField(f, formData[f]);
             if (err) newErrors[f] = err;
         });
@@ -309,7 +310,34 @@ const Signup = () => {
                                             onChange={handleFileChange}
                                         />
                                     </div>
-
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Gender *</label>
+                                        <div className={styles.radioGroup}>
+                                            <label className={styles.radioLabel}>
+                                                <input
+                                                    type="radio"
+                                                    name="gender"
+                                                    value="Male"
+                                                    checked={formData.gender === 'Male'}
+                                                    onChange={handleInputChange}
+                                                    className={styles.radioInput}
+                                                />
+                                                Male
+                                            </label>
+                                            <label className={styles.radioLabel}>
+                                                <input
+                                                    type="radio"
+                                                    name="gender"
+                                                    value="Female"
+                                                    checked={formData.gender === 'Female'}
+                                                    onChange={handleInputChange}
+                                                    className={styles.radioInput}
+                                                />
+                                                Female
+                                            </label>
+                                        </div>
+                                        {errors.gender && <span className={styles.errorMessage}>{errors.gender}</span>}
+                                    </div>
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Email *</label>
                                         <input
