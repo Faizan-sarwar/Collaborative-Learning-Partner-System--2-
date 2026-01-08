@@ -24,25 +24,47 @@ const verifyToken = (req, res, next) => {
 router.get('/conversations', verifyToken, async (req, res) => {
   try {
     const conversations = await Conversation.find({ participants: req.userId })
-      .populate('participants', 'fullName isOnline lastLogin')
-      .sort({ lastMessageAt: -1 });
+      .populate('participants', 'fullName picture isOnline lastSeen')
+      .sort({ updatedAt: -1 }); // Sort by most recent activity
 
     const formattedConversations = conversations.map(conv => {
+      // Find the other participant
       const otherUser = conv.participants.find(p => p._id.toString() !== req.userId);
+
+      // Handle case where user might be deleted
+      if (!otherUser) return null;
+
       return {
         id: conv._id,
         otherUserId: otherUser._id,
         name: otherUser.fullName,
-        avatar: null, // Add avatar logic if needed
-        lastMessage: conv.lastMessage || 'Start a conversation',
-        lastSeen: otherUser.isOnline ? 'Online' : new Date(otherUser.lastLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        unread: conv.unreadCount.get(req.userId) || 0,
-        online: otherUser.isOnline
+
+        // 🟢 Generate the Avatar URL if picture exists
+        // This checks if the buffer data exists in the DB object
+        avatar: (otherUser.picture && otherUser.picture.data)
+          ? `http://localhost:5000/api/auth/student/${otherUser._id}/picture`
+          : null,
+
+        // 🟢 Message Preview
+        // Ensure we access the text property if lastMessage is an object
+        lastMessage: conv.lastMessage?.text || 'Start a conversation',
+
+        // 🟢 Online Status & Last Seen Logic
+        online: otherUser.isOnline,
+        lastSeen: otherUser.isOnline
+          ? 'Online'
+          : otherUser.lastSeen
+            ? new Date(otherUser.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : 'Offline',
+
+        // Safe access to unread count (defaults to 0 if map doesn't exist)
+        unread: (conv.unreadCount && conv.unreadCount.get(req.userId)) || 0,
       };
-    });
+    }).filter(Boolean); // Filter out nulls (deleted users)
 
     res.json({ success: true, conversations: formattedConversations });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 });

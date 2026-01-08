@@ -227,7 +227,7 @@ const StudentManagement = () => {
           <thead>
             <tr>
               <th>Student</th>
-              <th>Username</th>
+              <th>Roll Number</th>
               <th>Department</th>
               <th>Status</th>
               <th>Last Active</th>

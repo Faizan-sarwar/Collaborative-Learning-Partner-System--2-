@@ -6,31 +6,49 @@ const WelcomeBanner = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // 1. Load user from storage for display
-    const storedUser = localStorage.getItem('user');
+    // 1. Try Session Storage first (most up-to-date after quiz)
+    let storedUser = sessionStorage.getItem('user');
+    if (!storedUser) {
+        // Fallback to local storage
+        storedUser = localStorage.getItem('user');
+    }
+
     const token = sessionStorage.getItem('token') || localStorage.getItem('token');
 
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
 
-    // 🔹 FIX: Send "I am Online" signal to backend
-    if (token) {
+    // 2. Fetch fresh data to ensure reliability score is synced
+  if (token) {
       fetch('http://localhost:5000/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          // Optional: Update local storage with fresh data from server
-          localStorage.setItem('user', JSON.stringify(data.user)); 
+        if (data.success && data.user) {
+          setUser(data.user);
+          setReliability(data.user.reliability || 0); // Update state from DB
+          
+          // Update storage silently to sync for next time
+          sessionStorage.setItem('user', JSON.stringify(data.user)); 
         }
       })
-      .catch(err => console.error("Failed to update status", err));
+      .catch(err => console.error("Banner sync failed", err));
     }
   }, []);
 
   const username = user?.fullName || 'Student';
+  
+  // 🔹 DYNAMIC RELIABILITY LOGIC
+  const reliabilityScore = user?.reliability || 0;
+  
+  // Determine color based on score
+  const getBarColor = (score) => {
+      if (score >= 80) return '#10b981'; // Green
+      if (score >= 50) return '#f59e0b'; // Orange
+      return '#ef4444'; // Red
+  };
 
   return (
     <motion.div 
@@ -56,14 +74,17 @@ const WelcomeBanner = () => {
           
           <div className={styles.progressSection}>
             <div className={styles.progressBar}>
+              {/* 🔹 DYNAMIC WIDTH & COLOR */}
               <motion.div 
                 className={styles.progressFill}
                 initial={{ width: 0 }}
-                animate={{ width: '25%' }}
+                animate={{ width: `${reliabilityScore}%` }}
                 transition={{ duration: 1, delay: 0.5 }}
+                style={{ backgroundColor: getBarColor(reliabilityScore) }}
               />
             </div>
-            <span className={styles.progressText}>25% to Level {user ? (user.level || 1) + 1 : 2}</span>
+            {/* 🔹 DYNAMIC TEXT */}
+            <span className={styles.progressText}>{reliabilityScore}% Reliability</span>
           </div>
         </div>
 
@@ -81,7 +102,7 @@ const WelcomeBanner = () => {
             </div>
             <div className={styles.onlineStatus}>
               <span className={styles.onlineDot}></span>
-              789 online
+              Online
             </div>
           </div>
         </div>

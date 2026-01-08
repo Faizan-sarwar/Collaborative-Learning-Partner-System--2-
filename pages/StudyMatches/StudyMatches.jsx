@@ -50,7 +50,7 @@ const StudyMatches = () => {
     fetchData();
   }, [navigate]);
 
-  // 🔹 CONNECT LOGIC (Fixed ID usage)
+  // 🔹 CONNECT LOGIC
   const handleConnect = async (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
     console.log("Connecting to:", targetId);
@@ -76,8 +76,8 @@ const StudyMatches = () => {
       if (!data.success) {
         // Revert on failure
         setUsers(prevUsers => prevUsers.map(user => {
-            const uId = user._id || user.id;
-            return uId === targetId ? { ...user, connectionStatus: 'none' } : user;
+          const uId = user._id || user.id;
+          return uId === targetId ? { ...user, connectionStatus: 'none' } : user;
         }));
       }
     } catch (err) {
@@ -102,6 +102,13 @@ const StudyMatches = () => {
     } else {
       console.error("Invalid User ID, cannot navigate");
     }
+  };
+
+  // 🔹 HELPER: Get Dynamic Reliability Color
+  const getReliabilityColor = (score) => {
+      if (score >= 80) return '#10b981'; // Green
+      if (score >= 50) return '#f59e0b'; // Orange
+      return '#ef4444'; // Red
   };
 
   // 🔹 FILTERS
@@ -136,7 +143,7 @@ const StudyMatches = () => {
     switch(user.connectionStatus) {
       case 'connected':
         return (
-          <button className={styles.connectedBtn}>
+          <button className={styles.connectedBtn} disabled>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20,6 9,17 4,12"></polyline></svg>
             Connected
           </button>
@@ -148,6 +155,12 @@ const StudyMatches = () => {
             Cancel
           </button>
         );
+      case 'received':
+         return (
+            <button className={styles.pendingBtn} disabled>
+               Request Received
+            </button>
+         );
       default:
         return (
           <button className={styles.connectBtn} onClick={() => handleConnect(user)}>
@@ -222,16 +235,18 @@ const StudyMatches = () => {
                 </div>
 
                 <div className={styles.cardBody}>
-                    {/* ✅ RELIABILITY BAR */}
+                    {/* ✅ DYNAMIC RELIABILITY BAR */}
                     <div className={styles.reliabilitySection}>
                       <div className={styles.reliabilityHeader}>
                         <span className={styles.reliabilityLabel}>Reliability</span>
-                        <span className={styles.reliabilityValue}>{user.reliability || 85}%</span>
+                        {/* Use real reliability value */}
+                        <span className={styles.reliabilityValue}>{user.reliability || 0}%</span>
                       </div>
                       <div className={styles.reliabilityBar}>
                         <div className={styles.reliabilityFill} style={{ 
-                            width: `${user.reliability || 85}%`,
-                            background: (user.reliability || 85) >= 90 ? '#10b981' : (user.reliability || 85) >= 70 ? '#f59e0b' : '#ef4444'
+                            width: `${user.reliability || 0}%`,
+                            // Dynamic Color based on score
+                            background: getReliabilityColor(user.reliability || 0)
                         }}></div>
                       </div>
                     </div>
@@ -268,4 +283,4 @@ const StudyMatches = () => {
   );
 };
 
-export default StudyMatches;  
+export default StudyMatches;

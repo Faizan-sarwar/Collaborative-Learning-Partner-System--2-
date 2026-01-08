@@ -226,10 +226,21 @@ const Signup = () => {
             // 🔹 CHANGE 1: Use sessionStorage (Clears when browser closes)
             if (data.user) {
                 sessionStorage.setItem('user', JSON.stringify(data.user));
+                if (data.token) sessionStorage.setItem('token', data.token);
             }
 
             setSuccess("Profile created successfully! Redirecting...");
-
+            // LOGIC UPDATE: Check for Strengths and Redirect to Quiz
+            setTimeout(() => {
+                if (data.user.role === 'admin') {
+                    window.location.href = '/admin';
+                } else if (formData.academicStrengths.length > 0) {
+                    // Redirect to Quiz if user selected strong subjects
+                    window.location.href = '/quiz';
+                } else {
+                    window.location.href = '/dashboard';
+                }
+            }, 1500);
             // 🔹 CHANGE 2: Conditional Redirect based on Role
             setTimeout(() => {
                 if (data.user.role === 'admin') {

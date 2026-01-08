@@ -14,12 +14,16 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState('about');
   const [imgError, setImgError] = useState(false);
 
-  // 🔹 1. FETCH PROFILE DATA
+  // 🔹 1. FETCH PROFILE DATA & CALCULATE STATUS
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-        if (!token) { navigate('/login'); return; }
+        const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+
+        if (!token || !storedUser) { navigate('/login'); return; }
+
+        const currentUser = JSON.parse(storedUser);
 
         const res = await fetch(`http://localhost:5000/api/auth/public-profile/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -28,7 +32,22 @@ const UserProfile = () => {
         const data = await res.json();
 
         if (data.success) {
-          setUser(data.user);
+          // 🟢 CALCULATE CONNECTION STATUS LOCALLY
+          // We check if the viewed user's ID exists in the logged-in user's lists
+          let status = 'none';
+          const targetId = data.user._id || data.user.id;
+
+          // Check Connections (Handle both ID strings and Populated Objects)
+          const isConnected = currentUser.connections.some(c => (c._id || c) === targetId);
+          const isSent = currentUser.sentRequests.some(r => (r._id || r) === targetId);
+          const isReceived = currentUser.receivedRequests.some(r => (r._id || r) === targetId);
+
+          if (isConnected) status = 'connected';
+          else if (isSent) status = 'pending';
+          else if (isReceived) status = 'received';
+
+          // Merge calculated status with user data
+          setUser({ ...data.user, connectionStatus: status });
         } else {
           setError(data.message);
         }
@@ -62,6 +81,14 @@ const UserProfile = () => {
       if (!data.success) {
         alert(data.message);
         setUser(prev => ({ ...prev, connectionStatus: 'none' }));
+      } else {
+        // 🟢 UPDATE LOCAL STORAGE TO REFLECT SENT REQUEST
+        // This keeps the UI in sync if we leave and come back
+        const currentUser = JSON.parse(sessionStorage.getItem('user'));
+        if (!currentUser.sentRequests.includes(user._id)) {
+            currentUser.sentRequests.push(user._id);
+            sessionStorage.setItem('user', JSON.stringify(currentUser));
+        }
       }
     } catch (err) {
       console.error(err);
@@ -73,6 +100,7 @@ const UserProfile = () => {
   // 🔹 3. HANDLE CANCEL
   const handleCancelRequest = () => {
     setUser(prev => ({ ...prev, connectionStatus: 'none' }));
+    // Optional: You could add an API call here to actually cancel the request in DB
   };
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
@@ -106,14 +134,21 @@ const UserProfile = () => {
     { id: 'schedule', label: 'Schedule', icon: '📅' }
   ];
 
+  // 🔹 5. BUTTON RENDERER
   const getConnectionButton = () => {
     switch(user?.connectionStatus) {
       case 'connected':
-        return <button className={styles.connectedBtn}>✓ Connected</button>;
+        return (
+            <button className={`${styles.connectedBtn}`} disabled>
+                <span style={{ marginRight: '5px' }}>✓</span> Connected
+            </button>
+        );
       case 'pending':
-        return <button className={styles.cancelBtn} onClick={handleCancelRequest}>Cancel Request</button>;
+        return <button className={styles.cancelBtn} onClick={handleCancelRequest}>Request Sent (Cancel)</button>;
+      case 'received':
+        return <button className={styles.connectBtn} disabled>Request Received</button>;
       default:
-        return <button className={styles.connectBtn} onClick={handleConnect}>+ Send Request</button>;
+        return <button className={styles.connectBtn} onClick={handleConnect}>+ Connect</button>;
     }
   };
 

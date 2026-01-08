@@ -217,7 +217,9 @@ router.post('/login', async (req, res) => {
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
-
+    // 🟢 SET USER ONLINE
+    user.isOnline = true;
+    await user.save(); // Save the status
     // 2. 🔹 CALCULATE LOGIN STREAK & XP
     const today = new Date();
     const lastLogin = new Date(user.lastLogin);
@@ -865,26 +867,21 @@ router.get('/student/:id/picture', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-// ================= GET STUDY MATCHES (With Dynamic Status) =================
+// 🟢 FIX 1: GET STUDY MATCHES (Remove Hardcoded 85)
 router.get('/matches/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ success: false, message: 'Invalid ID' });
 
-    // 1. Fetch current user to check their connections
     const currentUser = await User.findById(userId);
 
-    // 2. Find candidates
     const candidates = await User.find({
       _id: { $ne: userId },
       role: { $nin: ['super-admin', 'admin'] }
     }).select('-password').limit(50);
 
-    // 3. Format & Calculate Status
     const formattedCandidates = candidates.map(user => {
       let status = 'none';
-
-      // Check arrays to determine status
       if (currentUser.connections.includes(user._id)) status = 'connected';
       else if (currentUser.sentRequests.includes(user._id)) status = 'pending';
       else if (currentUser.receivedRequests.includes(user._id)) status = 'received';
@@ -902,8 +899,11 @@ router.get('/matches/:userId', async (req, res) => {
         studyHours: user.studyHours || 0,
         plan: user.plan || 'free',
         availability: user.availability || 'Flexible',
-        reliability: 85,
-        connectionStatus: status // 👈 DYNAMIC STATUS
+
+        // 🟢 REAL DATA: Use DB value, default to 0 if missing
+        reliability: user.reliability || 0,
+
+        connectionStatus: status
       };
     });
 
@@ -957,7 +957,7 @@ router.get('/requests/sent', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
     const user = await User.findById(decoded.id).populate('sentRequests', 'fullName department picture email');
-    
+
     res.json({ success: true, requests: user ? user.sentRequests : [] });
   } catch (err) {
     console.error(err);
@@ -972,7 +972,7 @@ router.get('/requests', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
 
     const user = await User.findById(decoded.id).populate('receivedRequests', 'fullName email department picture level');
-    
+
     res.json({ success: true, requests: user.receivedRequests });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
@@ -990,12 +990,12 @@ router.post('/requests/:senderId/accept', async (req, res) => {
     const receiver = await User.findById(userId);
 
     // 1. Add to connections (Mutual)
-    await User.findByIdAndUpdate(userId, { 
+    await User.findByIdAndUpdate(userId, {
       $addToSet: { connections: senderId },
       $pull: { receivedRequests: senderId }
     });
 
-    await User.findByIdAndUpdate(senderId, { 
+    await User.findByIdAndUpdate(senderId, {
       $addToSet: { connections: userId },
       $pull: { sentRequests: userId }
     });
@@ -1039,10 +1039,10 @@ router.get('/requests/received', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
     const user = await User.findById(decoded.id).populate('receivedRequests', 'fullName department picture email');
-    
+
     res.json({ success: true, requests: user ? user.receivedRequests : [] });
   } catch (err) {
     console.error(err);
@@ -1230,16 +1230,17 @@ router.get('/public-profile/:id', async (req, res) => {
 });
 // ... existing code ...
 
-// 🔹 GET ACCEPTED CONNECTIONS
+// 🟢 FIX 2: GET CONNECTIONS (Include Reliability Field)
 router.get('/connections', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
 
-    const user = await User.findById(decoded.id).populate('connections', 'fullName department picture email level');
-    
-    // Sort logic can be added here if needed
+    // 🟢 Populate 'reliability' explicitly
+    const user = await User.findById(decoded.id)
+      .populate('connections', 'fullName department picture email level isOnline lastSeen reliability');
+
     res.json({ success: true, connections: user.connections || [] });
   } catch (err) {
     console.error(err);
@@ -1263,6 +1264,70 @@ router.post('/connections/:targetId/remove', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+//  SUBMIT QUIZ & UPDATE RELIABILITY
+// ===============================================
+router.post('/submit-quiz', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const userId = decoded.id;
+
+    const score = parseInt(req.body.score) || 0;
+    const totalQuestions = parseInt(req.body.totalQuestions) || 10;
+
+    // Calculate score (Example: 8/10 -> 80)
+    let reliabilityPercentage = Math.round((score / totalQuestions) * 100);
+
+    // Ensure bounds 0-100
+    if (reliabilityPercentage > 100) reliabilityPercentage = 100;
+    if (reliabilityPercentage < 0) reliabilityPercentage = 0;
+
+    // Update DB
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        reliability: reliabilityPercentage,
+        quizCompleted: true
+      },
+      { new: true } // Return the modified document
+    );
+
+    // Send back the FULL updated user object
+    res.json({
+      success: true,
+      message: 'Quiz submitted',
+      user: updatedUser.toSafeObject() // This contains the new reliability & quizCompleted
+    });
+
+  } catch (err) {
+    console.error("Quiz Error:", err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+// 🟢 FIX 2: /me ROUTE
+// Ensure this returns the specific fields needed for the dashboard bar
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const user = await User.findById(decoded.id);
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Explicitly sending current reliability in the response
+    const safeUser = user.toSafeObject();
+    safeUser.reliability = user.reliability || 0;
+    safeUser.quizCompleted = user.quizCompleted || false;
+
+    res.json({ success: true, user: safeUser });
+  } catch (err) {
+    res.status(401).json({ success: false, message: 'Not authorized' });
   }
 });
 export default router;

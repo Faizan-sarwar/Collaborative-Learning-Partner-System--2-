@@ -23,6 +23,8 @@ const userSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
+  isOnline: { type: Boolean, default: false },
+  lastSeen: { type: Date, default: Date.now },
   rollNumber: {
     type: String,
     required: [true, 'Roll number is required'],
@@ -71,6 +73,8 @@ const userSchema = new mongoose.Schema({
     },
     default: 'Individual Study'
   },
+  reliability: { type: Number, default: 0 },
+  quizCompleted: { type: Boolean, default: false },
   availability: {
     type: String,
     maxlength: [500, 'Availability cannot exceed 500 characters'],
@@ -130,8 +134,8 @@ const userSchema = new mongoose.Schema({
   connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   receivedRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  
-// Gamification Fields
+
+  // Gamification Fields
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
   streak: { type: Number, default: 0 },

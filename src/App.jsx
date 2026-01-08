@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import React, { useEffect } from "react"; // 🔹 Added useEffect here
+import React, { useEffect, useState } from "react"; // Added useState
 import Index from "../pages/Index";
 import Login from "../pages/Login/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
+// ... (Keep all your existing imports) ...
 import StudyTime from "../pages/StudyTime/StudyTime";
 import Courses from "../pages/Courses/Courses";
 import Social from "../pages/Social/Social";
@@ -25,6 +26,8 @@ import Refer from "../pages/Refer/Refer";
 import PendingConnections from "../pages/PendingConnections/PendingConnections";
 import Connections from "../pages/Connections/Connections";
 import StudyMatches from "../pages/StudyMatches/StudyMatches";
+import StudyRoomWaiting from "../pages/StudyRoomWaiting/StudyRoomWaiting";
+import StudyRoomActive from "../pages/StudyRoomActive/StudyRoomActive";
 import Settings from "../pages/Settings/Settings";
 import "./App.css";
 
@@ -43,19 +46,62 @@ const dashboardRoutes = ['/dashboard', '/study-time', '/courses', '/social', '/a
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
+  const [isChecking, setIsChecking] = useState(true); // Helper state
 
-  // 🔹 NEW: Session Heartbeat
-  // This runs once when the app loads (refresh or new tab) to update "Last Active" time in DB
+  // 🔹 GUARD LOGIC
   useEffect(() => {
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    const checkStatus = async () => {
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const storedUserString = sessionStorage.getItem('user') || localStorage.getItem('user');
 
-    if (token) {
-      fetch('http://localhost:5000/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(err => console.log("Background session update failed", err));
-    }
-  }, []);
+        if (!token || !storedUserString) {
+            setIsChecking(false);
+            return;
+        }
+
+        let user = JSON.parse(storedUserString);
+        
+        // 🟢 FIX: BYPASS QUIZ CHECK FOR ADMINS AND SUPER-ADMINS
+        if (user.role === 'admin' || user.role === 'super-admin') {
+            setIsChecking(false);
+            return; 
+        }
+
+        // Student Logic
+        const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
+        
+        if (user.quizCompleted) {
+            setIsChecking(false);
+            return;
+        }
+
+        if (hasStrengths && !user.quizCompleted) {
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.success && data.user.quizCompleted) {
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    setIsChecking(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("Auth check failed", err);
+            }
+
+            if (location.pathname !== '/quiz' && location.pathname !== '/login') {
+                navigate('/quiz');
+            }
+        }
+        setIsChecking(false);
+    };
+
+    checkStatus();
+  }, [location.pathname, navigate]);
 
   return (
     <>
@@ -79,6 +125,8 @@ const AnimatedRoutes = () => {
             <Route path="/social" element={<Social />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/study-room" element={<StudyRoom />} />
+            <Route path="/study-room/waiting/:roomId" element={<StudyRoomWaiting />} />
+            <Route path="/study-room/active/:roomId" element={<StudyRoomActive />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/quiz" element={<Quiz />} />
@@ -86,7 +134,6 @@ const AnimatedRoutes = () => {
             <Route path="/refer" element={<Refer />} />
             <Route path="/study-matches" element={<StudyMatches />} />
             <Route path="/user-profile/:userId" element={<UserProfile />} />
-            <Route path="/messages" element={<Messages />} />
             <Route path="/pending-connections" element={<PendingConnections />} />
             <Route path="/connections" element={<Connections />} />
             <Route path="/settings" element={<Settings />} />

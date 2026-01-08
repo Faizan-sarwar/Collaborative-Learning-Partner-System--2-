@@ -31,30 +31,34 @@ const LoginCard = () => {
         return;
       }
 
-      // 🔹 1. Handle Token Storage (Remember Me logic)
+      // 1. Handle Token Storage
       if (rememberMe) {
         localStorage.setItem('token', data.token);
       } else {
         sessionStorage.setItem('token', data.token);
       }
 
-      // 🔹 2. Handle User Storage (Security Fix)
-      // Always store user object in sessionStorage so it clears on browser close.
-      // This prevents the admin panel from being accessible after closing the tab.
+      // 2. Handle User Storage
       sessionStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Clear any potential stale user data from local storage
-      localStorage.removeItem('user');
+      localStorage.removeItem('user'); 
 
-      // Show success alert
       setAlert({ type: 'success', message: 'Login successful! Redirecting...' });
 
-      // 🔹 3. Role-Based Redirect
+      // 3. LOGIC UPDATE: Check Role Correctly
       setTimeout(() => {
-        if (data.user.role === 'admin') {
-          navigate('/admin'); // Redirect to Admin Panel
+        // 🟢 FIX: Check for BOTH 'admin' and 'super-admin'
+        if (data.user.role === 'admin' || data.user.role === 'super-admin') {
+          navigate('/admin');
         } else {
-          navigate('/dashboard'); // Redirect to Student Dashboard
+          // Quiz check logic for students ONLY
+          const hasStrengths = data.user.academicStrengths && data.user.academicStrengths.length > 0;
+          const quizNotTaken = !data.user.quizCompleted;
+
+          if (hasStrengths && quizNotTaken) {
+            navigate('/quiz'); 
+          } else {
+            navigate('/dashboard');
+          }
         }
       }, 1000);
 
