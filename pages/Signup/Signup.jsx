@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown, X } from 'lucide-react';
 import styles from './Signup.module.css';
 import Alert from '../../components/Alert/Alert';
 import PageTransition from '../../components/PageTransition/PageTransition';
@@ -36,6 +37,39 @@ const Signup = () => {
     const [loadingSubjects, setLoadingSubjects] = useState(true);
     const [usingFallback, setUsingFallback] = useState(false);
 
+    const [strengthsDropdownOpen, setStrengthsDropdownOpen] = useState(false);
+    const [difficultyDropdownOpen, setDifficultyDropdownOpen] = useState(false);
+    const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
+    const [semesterDropdownOpen, setSemesterDropdownOpen] = useState(false);
+    const strengthsRef = useRef(null);
+    const difficultyRef = useRef(null);
+    const departmentRef = useRef(null);
+    const semesterRef = useRef(null);
+    const studyStyleRef = useRef(null);
+    const [studyStyleDropdownOpen, setStudyStyleDropdownOpen] = useState(false);
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (strengthsRef.current && !strengthsRef.current.contains(event.target)) {
+                setStrengthsDropdownOpen(false);
+            }
+            if (difficultyRef.current && !difficultyRef.current.contains(event.target)) {
+                setDifficultyDropdownOpen(false);
+            }
+            if (departmentRef.current && !departmentRef.current.contains(event.target)) {
+                setDepartmentDropdownOpen(false);
+            }
+            if (semesterRef.current && !semesterRef.current.contains(event.target)) {
+                setSemesterDropdownOpen(false);
+            }
+            if (studyStyleRef.current && !studyStyleRef.current.contains(event.target)) {
+                setStudyStyleDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
     const [formData, setFormData] = useState({
         fullName: '',
         rollNumber: '',
@@ -173,7 +207,8 @@ const Signup = () => {
         setFormData((prev) => ({ ...prev, profilePicture: file }));
     };
 
-    const handleCheckboxChange = (field, subjectName) => {
+    // 🔹 HANDLERS FOR MULTI SELECT
+    const handleSubjectToggle = (field, subjectName) => {
         setFormData((prev) => {
             const current = prev[field];
             const updated = current.includes(subjectName)
@@ -182,6 +217,23 @@ const Signup = () => {
             return { ...prev, [field]: updated };
         });
     };
+
+    const removeSubject = (field, subjectName) => {
+        setFormData((prev) => ({
+            ...prev,
+            [field]: prev[field].filter((s) => s !== subjectName)
+        }));
+    };
+
+    // const handleCheckboxChange = (field, subjectName) => {
+    //     setFormData((prev) => {
+    //         const current = prev[field];
+    //         const updated = current.includes(subjectName)
+    //             ? current.filter((s) => s !== subjectName)
+    //             : [...current, subjectName];
+    //         return { ...prev, [field]: updated };
+    //     });
+    // };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -399,119 +451,230 @@ const Signup = () => {
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Department *</label>
-                                        <select
-                                            name="department"
-                                            className={styles.select}
-                                            value={formData.department}
-                                            onChange={handleInputChange}
-                                        >
-                                            <option value="" disabled hidden>Select your department</option>
-                                            {departments.map((dept) => (
-                                                <option key={dept} value={dept}>{dept}</option>
-                                            ))}
-                                        </select>
+                                        <div className={styles.multiSelectWrapper} ref={departmentRef}>
+                                            <div
+                                                className={styles.multiSelectTrigger}
+                                                onClick={() => setDepartmentDropdownOpen(!departmentDropdownOpen)}
+                                            >
+                                                <span className={formData.department ? styles.selectedText : styles.placeholder}>
+                                                    {formData.department || "Select your department"}
+                                                </span>
+                                                <ChevronDown size={18} className={`${styles.dropdownIcon} ${departmentDropdownOpen ? styles.rotated : ''}`} />
+                                            </div>
+                                            {departmentDropdownOpen && (
+                                                <div className={styles.dropdownMenu}>
+                                                    {departments.map((dept) => (
+                                                        <div
+                                                            key={dept}
+                                                            className={`${styles.dropdownItem} ${formData.department === dept ? styles.selected : ''}`}
+                                                            onClick={() => {
+                                                                setFormData(prev => ({ ...prev, department: dept }));
+                                                                setDepartmentDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            {dept}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Semester *</label>
-                                        <select
-                                            name="semester"
-                                            className={styles.select}
-                                            value={formData.semester}
-                                            onChange={handleInputChange}
-                                        >
-                                            <option value="" disabled hidden>Select your semester</option>
-                                            {semesters.map((sem) => (
-                                                <option key={sem} value={sem}>Semester {sem}</option>
-                                            ))}
-                                        </select>
+                                        <div className={styles.multiSelectWrapper} ref={semesterRef}>
+                                            <div
+                                                className={styles.multiSelectTrigger}
+                                                onClick={() => setSemesterDropdownOpen(!semesterDropdownOpen)}
+                                            >
+                                                <span className={formData.semester ? styles.selectedText : styles.placeholder}>
+                                                    {formData.semester ? `Semester ${formData.semester}` : "Select your semester"}
+                                                </span>
+                                                <ChevronDown size={18} className={`${styles.dropdownIcon} ${semesterDropdownOpen ? styles.rotated : ''}`} />
+                                            </div>
+                                            {semesterDropdownOpen && (
+                                                <div className={styles.dropdownMenu}>
+                                                    {semesters.map((sem) => (
+                                                        <div
+                                                            key={sem}
+                                                            className={`${styles.dropdownItem} ${formData.semester === sem ? styles.selected : ''}`}
+                                                            onClick={() => {
+                                                                setFormData(prev => ({ ...prev, semester: sem }));
+                                                                setSemesterDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            Semester {sem}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Academic Profile Section - LIVE DATA */}
+                            {/* Academic Profile Section */}
                             <div className={styles.section}>
-                                <h3 className={styles.sectionTitle}>
-                                    Academic Profile
-                                    <span style={{ fontSize: '0.85em', fontWeight: 'normal', color: '#666', marginLeft: '10px' }}>
-                                        ({availableSubjects.filter(s => s.active).length} Active Courses)
-                                    </span>
-                                </h3>
+                                <h3 className={styles.sectionTitle}>📚 Academic Profile</h3>
 
-                                {loadingSubjects ? (
-                                    <p>Loading subjects...</p>
-                                ) : (
-                                    <>
-                                        <div className={styles.checkboxSection}>
-                                            <label className={styles.label}>Academic Strengths</label>
-                                            <div className={styles.checkboxGrid}>
-                                                {availableSubjects.map((subjectObj) => (
-                                                    <label
-                                                        key={`strength-${subjectObj.name}`}
-                                                        className={`${styles.checkboxLabel} ${!subjectObj.active ? styles.disabledLabel : ''}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.academicStrengths.includes(subjectObj.name)}
-                                                            onChange={() => handleCheckboxChange('academicStrengths', subjectObj.name)}
-                                                            className={styles.checkbox}
-                                                            disabled={!subjectObj.active} // 🔹 DISABLE INPUT IF INACTIVE
-                                                        />
-                                                        <span className={`${styles.checkboxText} ${!subjectObj.active ? styles.disabledText : ''}`}>
-                                                            {subjectObj.name} {!subjectObj.active && '(N/A)'}
-                                                        </span>
-                                                    </label>
-                                                ))}
+                                <div className={styles.formGrid}>
+                                    {/* Academic Strengths Multi-Select */}
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Academic Strengths</label>
+                                        <div className={styles.multiSelectWrapper} ref={strengthsRef}>
+                                            <div
+                                                className={styles.multiSelectTrigger}
+                                                onClick={() => setStrengthsDropdownOpen(!strengthsDropdownOpen)}
+                                            >
+                                                <div className={styles.selectedTags}>
+                                                    {formData.academicStrengths.length === 0 ? (
+                                                        <span className={styles.placeholder}>Select your strengths...</span>
+                                                    ) : (
+                                                        formData.academicStrengths.map((subject) => (
+                                                            <span key={subject} className={styles.tag}>
+                                                                {subject}
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.tagRemove}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeSubject('academicStrengths', subject);
+                                                                    }}
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </span>
+                                                        ))
+                                                    )}
+                                                </div>
+                                                <ChevronDown
+                                                    size={18}
+                                                    className={`${styles.dropdownIcon} ${strengthsDropdownOpen ? styles.rotated : ''}`}
+                                                />
                                             </div>
+                                            {strengthsDropdownOpen && (
+                                                <div className={styles.dropdownMenu}>
+                                                    {availableSubjects.filter(s => s.active).map((subjectObj) => (
+                                                        <div
+                                                            key={subjectObj.name}
+                                                            className={`${styles.dropdownItem} ${formData.academicStrengths.includes(subjectObj.name) ? styles.selected : ''
+                                                                }`}
+                                                            onClick={() => handleSubjectToggle('academicStrengths', subjectObj.name)}
+                                                        >
+                                                            <span className={styles.itemCheckbox}>
+                                                                {formData.academicStrengths.includes(subjectObj.name) && (
+                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                        <polyline points="20 6 9 17 4 12" />
+                                                                    </svg>
+                                                                )}
+                                                            </span>
+                                                            {subjectObj.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
+                                    </div>
 
-                                        <div className={styles.checkboxSection}>
-                                            <label className={styles.label}>Subjects of Difficulty</label>
-                                            <div className={styles.checkboxGrid}>
-                                                {availableSubjects.map((subjectObj) => (
-                                                    <label
-                                                        key={`difficulty-${subjectObj.name}`}
-                                                        className={`${styles.checkboxLabel} ${!subjectObj.active ? styles.disabledLabel : ''}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.subjectsOfDifficulty.includes(subjectObj.name)}
-                                                            onChange={() => handleCheckboxChange('subjectsOfDifficulty', subjectObj.name)}
-                                                            className={styles.checkbox}
-                                                            disabled={!subjectObj.active} // 🔹 DISABLE INPUT IF INACTIVE
-                                                        />
-                                                        <span className={`${styles.checkboxText} ${!subjectObj.active ? styles.disabledText : ''}`}>
-                                                            {subjectObj.name} {!subjectObj.active && '(N/A)'}
-                                                        </span>
-                                                    </label>
-                                                ))}
+                                    {/* Subjects of Difficulty Multi-Select */}
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Subjects of Difficulty</label>
+                                        <div className={styles.multiSelectWrapper} ref={difficultyRef}>
+                                            <div
+                                                className={styles.multiSelectTrigger}
+                                                onClick={() => setDifficultyDropdownOpen(!difficultyDropdownOpen)}
+                                            >
+                                                <div className={styles.selectedTags}>
+                                                    {formData.subjectsOfDifficulty.length === 0 ? (
+                                                        <span className={styles.placeholder}>Select difficult subjects...</span>
+                                                    ) : (
+                                                        formData.subjectsOfDifficulty.map((subject) => (
+                                                            <span key={subject} className={styles.tag}>
+                                                                {subject}
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.tagRemove}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeSubject('subjectsOfDifficulty', subject);
+                                                                    }}
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </span>
+                                                        ))
+                                                    )}
+                                                </div>
+                                                <ChevronDown
+                                                    size={18}
+                                                    className={`${styles.dropdownIcon} ${difficultyDropdownOpen ? styles.rotated : ''}`}
+                                                />
                                             </div>
+                                            {difficultyDropdownOpen && (
+                                                <div className={styles.dropdownMenu}>
+                                                    {availableSubjects.filter(s => s.active).map((subjectObj) => (
+                                                        <div
+                                                            key={subjectObj.name}
+                                                            className={`${styles.dropdownItem} ${formData.subjectsOfDifficulty.includes(subjectObj.name) ? styles.selected : ''
+                                                                }`}
+                                                            onClick={() => handleSubjectToggle('subjectsOfDifficulty', subjectObj.name)}
+                                                        >
+                                                            <span className={styles.itemCheckbox}>
+                                                                {formData.subjectsOfDifficulty.includes(subjectObj.name) && (
+                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                        <polyline points="20 6 9 17 4 12" />
+                                                                    </svg>
+                                                                )}
+                                                            </span>
+                                                            {subjectObj.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        {usingFallback && <p style={{ fontSize: '0.8rem', color: '#999', marginTop: '10px' }}>* Showing default subjects because no custom courses have been added yet.</p>}
-                                    </>
-                                )}
+                                    </div>
+                                </div>
                             </div>
-
                             {/* Learning Preferences Section */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Learning Preferences</h3>
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Preferred Study Style</label>
-                                        <select
-                                            name="studyStyle"
-                                            className={styles.select}
-                                            value={formData.studyStyle}
-                                            onChange={handleInputChange}
-                                        >
-                                            {studyStyles.map((style) => (
-                                                <option key={style} value={style}>{style}</option>
-                                            ))}
-                                        </select>
+                                        <div className={styles.singleSelectWrapper} ref={studyStyleRef}>
+                                            <div
+                                                className={styles.singleSelectTrigger}
+                                                onClick={() => setStudyStyleDropdownOpen(!studyStyleDropdownOpen)}
+                                            >
+                                                <span className={formData.studyStyle ? styles.selectedText : styles.placeholder}>
+                                                    {formData.studyStyle || "Select study style"}
+                                                </span>
+                                                <ChevronDown size={18} className={`${styles.dropdownIcon} ${studyStyleDropdownOpen ? styles.rotated : ''}`} />
+                                            </div>
+                                            {studyStyleDropdownOpen && (
+                                                <div className={styles.dropdownMenu}>
+                                                    {studyStyles.map((style) => (
+                                                        <div
+                                                            key={style}
+                                                            className={`${styles.dropdownItem} ${formData.studyStyle === style ? styles.selected : ''}`}
+                                                            onClick={() => {
+                                                                setFormData(prev => ({ ...prev, studyStyle: style }));
+                                                                setStudyStyleDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <div className={styles.itemRadio}>
+                                                                {formData.studyStyle === style && (
+                                                                    <div className={styles.radioInner} />
+                                                                )}
+                                                            </div>
+                                                            <span>{style}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
                             {/* Availability Section */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Availability</h3>

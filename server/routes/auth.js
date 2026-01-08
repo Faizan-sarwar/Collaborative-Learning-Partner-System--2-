@@ -867,7 +867,7 @@ router.get('/student/:id/picture', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-// 🟢 FIX 1: GET STUDY MATCHES (Remove Hardcoded 85)
+// 🟢 FIX: GET STUDY MATCHES (Filter out users who haven't done the quiz)
 router.get('/matches/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -875,9 +875,11 @@ router.get('/matches/:userId', async (req, res) => {
 
     const currentUser = await User.findById(userId);
 
+    // 🟢 UPDATE QUERY: Added 'quizCompleted: true'
     const candidates = await User.find({
-      _id: { $ne: userId },
-      role: { $nin: ['super-admin', 'admin'] }
+      _id: { $ne: userId }, // Exclude self
+      role: { $nin: ['super-admin', 'admin'] }, // Exclude admins
+      quizCompleted: true // 🚀 ONLY show students who finished the quiz
     }).select('-password').limit(50);
 
     const formattedCandidates = candidates.map(user => {
@@ -899,16 +901,14 @@ router.get('/matches/:userId', async (req, res) => {
         studyHours: user.studyHours || 0,
         plan: user.plan || 'free',
         availability: user.availability || 'Flexible',
-
-        // 🟢 REAL DATA: Use DB value, default to 0 if missing
         reliability: user.reliability || 0,
-
         connectionStatus: status
       };
     });
 
     res.json({ success: true, matches: formattedCandidates });
   } catch (err) {
+    console.error("Matches Error:", err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

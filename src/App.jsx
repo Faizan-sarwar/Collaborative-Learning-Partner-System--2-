@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"; // Added useState
 import Index from "../pages/Index";
 import Login from "../pages/Login/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
-// ... (Keep all your existing imports) ...
 import StudyTime from "../pages/StudyTime/StudyTime";
 import Courses from "../pages/Courses/Courses";
 import Social from "../pages/Social/Social";
