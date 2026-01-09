@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Messages.module.css';
+import ChatBot from "../ChatBot/ChatBot";
 
 // Emoji categories
 const emojiCategories = {
@@ -479,6 +480,7 @@ const Messages = () => {
         </AnimatePresence>
 
       </motion.div>
+      <ChatBot />
     </DashboardLayout>
   );
 };

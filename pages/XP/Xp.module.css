@@ -1,0 +1,848 @@
+.container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Overview Card */
+.overviewCard {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #6366f1));
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  color: white;
+  box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
+}
+
+.xpHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.xpIcon {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.xpInfo {
+  flex: 1;
+}
+
+.xpTitle {
+  font-size: 1rem;
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.xpValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.levelBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.levelNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.levelName {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Progress Section */
+.progressSection {
+  margin-bottom: 2rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.progressBar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Stats Row */
+.statsRow {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Main Grid */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+}
+
+/* Card Styles */
+.earnCard,
+.historyCard,
+.milestonesCard,
+.quickCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.cardIcon {
+  font-size: 1.25rem;
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Activities Grid */
+.activitiesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.activityCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activityCard:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);
+}
+
+.activityIcon {
+  width: 45px;
+  height: 45px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.activityContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.activityDesc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.activityXp {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  white-space: nowrap;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+/* Right Column */
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* History List */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+}
+
+.historyIcon {
+  font-size: 1.25rem;
+}
+
+.historyContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.historyActivity {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.historyTime {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.historyXp {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+/* Milestones */
+.milestonesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.milestoneItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.milestoneItem.achieved {
+  opacity: 1;
+}
+
+.milestoneItem.current {
+  opacity: 1;
+  border: 2px solid var(--accent-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.milestoneIcon {
+  font-size: 1.25rem;
+}
+
+.milestoneInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.milestoneName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.milestoneXp {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.currentBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+/* Quick Actions */
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quickBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quickBtn:hover {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
+.quickBtn span {
+  font-size: 1.25rem;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rightColumn {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .activitiesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rightColumn {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .overviewCard {
+    padding: 1.5rem;
+  }
+  
+  .xpHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .xpValue {
+    font-size: 2rem;
+  }
+  
+  .statsRow {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .statItem {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+.container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Overview Card */
+.overviewCard {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #6366f1));
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  color: white;
+  box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
+}
+
+.xpHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.xpIcon {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.xpInfo {
+  flex: 1;
+}
+
+.xpTitle {
+  font-size: 1rem;
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.xpValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.levelBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.levelNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.levelName {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Progress Section */
+.progressSection {
+  margin-bottom: 2rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.progressBar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Stats Row */
+.statsRow {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Main Grid */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+}
+
+/* Card Styles */
+.earnCard,
+.historyCard,
+.milestonesCard,
+.quickCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.cardIcon {
+  font-size: 1.25rem;
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Activities Grid */
+.activitiesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.activityCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activityCard:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);
+}
+
+.activityIcon {
+  width: 45px;
+  height: 45px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.activityContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.activityDesc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.activityXp {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  white-space: nowrap;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+/* Right Column */
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* History List */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+}
+
+.historyIcon {
+  font-size: 1.25rem;
+}
+
+.historyContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.historyActivity {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.historyTime {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.historyXp {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+/* Milestones */
+.milestonesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.milestoneItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.milestoneItem.achieved {
+  opacity: 1;
+}
+
+.milestoneItem.current {
+  opacity: 1;
+  border: 2px solid var(--accent-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.milestoneIcon {
+  font-size: 1.25rem;
+}
+
+.milestoneInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.milestoneName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.milestoneXp {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.currentBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+/* Quick Actions */
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quickBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quickBtn:hover {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
+.quickBtn span {
+  font-size: 1.25rem;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rightColumn {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .activitiesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rightColumn {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .overviewCard {
+    padding: 1.5rem;
+  }
+  
+  .xpHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .xpValue {
+    font-size: 2rem;
+  }
+  
+  .statsRow {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .statItem {
+    flex: 1;
+    min-width: 80px;
+  }
+}

@@ -1,21 +1,86 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './TodoList.module.css';
 
 const TodoList = () => {
-  const [todos, setTodos] = useState([]);
+  // 1. Lazy Initialization
+  const [todos, setTodos] = useState(() => {
+    const saved = localStorage.getItem('todos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
   const [newTodo, setNewTodo] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  
+  // 2. React Ref
+  const inputRef = useRef(null);
 
+  // 3. Auto-Save to LocalStorage
   useEffect(() => {
-    const saved = localStorage.getItem('todos');
-    if (saved) setTodos(JSON.parse(saved));
-  }, []);
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }, [todos]);
 
-  const saveTodos = (updated) => {
-    setTodos(updated);
-    localStorage.setItem('todos', JSON.stringify(updated));
+  // 🟢 4. HELPER: Save Completed Count AND XP to DB
+  const saveStatsToDB = async (updatedTodos) => {
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    if (!token) return;
+
+    // Get current completed count
+    const completedCount = updatedTodos.filter(t => t.completed).length;
+    
+    // Get previous count (to calculate if we gained XP)
+    const prevCompleted = todos.filter(t => t.completed).length;
+    const isCompletion = completedCount > prevCompleted;
+
+    // Get Current XP from Session (safest way without another fetch)
+    const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+    let currentXP = storedUser.xp || 0;
+
+    // 🟢 XP Logic: +30 XP for completing a task
+    if (isCompletion) {
+        currentXP += 30;
+    }
+
+    try {
+        await fetch('http://localhost:5000/api/auth/update-stats', {
+            method: 'PUT',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                tasksCompleted: completedCount,
+                xp: currentXP 
+            })
+        });
+
+        // Sync Session Storage
+        storedUser.tasksCompleted = completedCount;
+        storedUser.xp = currentXP;
+        sessionStorage.setItem('user', JSON.stringify(storedUser));
+        
+        // Notify Header/Gamification
+        window.dispatchEvent(new Event('userUpdated'));
+
+        // Notification for XP
+        if (isCompletion) {
+             const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+             const newNotif = {
+                 id: Date.now(), 
+                 title: "Task Completed! ✅", 
+                 message: "You earned 30 XP", 
+                 type: 'success', 
+                 read: false, 
+                 timestamp: new Date()
+             };
+             localStorage.setItem('notifications', JSON.stringify([newNotif, ...notifs]));
+             window.dispatchEvent(new Event('notificationAdded'));
+        }
+
+    } catch (err) {
+        console.error("Failed to sync tasks to DB", err);
+    }
   };
 
   const addTodo = () => {
@@ -27,20 +92,27 @@ const TodoList = () => {
         date: new Date().toLocaleDateString(),
         status: 'Pending'
       };
-      saveTodos([...todos, todo]);
+      const updated = [todo, ...todos];
+      setTodos(updated);
+      saveStatsToDB(updated); // Sync
       setNewTodo('');
     }
   };
 
   const toggleTodo = (id) => {
     const updated = todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed, status: !todo.completed ? 'Done' : 'Pending' } : todo
+      todo.id === id 
+        ? { ...todo, completed: !todo.completed, status: !todo.completed ? 'Done' : 'Pending' } 
+        : todo
     );
-    saveTodos(updated);
+    setTodos(updated);
+    saveStatsToDB(updated); // Sync & Add XP
   };
 
   const deleteTodo = (id) => {
-    saveTodos(todos.filter(todo => todo.id !== id));
+    const updated = todos.filter(todo => todo.id !== id);
+    setTodos(updated);
+    saveStatsToDB(updated); // Sync
   };
 
   const startEdit = (todo) => {
@@ -48,16 +120,28 @@ const TodoList = () => {
     setEditText(todo.text);
   };
 
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
   const saveEdit = () => {
     if (editText.trim()) {
       const updated = todos.map(todo => 
         todo.id === editingId ? { ...todo, text: editText.trim() } : todo
       );
-      saveTodos(updated);
+      setTodos(updated);
     }
     setEditingId(null);
     setEditText('');
   };
+
+  const handleEditKeyDown = (e) => {
+    if (e.key === 'Enter') saveEdit();
+    if (e.key === 'Escape') cancelEdit();
+  };
+
+  const sortedTodos = [...todos].sort((a, b) => Number(a.completed) - Number(b.completed));
 
   return (
     <div className={styles.container}>
@@ -66,7 +150,7 @@ const TodoList = () => {
           <span className={styles.icon}>📋</span>
           <h3 className={styles.title}>To-do List</h3>
         </div>
-        <button className={styles.addBtn} onClick={() => document.getElementById('todoInput').focus()}>
+        <button className={styles.addBtn} onClick={() => inputRef.current?.focus()}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -78,6 +162,7 @@ const TodoList = () => {
 
       <div className={styles.inputWrapper}>
         <input
+          ref={inputRef}
           id="todoInput"
           type="text"
           placeholder="Add a new task..."
@@ -89,14 +174,14 @@ const TodoList = () => {
       </div>
 
       <div className={styles.todoList}>
-        <AnimatePresence>
-          {todos.map((todo) => (
+        <AnimatePresence mode='popLayout'>
+          {sortedTodos.map((todo) => (
             <motion.div
               key={todo.id}
               className={`${styles.todoItem} ${todo.completed ? styles.completed : ''}`}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
               layout
             >
               <button 
@@ -116,7 +201,7 @@ const TodoList = () => {
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   onBlur={saveEdit}
-                  onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                  onKeyDown={handleEditKeyDown}
                   className={styles.editInput}
                   autoFocus
                 />

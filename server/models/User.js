@@ -135,6 +135,13 @@ const userSchema = new mongoose.Schema({
   sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   receivedRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
+  //  ANALYTICS FIELDS
+  studyHours: { type: Number, default: 0 },
+  tasksCompleted: { type: Number, default: 0 },
+
+  longestStreak: { type: Number, default: 0 },
+  lastStudyDate: { type: String, default: null },
+  streakHistory: { type: [Boolean], default: [] }, 
   // Gamification Fields
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
@@ -157,6 +164,7 @@ const userSchema = new mongoose.Schema({
     theme: { type: String, default: 'dark' },
     language: { type: String, default: 'en' }
   }
+
 },
   {
     timestamps: true

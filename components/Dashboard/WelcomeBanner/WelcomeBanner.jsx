@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './WelcomeBanner.module.css';
 
 const WelcomeBanner = () => {
   const [user, setUser] = useState(null);
+  const [showLevelTooltip, setShowLevelTooltip] = useState(false);
+
+  // 🟢 Helper to load user
+  const loadUser = () => {
+      const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+      if (storedUser) {
+          setUser(JSON.parse(storedUser));
+      }
+  };
 
   useEffect(() => {
-    // 1. Try Session Storage first (most up-to-date after quiz)
-    let storedUser = sessionStorage.getItem('user');
-    if (!storedUser) {
-        // Fallback to local storage
-        storedUser = localStorage.getItem('user');
-    }
-
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // 1. Initial Load
+    loadUser();
 
     // 2. Fetch fresh data to ensure reliability score is synced
-  if (token) {
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    if (token) {
       fetch('http://localhost:5000/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -28,26 +28,55 @@ const WelcomeBanner = () => {
       .then(data => {
         if (data.success && data.user) {
           setUser(data.user);
-          setReliability(data.user.reliability || 0); // Update state from DB
-          
-          // Update storage silently to sync for next time
           sessionStorage.setItem('user', JSON.stringify(data.user)); 
         }
       })
       .catch(err => console.error("Banner sync failed", err));
     }
+
+    // 🟢 3. LISTEN FOR UPDATES (XP Page, Gamification Page)
+    window.addEventListener('userUpdated', loadUser);
+    return () => window.removeEventListener('userUpdated', loadUser);
+
   }, []);
 
   const username = user?.fullName || 'Student';
-  
-  // 🔹 DYNAMIC RELIABILITY LOGIC
   const reliabilityScore = user?.reliability || 0;
-  
-  // Determine color based on score
+  const currentHours = user?.studyHours || 0;
+  const currentLevel = user?.level || 1;
+
+  // 🔹 LEVEL LOGIC & COLORS
+  const getLevelInfo = () => {
+      if (currentLevel === 1) {
+          return {
+              bg: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', // Blue
+              shadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+              nextLevel: 2,
+              remaining: (5 - currentHours).toFixed(1) // Assuming lvl 2 needs 5h
+          };
+      }
+      if (currentLevel === 2) {
+          return {
+              bg: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', // Purple
+              shadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+              nextLevel: 3,
+              remaining: (15 - currentHours).toFixed(1)
+          };
+      }
+      return {
+          bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', // Gold
+          shadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+          nextLevel: null,
+          remaining: 0
+      };
+  };
+
+  const levelInfo = getLevelInfo();
+
   const getBarColor = (score) => {
-      if (score >= 80) return '#10b981'; // Green
-      if (score >= 50) return '#f59e0b'; // Orange
-      return '#ef4444'; // Red
+      if (score >= 80) return '#10b981'; 
+      if (score >= 50) return '#f59e0b'; 
+      return '#ef4444'; 
   };
 
   return (
@@ -62,19 +91,42 @@ const WelcomeBanner = () => {
           <h1 className={styles.title}>
             Welcome, {username}!
           </h1>
-          <div className={styles.levelBadge}>
+          
+          <div 
+            className={styles.levelBadge}
+            style={{ background: levelInfo.bg, boxShadow: levelInfo.shadow, cursor: 'pointer', position: 'relative' }}
+            onMouseEnter={() => setShowLevelTooltip(true)}
+            onMouseLeave={() => setShowLevelTooltip(false)}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
             </svg>
-            Level {user?.level || 1}
+            Level {currentLevel}
+
+            <AnimatePresence>
+                {showLevelTooltip && (
+                    <motion.div 
+                        className={styles.tooltip}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                    >
+                        {levelInfo.nextLevel ? (
+                            <span>{levelInfo.remaining}h to Level {currentLevel + 1} 🚀</span>
+                        ) : (
+                            <span>Max Level Reached! 👑</span>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
           </div>
+
           <p className={styles.subtitle}>
             This week's progress is still in progress. You've got this!
           </p>
           
           <div className={styles.progressSection}>
             <div className={styles.progressBar}>
-              {/* 🔹 DYNAMIC WIDTH & COLOR */}
               <motion.div 
                 className={styles.progressFill}
                 initial={{ width: 0 }}
@@ -83,7 +135,6 @@ const WelcomeBanner = () => {
                 style={{ backgroundColor: getBarColor(reliabilityScore) }}
               />
             </div>
-            {/* 🔹 DYNAMIC TEXT */}
             <span className={styles.progressText}>{reliabilityScore}% Reliability</span>
           </div>
         </div>

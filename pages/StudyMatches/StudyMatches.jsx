@@ -111,6 +111,15 @@ const StudyMatches = () => {
       return '#ef4444'; // Red
   };
 
+  // 🔹 HELPER: Calculate Level Based on Hours
+  // Logic: < 10h = Lvl 1, 10h-19h = Lvl 2, 20h+ = Lvl 3 (Max)
+  const calculateLevel = (hours) => {
+    const h = Number(hours) || 0;
+    if (h >= 20) return 3;
+    if (h >= 10) return 2;
+    return 1;
+  };
+
   // 🔹 FILTERS
   const filteredUsers = users.filter(user => {
     const query = searchQuery.toLowerCase();
@@ -130,8 +139,12 @@ const StudyMatches = () => {
   // 🔹 SORTING
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     if (sortBy === 'name') return a.fullName.localeCompare(b.fullName);
-    if (sortBy === 'level') return b.level - a.level;
-    if (sortBy === 'hours') return b.studyHours - a.studyHours;
+    
+    // Sort by calculated level
+    if (sortBy === 'level') {
+        return calculateLevel(b.studyHours) - calculateLevel(a.studyHours);
+    }
+    if (sortBy === 'hours') return (b.studyHours || 0) - (a.studyHours || 0);
     return 0;
   });
 
@@ -215,7 +228,11 @@ const StudyMatches = () => {
 
         {loading ? <div>Loading...</div> : (
             <div className={styles.usersGrid}>
-            {sortedUsers.map(user => (
+            {sortedUsers.map(user => {
+                // Calculate level dynamically based on hours
+                const displayLevel = calculateLevel(user.studyHours);
+
+                return (
                 <motion.div 
                     key={user._id || user.id} 
                     className={styles.userCard}
@@ -235,17 +252,14 @@ const StudyMatches = () => {
                 </div>
 
                 <div className={styles.cardBody}>
-                    {/* ✅ DYNAMIC RELIABILITY BAR */}
                     <div className={styles.reliabilitySection}>
                       <div className={styles.reliabilityHeader}>
                         <span className={styles.reliabilityLabel}>Reliability</span>
-                        {/* Use real reliability value */}
                         <span className={styles.reliabilityValue}>{user.reliability || 0}%</span>
                       </div>
                       <div className={styles.reliabilityBar}>
                         <div className={styles.reliabilityFill} style={{ 
                             width: `${user.reliability || 0}%`,
-                            // Dynamic Color based on score
                             background: getReliabilityColor(user.reliability || 0)
                         }}></div>
                       </div>
@@ -256,9 +270,18 @@ const StudyMatches = () => {
                     <div className={styles.infoRow}><span>💡 {user.studyStyle}</span></div>
 
                     <div className={styles.statsRow}>
-                        <div className={styles.stat}><span className={styles.statValue}>{user.level}</span><span className={styles.statLabel}>Level</span></div>
-                        <div className={styles.stat}><span className={styles.statValue}>{user.xp}</span><span className={styles.statLabel}>XP</span></div>
-                        <div className={styles.stat}><span className={styles.statValue}>{user.studyHours}h</span><span className={styles.statLabel}>Hours</span></div>
+                        <div className={styles.stat}>
+                            <span className={styles.statValue}>{displayLevel}</span>
+                            <span className={styles.statLabel}>Level</span>
+                        </div>
+                        <div className={styles.stat}>
+                            <span className={styles.statValue}>{user.xp || 0}</span>
+                            <span className={styles.statLabel}>XP</span>
+                        </div>
+                        <div className={styles.stat}>
+                            <span className={styles.statValue}>{user.studyHours || 0}h</span>
+                            <span className={styles.statLabel}>Hours</span>
+                        </div>
                     </div>
 
                     <div className={styles.strengthsSection}>
@@ -275,7 +298,8 @@ const StudyMatches = () => {
                     {getConnectionButton(user)}
                 </div>
                 </motion.div>
-            ))}
+                );
+            })}
             </div>
         )}
       </div>
@@ -283,4 +307,4 @@ const StudyMatches = () => {
   );
 };
 
-export default StudyMatches;
+export default StudyMatches;  

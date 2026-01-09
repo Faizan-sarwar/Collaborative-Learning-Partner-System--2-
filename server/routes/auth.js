@@ -1330,4 +1330,38 @@ router.get('/me', async (req, res) => {
     res.status(401).json({ success: false, message: 'Not authorized' });
   }
 });
+
+// UPDATE ANALYTICS & STREAK
+router.put('/update-stats', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const { studyHours, tasksCompleted, streakData } = req.body;
+    
+    const updateFields = {};
+    
+    // Only update fields that are sent
+    if (studyHours !== undefined) updateFields.studyHours = studyHours;
+    if (tasksCompleted !== undefined) updateFields.tasksCompleted = tasksCompleted;
+    
+    if (streakData) {
+        updateFields.streak = streakData.current;
+        updateFields.longestStreak = streakData.longest;
+        updateFields.streakHistory = streakData.last14Days;
+        // If the client sent a lastStudyDate, update it
+        if (streakData.lastDate) updateFields.lastStudyDate = streakData.lastDate;
+    }
+
+    const user = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true });
+
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error("Stats update error:", err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 export default router;

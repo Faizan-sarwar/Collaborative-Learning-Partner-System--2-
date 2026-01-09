@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,6 +12,7 @@ const navItems = [
   { id: 'pending-connections', icon: 'pending', label: 'Pending', path: '/pending-connections' },
   { id: 'messages', icon: 'message', label: 'Messages', path: '/messages' },
   { id: 'social', icon: 'users', label: 'Social', path: '/social' },
+  { id: 'xp', icon: 'zap', label: 'XP & Rewards', path: '/xp' },
   { id: 'gamification', icon: 'trophy', label: 'Gamification', path: '/gamification' },
   { id: 'analytics', icon: 'chart', label: 'Analytics', path: '/analytics' },
   { id: 'settings', icon: 'settings', label: 'Settings', path: '/settings' },
@@ -28,11 +28,6 @@ const sidebarWidgets = [
 const DashboardSidebar = () => {
   const location = useLocation();
   const [activeWidget, setActiveWidget] = useState(null);
-
-  // 🟢 HIDE SIDEBAR ON QUIZ PAGE
-  if (location.pathname === '/quiz') {
-    return null;
-  }
 
   const renderIcon = (iconName) => {
     const icons = {
@@ -96,6 +91,11 @@ const DashboardSidebar = () => {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       ),
+      zap: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      ),
       trophy: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
@@ -133,7 +133,7 @@ const DashboardSidebar = () => {
               </defs>
             </svg>
           </div>
-          <span className={styles.logoText}>Collaborative<br />Learning</span>
+          <span className={styles.logoText}>Collaborative <br /> Learning</span>
         </div>
       </div>
 

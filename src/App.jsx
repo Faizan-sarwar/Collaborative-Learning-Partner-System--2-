@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import React, { useEffect, useState } from "react"; // Added useState
+import React, { useEffect, useState } from "react";
 import Index from "../pages/Index";
 import Login from "../pages/Login/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
@@ -28,6 +28,8 @@ import StudyMatches from "../pages/StudyMatches/StudyMatches";
 import StudyRoomWaiting from "../pages/StudyRoomWaiting/StudyRoomWaiting";
 import StudyRoomActive from "../pages/StudyRoomActive/StudyRoomActive";
 import Settings from "../pages/Settings/Settings";
+import ChatBot from "../pages/ChatBot/ChatBot"; 
+import XP from "../pages/XP/Xp";
 import "./App.css";
 
 // Admin imports
@@ -41,13 +43,32 @@ import ActivityLogs from "../pages/Admin/ActivityLogs/ActivityLogs";
 import AdminProfile from "../pages/Admin/AdminProfile/AdminProfile";
 import SettingsPage from "../pages/Admin/SettingsPage/SettingsPage";
 
-const dashboardRoutes = ['/dashboard', '/study-time', '/courses', '/social', '/analytics'];
+const dashboardRoutes = [
+  '/dashboard',
+  '/study-time',
+  '/courses',
+  '/social',
+  '/analytics',
+  '/study-room',
+  '/profile',
+  '/messages',
+  '/quiz',
+  '/gamification',
+  '/refer',
+  '/study-matches',
+  '/user-profile',
+  '/pending-connections',
+  '/connections',
+  '/settings',
+  '/chatbot',
+  '/admin' 
+];
 
 const AnimatedRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
-  const [isChecking, setIsChecking] = useState(true); // Helper state
+  const [isChecking, setIsChecking] = useState(true);
 
   // 🔹 GUARD LOGIC
   useEffect(() => {
@@ -62,13 +83,11 @@ const AnimatedRoutes = () => {
 
         let user = JSON.parse(storedUserString);
         
-        // 🟢 FIX: BYPASS QUIZ CHECK FOR ADMINS AND SUPER-ADMINS
         if (user.role === 'admin' || user.role === 'super-admin') {
             setIsChecking(false);
             return; 
         }
 
-        // Student Logic
         const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
         
         if (user.quizCompleted) {
@@ -105,6 +124,7 @@ const AnimatedRoutes = () => {
   return (
     <>
       {!isDashboardRoute && <ThemeToggle />}
+      
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
 
@@ -136,6 +156,8 @@ const AnimatedRoutes = () => {
             <Route path="/pending-connections" element={<PendingConnections />} />
             <Route path="/connections" element={<Connections />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/chatbot" element={<ChatBot />} />
+            <Route path="/xp" element={<XP />} />
           </Route>
 
           {/* ================= ADMIN ROUTES (Protected) ================= */}
@@ -163,7 +185,7 @@ const AnimatedRoutes = () => {
 
 const App = () => (
   <BrowserRouter>
-    <ThemeToggle />
+    {/* 🛑 MAKE SURE CHATBOT IS NOT HERE */}
     <AnimatedRoutes />
   </BrowserRouter>
 );
