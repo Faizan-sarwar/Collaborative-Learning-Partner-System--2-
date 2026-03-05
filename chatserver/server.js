@@ -30,16 +30,15 @@ function callChatbot(messages) {
     return new Promise((resolve, reject) => {
         const options = {
             method: 'POST',
-            hostname: API_HOST,
+            hostname: 'open-ai21.p.rapidapi.com',
             port: null,
             path: '/conversationllama',
             headers: {
-                'x-rapidapi-key': RAPIDAPI_KEY,
-                'x-rapidapi-host': API_HOST,
+                'x-rapidapi-key': '8b999a2ab4mshf05894d395797fcp108cc5jsnf48624df84db',
+                'x-rapidapi-host': 'open-ai21.p.rapidapi.com',
                 'Content-Type': 'application/json'
             }
         };
-
         const req = https.request(options, function (res) {
             const chunks = [];
 

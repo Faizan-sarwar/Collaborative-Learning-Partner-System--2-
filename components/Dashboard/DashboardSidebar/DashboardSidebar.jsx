@@ -11,7 +11,7 @@ const navItems = [
   { id: 'connections', icon: 'link', label: 'Connections', path: '/connections' },
   { id: 'pending-connections', icon: 'pending', label: 'Pending', path: '/pending-connections' },
   { id: 'messages', icon: 'message', label: 'Messages', path: '/messages' },
-  { id: 'social', icon: 'users', label: 'Social', path: '/social' },
+  // { id: 'social', icon: 'users', label: 'Social', path: '/social' },
   { id: 'xp', icon: 'zap', label: 'XP & Rewards', path: '/xp' },
   { id: 'gamification', icon: 'trophy', label: 'Gamification', path: '/gamification' },
   { id: 'analytics', icon: 'chart', label: 'Analytics', path: '/analytics' },

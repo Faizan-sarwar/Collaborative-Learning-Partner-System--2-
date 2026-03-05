@@ -396,6 +396,72 @@
   border-radius: 50%;
 }
 
+.chatHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chatMenuWrapper {
+  position: relative;
+}
+
+.chatMenuBtn {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.chatMenuBtn:hover {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.chatMenuDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  min-width: 160px;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.chatMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.chatMenuItem:hover {
+  background: var(--input-bg);
+}
+
+.chatMenuItem.dangerItem {
+  color: #ef4444;
+}
+
+.chatMenuItem.dangerItem:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .closeChat {
   padding: 0.5rem;
   background: transparent;
@@ -633,6 +699,260 @@
 .noConversation p {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+/* Message Options */
+.messageWrapper {
+  position: relative;
+}
+
+.messageOptionsWrapper {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: calc(100% + 0.5rem);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.messageWrapper.ownMessage .messageOptionsWrapper {
+  right: auto;
+  left: calc(100% + 0.5rem);
+}
+
+.messageWrapper:hover .messageOptionsWrapper {
+  opacity: 1;
+}
+
+.messageOptionsBtn {
+  padding: 0.35rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.messageOptionsBtn:hover {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.messageMenuDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 100px;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.messageMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.messageMenuItem:hover {
+  background: var(--input-bg);
+}
+
+.messageMenuItem.dangerItem {
+  color: #ef4444;
+}
+
+/* Edit Message */
+.editContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editInput {
+  width: 100%;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.editActions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.saveEditBtn, .cancelEditBtn {
+  padding: 0.35rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saveEditBtn {
+  background: rgba(16, 185, 129, 0.8);
+  color: white;
+}
+
+.cancelEditBtn {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+}
+
+.editedLabel {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 0.35rem;
+  font-style: italic;
+}
+
+/* No Messages */
+.noMessages {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Confirmation Modal */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmModal {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+}
+
+.confirmIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.confirmTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.confirmText {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.confirmCancelBtn, .confirmActionBtn {
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirmCancelBtn {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.confirmCancelBtn:hover {
+  background: var(--border-color);
+}
+
+.confirmActionBtn {
+  background: var(--accent-primary);
+  border: none;
+  color: white;
+}
+
+.confirmActionBtn:hover {
+  opacity: 0.9;
+}
+
+.confirmActionBtn.dangerBtn {
+  background: #ef4444;
+}
+
+/* Blocked Users */
+.blockedSection {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.blockedTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.blockedUser {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.unblockBtn {
+  padding: 0.25rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.unblockBtn:hover {
+  background: var(--accent-primary);
+  color: white;
 }
 
 /* Responsive */

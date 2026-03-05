@@ -6,7 +6,7 @@ import Login from "../pages/Login/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import StudyTime from "../pages/StudyTime/StudyTime";
 import Courses from "../pages/Courses/Courses";
-import Social from "../pages/Social/Social";
+// import Social from "../pages/Social/Social";
 import Analytics from "../pages/Analytics/Analytics";
 import Signup from "../pages/Signup/Signup";
 import Privacy from "../pages/Privacy/Privacy";
@@ -21,7 +21,7 @@ import UserProfile from "../pages/UserProfile/UserProfile";
 import Messages from "../pages/Messages/Messages";
 import Quiz from "../pages/Quiz/Quiz";
 import Gamification from "../pages/Gamification/Gamification";
-import Refer from "../pages/Refer/Refer";
+// import Refer from "../pages/Refer/Refer";
 import PendingConnections from "../pages/PendingConnections/PendingConnections";
 import Connections from "../pages/Connections/Connections";
 import StudyMatches from "../pages/StudyMatches/StudyMatches";
@@ -54,7 +54,7 @@ const dashboardRoutes = [
   '/messages',
   '/quiz',
   '/gamification',
-  '/refer',
+  // '/refer',
   '/study-matches',
   '/user-profile',
   '/pending-connections',
@@ -141,7 +141,7 @@ const AnimatedRoutes = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/study-time" element={<StudyTime />} />
             <Route path="/courses" element={<Courses />} />
-            <Route path="/social" element={<Social />} />
+            {/* <Route path="/social" element={<Social />} /> */}
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/study-room" element={<StudyRoom />} />
             <Route path="/study-room/waiting/:roomId" element={<StudyRoomWaiting />} />
@@ -150,7 +150,7 @@ const AnimatedRoutes = () => {
             <Route path="/messages" element={<Messages />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/gamification" element={<Gamification />} />
-            <Route path="/refer" element={<Refer />} />
+            {/* <Route path="/refer" element={<Refer />} /> */}
             <Route path="/study-matches" element={<StudyMatches />} />
             <Route path="/user-profile/:userId" element={<UserProfile />} />
             <Route path="/pending-connections" element={<PendingConnections />} />
