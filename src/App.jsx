@@ -3,6 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import Index from "../pages/Index";
 import Login from "../pages/Login/Login";
+import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
+import VerifyOTP from "../pages/VerifyOTP/VerifyOTP";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import StudyTime from "../pages/StudyTime/StudyTime";
 import Courses from "../pages/Courses/Courses";
@@ -135,6 +137,8 @@ const AnimatedRoutes = () => {
           <Route path="/privacy" element={<PageTransition><Privacy /></PageTransition>} />
           <Route path="/terms" element={<PageTransition><Terms /></PageTransition>} />
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
+          <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+          <Route path="/verify-otp" element={<PageTransition><VerifyOTP /></PageTransition>} />
 
           {/* ================= STUDENT ROUTES (Protected) ================= */}
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>

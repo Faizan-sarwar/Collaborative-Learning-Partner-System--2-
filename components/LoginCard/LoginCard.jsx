@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './LoginCard.module.css';
 import TextInput from '../TextInput/TextInput';
 import Divider from '../Divider/Divider';
+import GoogleButton from '../GoogleButton/GoogleButton';
 import Alert from '../Alert/Alert';
 import { Link } from 'react-router-dom';
 
@@ -114,14 +115,16 @@ const LoginCard = () => {
             <span className={styles.checkmark}></span>
             <span className={styles.checkboxLabel}>Remember me for 30 days</span>
           </label>
-          <a href="#" className={styles.forgotLink}>Forgot password?</a>
+          <Link to="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
         </div>
 
         <button type="submit" className={styles.signInButton}>
           Sign In
         </button>
 
-        <Divider text="Or" />
+        <Divider text="Or continue with" />
+
+        <GoogleButton />
 
         <p className={styles.signupText}>
           Don't have an account?{' '}
