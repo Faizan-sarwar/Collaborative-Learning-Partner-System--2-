@@ -8,6 +8,7 @@ import VerifyOTP from "../pages/VerifyOTP/VerifyOTP";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import StudyTime from "../pages/StudyTime/StudyTime";
 import Courses from "../pages/Courses/Courses";
+import ResetPassword from "../pages/ResetPassword/ResetPassword";
 // import Social from "../pages/Social/Social";
 import Analytics from "../pages/Analytics/Analytics";
 import Signup from "../pages/Signup/Signup";
@@ -139,6 +140,8 @@ const AnimatedRoutes = () => {
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="/verify-otp" element={<PageTransition><VerifyOTP /></PageTransition>} />
+          
+          <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} /> 
 
           {/* ================= STUDENT ROUTES (Protected) ================= */}
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
@@ -189,7 +192,6 @@ const AnimatedRoutes = () => {
 
 const App = () => (
   <BrowserRouter>
-    {/* 🛑 MAKE SURE CHATBOT IS NOT HERE */}
     <AnimatedRoutes />
   </BrowserRouter>
 );

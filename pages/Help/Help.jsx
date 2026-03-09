@@ -58,7 +58,7 @@ const Help = () => {
             </div>
             <h3>Email Support</h3>
             <p>Get help from our support team</p>
-            <a href="mailto:support@Collaborative Learning Partner System.com" className={styles.contactLink}>support@Collaborative Learning Partner System.com</a>
+            <a href="clpsnoreply911@gmail.com" className={styles.contactLink}>clpsnoreply911@gmail.com</a>
           </div>
 
           <div className={styles.contactCard}>

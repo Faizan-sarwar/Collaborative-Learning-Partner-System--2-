@@ -122,10 +122,6 @@ const LoginCard = () => {
           Sign In
         </button>
 
-        <Divider text="Or continue with" />
-
-        <GoogleButton />
-
         <p className={styles.signupText}>
           Don't have an account?{' '}
           <Link to="/signup" className={styles.signupLink}>Sign up</Link>

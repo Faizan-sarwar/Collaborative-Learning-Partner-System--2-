@@ -20,8 +20,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
+    origin: ['http://localhost:5173', 'http://localhost:3000'], // Allow these frontend URLs
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+    credentials: true // Allow cookies/authorization headers if needed
 }));
 
 // MongoDB connection

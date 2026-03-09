@@ -10,13 +10,24 @@ const VerifyOTP = () => {
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
+  
   const location = useLocation();
   const navigate = useNavigate();
-  const email = location.state?.email || 'your email';
+  
+  const email = location.state?.email || '';
   const type = location.state?.type || 'verification';
 
+  // Security check: Kick back to login if accessed directly without an email
   useEffect(() => {
-    inputRefs.current[0]?.focus();
+    if (!email) {
+      navigate('/login');
+    }
+  }, [email, navigate]);
+
+  useEffect(() => {
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
   }, []);
 
   useEffect(() => {
@@ -59,6 +70,7 @@ const VerifyOTP = () => {
     }
   };
 
+  // 🟢 1. SUBMIT OTP TO BACKEND
   const handleSubmit = async (e) => {
     e.preventDefault();
     const code = otp.join('');
@@ -69,17 +81,36 @@ const VerifyOTP = () => {
     }
 
     setIsVerifying(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsVerifying(false);
+    
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: code })
+      });
+      
+      const data = await res.json();
+      setIsVerifying(false);
 
-    // Simulate success
-    if (type === 'password-reset') {
-      navigate('/login', { state: { message: 'Password reset successful! Please login with your new password.' } });
-    } else {
-      navigate('/dashboard');
+      if (!res.ok) {
+        setError(data.message || 'Invalid OTP code.');
+        return;
+      }
+
+      // Success! Navigate to next step
+      if (type === 'password-reset') {
+        navigate('/reset-password', { state: { email } });
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error('Verify error:', err);
+      setError('Failed to connect to the server.');
+      setIsVerifying(false);
     }
   };
 
+  // 🟢 2. RESEND OTP API CALL
   const handleResend = async () => {
     if (!canResend) return;
     setCanResend(false);
@@ -87,13 +118,24 @@ const VerifyOTP = () => {
     setOtp(['', '', '', '', '', '']);
     setError('');
     inputRefs.current[0]?.focus();
-    // Simulate resend API call
-    console.log('Resending OTP to', email);
+    
+    try {
+      await fetch('http://localhost:5000/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+    } catch (err) {
+      console.error('Resend error:', err);
+      setError('Failed to resend code.');
+    }
   };
 
   const maskedEmail = email.includes('@')
     ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     : email;
+
+  if (!email) return null; // Prevent rendering if redirecting
 
   return (
     <PageTransition>
@@ -101,38 +143,25 @@ const VerifyOTP = () => {
         {/* Left Panel */}
         <div className={styles.leftPanel}>
           <div className={styles.illustrationWrapper}>
-            <svg
-              className={styles.illustration}
-              viewBox="0 0 400 400"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Shield */}
+            <svg className={styles.illustration} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M200 100L260 130V200C260 245 235 275 200 290C165 275 140 245 140 200V130L200 100Z" fill="rgba(99,102,241,0.15)" stroke="rgba(99,102,241,0.3)" strokeWidth="3" />
               <path d="M185 200L195 210L220 185" stroke="rgba(16,185,129,0.6)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
               
-              {/* OTP boxes */}
               <rect x="95" y="320" width="35" height="40" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
               <rect x="138" y="320" width="35" height="40" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
               <rect x="181" y="320" width="35" height="40" rx="6" fill="rgba(99,102,241,0.2)" stroke="rgba(99,102,241,0.4)" strokeWidth="1.5" />
               <rect x="224" y="320" width="35" height="40" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
               <rect x="267" y="320" width="35" height="40" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
               
-              {/* Phone */}
               <rect x="280" y="100" width="50" height="80" rx="8" fill="rgba(255,255,255,0.1)" />
               <rect x="285" y="108" width="40" height="55" rx="4" fill="rgba(99,102,241,0.15)" />
               <circle cx="305" cy="172" r="4" fill="rgba(255,255,255,0.12)" />
-              
-              {/* Notification bell */}
               <path d="M305 115C305 112 307 110 310 110C313 110 315 112 315 115V125H305V115Z" fill="rgba(255,255,255,0.2)" />
               <circle cx="310" cy="128" r="3" fill="rgba(255,255,255,0.15)" />
               
-              {/* Floating elements */}
               <circle cx="80" cy="150" r="6" fill="rgba(139,92,246,0.4)" />
               <circle cx="340" cy="250" r="5" fill="rgba(16,185,129,0.4)" />
               <circle cx="100" cy="280" r="4" fill="rgba(99,102,241,0.3)" />
-              
-              {/* Sparkles */}
               <path d="M330 140 L332 145 L337 147 L332 149 L330 154 L328 149 L323 147 L328 145Z" fill="rgba(255,255,255,0.3)" />
               <path d="M70 200 L73 207 L80 210 L73 213 L70 220 L67 213 L60 210 L67 207Z" fill="rgba(255,255,255,0.25)" />
             </svg>

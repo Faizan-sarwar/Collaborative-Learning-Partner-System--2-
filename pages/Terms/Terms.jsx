@@ -74,7 +74,7 @@ const Terms = () => {
           <section className={styles.section}>
             <h2>8. Contact Information</h2>
             <p>For questions about these Terms of Service, please contact us at:</p>
-            <p className={styles.contactEmail}>legal@clps.com</p>
+            <p className={styles.contactEmail}>clpsnoreply911@gmail.com</p>
           </section>
         </div>
       </div>
