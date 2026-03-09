@@ -121,8 +121,8 @@ const LoginCard = () => {
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
             />
-            <span className={styles.checkmark}></span>
-            <span className={styles.checkboxLabel}>Remember me for 30 days</span>
+            {/* <span className={styles.checkmark}></span> */}
+            {/* <span className={styles.checkboxLabel}>Remember me for 30 days</span> */}
           </label>
           <Link to="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
         </div>
