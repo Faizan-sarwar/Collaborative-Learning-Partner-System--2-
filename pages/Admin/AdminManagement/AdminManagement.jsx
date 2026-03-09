@@ -54,7 +54,7 @@ const AdminManagement = () => {
 
   useEffect(() => {
     fetchAdmins();
-    const storedUser = sessionStorage.getItem('user');
+    const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user'));
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
     }

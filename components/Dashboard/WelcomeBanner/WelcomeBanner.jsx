@@ -8,7 +8,7 @@ const WelcomeBanner = () => {
 
   // 🟢 Helper to load user
   const loadUser = () => {
-      const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+      const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
       if (storedUser) {
           setUser(JSON.parse(storedUser));
       }
@@ -19,7 +19,7 @@ const WelcomeBanner = () => {
     loadUser();
 
     // 2. Fetch fresh data to ensure reliability score is synced
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
     if (token) {
       fetch('http://localhost:5000/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }

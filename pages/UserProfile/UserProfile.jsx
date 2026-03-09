@@ -18,8 +18,8 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-        const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+        const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
 
         if (!token || !storedUser) { navigate('/login'); return; }
 
@@ -65,7 +65,7 @@ const UserProfile = () => {
   // 🔹 2. HANDLE CONNECT
   const handleConnect = async () => {
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       
       setUser(prev => ({ ...prev, connectionStatus: 'pending' }));
 
@@ -84,7 +84,7 @@ const UserProfile = () => {
       } else {
         // 🟢 UPDATE LOCAL STORAGE TO REFLECT SENT REQUEST
         // This keeps the UI in sync if we leave and come back
-        const currentUser = JSON.parse(sessionStorage.getItem('user'));
+        const currentUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
         if (!currentUser.sentRequests.includes(user._id)) {
             currentUser.sentRequests.push(user._id);
             sessionStorage.setItem('user', JSON.stringify(currentUser));

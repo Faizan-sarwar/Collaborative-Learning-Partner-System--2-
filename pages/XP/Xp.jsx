@@ -50,7 +50,7 @@ const XP = () => {
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
             if(!token) return;
 
             const res = await fetch('http://localhost:5000/api/auth/me', {

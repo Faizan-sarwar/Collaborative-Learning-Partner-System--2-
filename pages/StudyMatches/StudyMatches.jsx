@@ -18,8 +18,8 @@ const StudyMatches = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
 
         if (!storedUser || !token) {
           navigate('/login');
@@ -56,7 +56,7 @@ const StudyMatches = () => {
     console.log("Connecting to:", targetId);
 
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       
       // Optimistic Update
       setUsers(prevUsers => prevUsers.map(user => {

@@ -17,7 +17,7 @@ const StudyStreak = () => {
     const fetchData = async () => {
         // 1. Try fetching from DB first
         try {
-            const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
             if (token) {
                 const res = await fetch('http://localhost:5000/api/auth/me', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -123,7 +123,7 @@ const StudyStreak = () => {
 
     // 🟢 SAVE TO DB
     try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         if (token) {
             await fetch('http://localhost:5000/api/auth/update-stats', {
                 method: 'PUT',

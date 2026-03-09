@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoute = ({ allowedRoles }) => {
   // 🔹 CHANGE: Read from sessionStorage
-  const userString = sessionStorage.getItem('user');
+  const userString = (localStorage.getItem('user') || sessionStorage.getItem('user'));
   const user = userString ? JSON.parse(userString) : null;
 
   // 1. Check if logged in

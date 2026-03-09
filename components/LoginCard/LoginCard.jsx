@@ -11,7 +11,7 @@ const LoginCard = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [alert, setAlert] = useState(null); 
+  const [alert, setAlert] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -22,7 +22,7 @@ const LoginCard = () => {
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, rememberMe })
       });
 
       const data = await response.json();
@@ -32,22 +32,27 @@ const LoginCard = () => {
         return;
       }
 
-      // 1. Handle Token Storage
+      // 1. Handle Token Storage (Wallet vs Wristband)
       if (rememberMe) {
+        // Save BOTH in localStorage (Survives computer restart for 30 days)
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        // Clear old session data just in case
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
       } else {
+        // Save BOTH in sessionStorage (Dies when tab closes)
         sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        // Clear old local data so it doesn't accidentally remember them
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
-
-      // 2. Handle User Storage
-      sessionStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.removeItem('user'); 
 
       setAlert({ type: 'success', message: 'Login successful! Redirecting...' });
 
       // 3. LOGIC UPDATE: Check Role Correctly
       setTimeout(() => {
-        // 🟢 FIX: Check for BOTH 'admin' and 'super-admin'
         if (data.user.role === 'admin' || data.user.role === 'super-admin') {
           navigate('/admin');
         } else {
@@ -56,7 +61,7 @@ const LoginCard = () => {
           const quizNotTaken = !data.user.quizCompleted;
 
           if (hasStrengths && quizNotTaken) {
-            navigate('/quiz'); 
+            navigate('/quiz');
           } else {
             navigate('/dashboard');
           }
@@ -92,6 +97,8 @@ const LoginCard = () => {
         <TextInput
           label="Email Address"
           type="email"
+          name="email"                 // 🟢 Added for browser autofill
+          autoComplete="username"      // 🟢 Tells browser to look for saved accounts
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -100,6 +107,8 @@ const LoginCard = () => {
         <TextInput
           label="Password"
           type="password"
+          name="password"              // 🟢 Added for browser autofill
+          autoComplete="current-password" // 🟢 Triggers the saved password/fingerprint prompt
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -121,6 +130,10 @@ const LoginCard = () => {
         <button type="submit" className={styles.signInButton}>
           Sign In
         </button>
+
+        {/* <Divider text="Or continue with" />
+
+        <GoogleButton /> */}
 
         <p className={styles.signupText}>
           Don't have an account?{' '}

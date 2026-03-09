@@ -77,7 +77,7 @@ const Gamification = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         if (!token) return;
 
         const res = await fetch('http://localhost:5000/api/auth/me', {
@@ -196,7 +196,7 @@ const Gamification = () => {
     setUseAvatar(showAvatar); 
 
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       
       await fetch('http://localhost:5000/api/auth/profile', {
         method: 'PUT',
@@ -209,7 +209,7 @@ const Gamification = () => {
         })
       });
 
-      const storedUser = JSON.parse(sessionStorage.getItem('user'));
+      const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
       if (storedUser) {
         if (!storedUser.settings) storedUser.settings = {};
         storedUser.settings.showAvatar = showAvatar;

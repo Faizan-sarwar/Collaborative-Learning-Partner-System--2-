@@ -53,7 +53,7 @@ const Messages = () => {
   // Fetch Conversations
   const fetchConversations = async () => {
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/chat/conversations', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -78,7 +78,7 @@ const Messages = () => {
   const handleOpenNewChat = async () => {
     setShowNewChatModal(true);
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/auth/connections', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -117,7 +117,7 @@ const Messages = () => {
 
     const fetchMessages = async () => {
       try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         const res = await fetch(`http://localhost:5000/api/chat/messages/${selectedConversation.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -165,7 +165,7 @@ const Messages = () => {
     scrollToBottom();
 
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/chat/messages', {
         method: 'POST',
         headers: {

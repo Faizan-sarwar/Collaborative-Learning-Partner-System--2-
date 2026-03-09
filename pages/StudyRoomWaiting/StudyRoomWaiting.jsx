@@ -9,7 +9,7 @@ const StudyRoomWaiting = () => {
   const { roomId } = useParams();
   const location = useLocation();
   const roomData = location.state?.room;
-  const user = JSON.parse(sessionStorage.getItem('user'));
+  const user = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
   
   const [waitingTime, setWaitingTime] = useState(0);
   const [status, setStatus] = useState('pending'); // pending, approved, rejected

@@ -76,8 +76,8 @@ const AnimatedRoutes = () => {
   // 🔹 GUARD LOGIC
   useEffect(() => {
     const checkStatus = async () => {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-        const storedUserString = sessionStorage.getItem('user') || localStorage.getItem('user');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+        const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
 
         if (!token || !storedUserString) {
             setIsChecking(false);
@@ -86,7 +86,12 @@ const AnimatedRoutes = () => {
 
         let user = JSON.parse(storedUserString);
         
+        // 🟢 NEW: Check if the user is sitting on a public page
+        const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
+
         if (user.role === 'admin' || user.role === 'super-admin') {
+            // 🟢 Auto-forward admins away from login
+            if (isPublicPage) navigate('/admin');
             setIsChecking(false);
             return; 
         }
@@ -94,6 +99,8 @@ const AnimatedRoutes = () => {
         const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
         
         if (user.quizCompleted) {
+            // 🟢 Auto-forward students away from login
+            if (isPublicPage) navigate('/dashboard');
             setIsChecking(false);
             return;
         }
@@ -106,7 +113,14 @@ const AnimatedRoutes = () => {
                 const data = await res.json();
                 
                 if (data.success && data.user.quizCompleted) {
-                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    if (localStorage.getItem('token')) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    } else {
+                        sessionStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                    
+                    // 🟢 Auto-forward students away from login
+                    if (isPublicPage) navigate('/dashboard');
                     setIsChecking(false);
                     return;
                 }

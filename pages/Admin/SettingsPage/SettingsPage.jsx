@@ -45,7 +45,7 @@ const SettingsPage = () => {
   // 🔹 Save Settings
   const handleSave = async () => {
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/auth/admin/settings', {
         method: 'PUT',
         headers: {

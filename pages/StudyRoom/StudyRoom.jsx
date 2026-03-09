@@ -11,7 +11,7 @@ const StudyRoom = () => {
   
   // 🔹 State for Rooms & User
   const [rooms, setRooms] = useState([]);
-  const [user, setUser] = useState(JSON.parse(sessionStorage.getItem('user')) || {});
+  const [user, setUser] = useState(JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user'))) || {});
   
   // Form Data
   const [formData, setFormData] = useState({
@@ -44,7 +44,7 @@ const StudyRoom = () => {
   // 🔹 HANDLE CREATE ROOM (HOST)
   const handleCreateRoom = async () => {
     try {
-      const token = sessionStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       // API Call to create room
       /* const res = await fetch('http://localhost:5000/api/study-rooms/create', {
          method: 'POST',

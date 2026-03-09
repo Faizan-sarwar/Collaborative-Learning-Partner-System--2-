@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Filter } from 'bad-words';
+const profanityFilter = new Filter();
 import { ChevronDown, X } from 'lucide-react';
 import styles from './Signup.module.css';
 import Alert from '../../components/Alert/Alert';
@@ -7,6 +9,11 @@ import PageTransition from '../../components/PageTransition/PageTransition';
 
 const departments = [
     'Information Technology',
+    'Computer Science',
+    'Software Engineering',
+    'Electrical Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering'
 ];
 
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -32,7 +39,6 @@ const FALLBACK_SUBJECTS = [
 ];
 
 const Signup = () => {
-    // 🔹 State now stores objects { name, active }
     const [availableSubjects, setAvailableSubjects] = useState([]);
     const [loadingSubjects, setLoadingSubjects] = useState(true);
     const [usingFallback, setUsingFallback] = useState(false);
@@ -41,35 +47,27 @@ const Signup = () => {
     const [difficultyDropdownOpen, setDifficultyDropdownOpen] = useState(false);
     const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
     const [semesterDropdownOpen, setSemesterDropdownOpen] = useState(false);
+    const [studyStyleDropdownOpen, setStudyStyleDropdownOpen] = useState(false);
+
     const strengthsRef = useRef(null);
     const difficultyRef = useRef(null);
     const departmentRef = useRef(null);
     const semesterRef = useRef(null);
     const studyStyleRef = useRef(null);
-    const [studyStyleDropdownOpen, setStudyStyleDropdownOpen] = useState(false);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (strengthsRef.current && !strengthsRef.current.contains(event.target)) {
-                setStrengthsDropdownOpen(false);
-            }
-            if (difficultyRef.current && !difficultyRef.current.contains(event.target)) {
-                setDifficultyDropdownOpen(false);
-            }
-            if (departmentRef.current && !departmentRef.current.contains(event.target)) {
-                setDepartmentDropdownOpen(false);
-            }
-            if (semesterRef.current && !semesterRef.current.contains(event.target)) {
-                setSemesterDropdownOpen(false);
-            }
-            if (studyStyleRef.current && !studyStyleRef.current.contains(event.target)) {
-                setStudyStyleDropdownOpen(false);
-            }
+            if (strengthsRef.current && !strengthsRef.current.contains(event.target)) setStrengthsDropdownOpen(false);
+            if (difficultyRef.current && !difficultyRef.current.contains(event.target)) setDifficultyDropdownOpen(false);
+            if (departmentRef.current && !departmentRef.current.contains(event.target)) setDepartmentDropdownOpen(false);
+            if (semesterRef.current && !semesterRef.current.contains(event.target)) setSemesterDropdownOpen(false);
+            if (studyStyleRef.current && !studyStyleRef.current.contains(event.target)) setStudyStyleDropdownOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
     const [formData, setFormData] = useState({
         fullName: '',
         rollNumber: '',
@@ -100,20 +98,14 @@ const Signup = () => {
                 const data = await res.json();
 
                 if (data.success && data.groups.length > 0) {
-                    // Map groups to a structure containing name and active status
-                    const courses = data.groups.map(g => ({
-                        name: g.name,
-                        active: g.active
-                    }));
+                    const courses = data.groups.map(g => ({ name: g.name, active: g.active }));
                     setAvailableSubjects(courses);
                     setUsingFallback(false);
                 } else {
-                    console.log("Database empty, using fallback subjects.");
                     setAvailableSubjects(FALLBACK_SUBJECTS);
                     setUsingFallback(true);
                 }
             } catch (err) {
-                console.error("Failed to load subjects, using fallback", err);
                 setAvailableSubjects(FALLBACK_SUBJECTS);
                 setUsingFallback(true);
             } finally {
@@ -123,7 +115,39 @@ const Signup = () => {
         fetchCourses();
     }, []);
 
-    // ... [Validation functions: validateEmail, validatePassword, validateField stay the same] ...
+    //  1. STRICT HUMAN NAME VALIDATOR
+    const validateHumanName = (name) => {
+        const trimmedName = name.trim();
+        if (!trimmedName) return 'Full name is required';
+        if (trimmedName.length < 2) return 'Name must be at least 2 characters';
+
+        //  1. Check for Profanity FIRST
+        if (profanityFilter.isProfane(trimmedName)) {
+            return 'Please enter an appropriate and respectful name.';
+        }
+
+        const validCharsRegex = /^[a-zA-Z\s\-']+$/;
+        if (!validCharsRegex.test(trimmedName)) return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+        if (/[\-']{2,}/.test(trimmedName) || /\s{2,}/.test(trimmedName)) return 'Name cannot contain consecutive spaces or symbols';
+        if (/^[\-']|[\-']$/.test(trimmedName)) return 'Name cannot start or end with a symbol';
+
+        //  2. Keep the check for reserved system words
+        const blockedWords = ['admin', 'root', 'test', 'fake', 'dummy', 'null', 'student', 'user'];
+        if (trimmedName.toLowerCase().split(/\s+/).some(word => blockedWords.includes(word))) {
+            return 'This name is not permitted. Please use your real name.';
+        }
+        return '';
+    };
+
+    //  2. STRICT ROLL NUMBER VALIDATOR
+    const validateRollNumber = (roll) => {
+        const trimmedRoll = roll.trim();
+        if (!trimmedRoll) return 'Roll number is required';
+        if (trimmedRoll.length < 4 || trimmedRoll.length > 20) return 'Roll number must be between 4 and 20 characters';
+        if (!/^[A-Za-z0-9-]+$/.test(trimmedRoll)) return 'Roll number can only contain letters, numbers, and hyphens (no spaces)';
+        return '';
+    };
+
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
@@ -139,27 +163,32 @@ const Signup = () => {
         return issues;
     };
 
+    // 🟢 3. MASTER FIELD VALIDATOR
     const validateField = (name, value) => {
         switch (name) {
             case 'fullName':
-                if (!value.trim()) return 'Full name is required';
-                if (value.trim().length < 2) return 'Name must be at least 2 characters';
-                return '';
+                return validateHumanName(value);
             case 'rollNumber':
-                if (!value.trim()) return 'Roll number is required';
-                return '';
+                return validateRollNumber(value);
             case 'gender':
-                if (!value) return 'Please select a gender';
-                return '';
+                return !value ? 'Please select a gender' : '';
             case 'email':
                 if (!value.trim()) return 'Email is required';
                 if (!validateEmail(value)) return 'Please enter a valid email address';
+                if (value.length > 100) return 'Email is too long';
                 return '';
             case 'password':
                 if (!value) return 'Password is required';
                 const passwordIssues = validatePassword(value);
-                if (passwordIssues.length > 0) return `Password must contain ${passwordIssues.join(', ')}`;
-                return '';
+                return passwordIssues.length > 0 ? `Password must contain ${passwordIssues.join(', ')}` : '';
+            case 'department':
+                return !value ? 'Please select your department' : '';
+            case 'semester':
+                return !value ? 'Please select your semester' : '';
+            case 'studyStyle':
+                return !value ? 'Please select a preferred study style' : '';
+            case 'availability':
+                return value.length > 500 ? 'Availability description must be less than 500 characters' : '';
             default:
                 return '';
         }
@@ -179,16 +208,14 @@ const Signup = () => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
         if (touched[name]) {
-            const error = validateField(name, value);
-            setErrors((prev) => ({ ...prev, [name]: error }));
+            setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
         }
     };
 
     const handleBlur = (e) => {
         const { name, value } = e.target;
         setTouched((prev) => ({ ...prev, [name]: true }));
-        const error = validateField(name, value);
-        setErrors((prev) => ({ ...prev, [name]: error }));
+        setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
     };
 
     const handleFileChange = (e) => {
@@ -207,7 +234,6 @@ const Signup = () => {
         setFormData((prev) => ({ ...prev, profilePicture: file }));
     };
 
-    // 🔹 HANDLERS FOR MULTI SELECT
     const handleSubjectToggle = (field, subjectName) => {
         setFormData((prev) => {
             const current = prev[field];
@@ -225,23 +251,19 @@ const Signup = () => {
         }));
     };
 
-    // const handleCheckboxChange = (field, subjectName) => {
-    //     setFormData((prev) => {
-    //         const current = prev[field];
-    //         const updated = current.includes(subjectName)
-    //             ? current.filter((s) => s !== subjectName)
-    //             : [...current, subjectName];
-    //         return { ...prev, [field]: updated };
-    //     });
-    // };
-
+    // 🟢 4. COMPREHENSIVE SUBMIT HANDLER
     const handleSubmit = async (e) => {
         e.preventDefault();
         setAlertError('');
         setSuccess('');
 
         const newErrors = {};
-        ['fullName', 'email', 'password', 'rollNumber', 'gender'].forEach(f => {
+        const fieldsToValidate = [
+            'fullName', 'email', 'password', 'rollNumber', 'gender',
+            'department', 'semester', 'studyStyle', 'availability'
+        ];
+
+        fieldsToValidate.forEach(f => {
             const err = validateField(f, formData[f]);
             if (err) newErrors[f] = err;
         });
@@ -249,6 +271,11 @@ const Signup = () => {
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             setAlertError('Please fix errors in the form.');
+
+            // Auto-scroll to the first error
+            const firstErrorField = document.querySelector(`[name="${Object.keys(newErrors)[0]}"]`);
+            if (firstErrorField) firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
             return;
         }
 
@@ -275,30 +302,20 @@ const Signup = () => {
                 throw new Error(data.message || "Registration failed");
             }
 
-            // 🔹 CHANGE 1: Use sessionStorage (Clears when browser closes)
             if (data.user) {
                 sessionStorage.setItem('user', JSON.stringify(data.user));
                 if (data.token) sessionStorage.setItem('token', data.token);
             }
 
             setSuccess("Profile created successfully! Redirecting...");
-            // LOGIC UPDATE: Check for Strengths and Redirect to Quiz
+
             setTimeout(() => {
                 if (data.user.role === 'admin') {
                     window.location.href = '/admin';
                 } else if (formData.academicStrengths.length > 0) {
-                    // Redirect to Quiz if user selected strong subjects
                     window.location.href = '/quiz';
                 } else {
                     window.location.href = '/dashboard';
-                }
-            }, 1500);
-            // 🔹 CHANGE 2: Conditional Redirect based on Role
-            setTimeout(() => {
-                if (data.user.role === 'admin') {
-                    window.location.href = '/admin'; // Redirect Admin to Admin Panel
-                } else {
-                    window.location.href = '/dashboard'; // Redirect Student to Dashboard
                 }
             }, 1500);
 
@@ -374,6 +391,7 @@ const Signup = () => {
                                             onChange={handleInputChange}
                                             onBlur={handleBlur}
                                         />
+                                        {errors.rollNumber && <span className={styles.errorMessage}>{errors.rollNumber}</span>}
                                     </div>
 
                                     <div className={styles.inputGroup}>
@@ -386,6 +404,7 @@ const Signup = () => {
                                             onChange={handleFileChange}
                                         />
                                     </div>
+
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Gender *</label>
                                         <div className={styles.radioGroup}>
@@ -414,6 +433,7 @@ const Signup = () => {
                                         </div>
                                         {errors.gender && <span className={styles.errorMessage}>{errors.gender}</span>}
                                     </div>
+
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Email *</label>
                                         <input
@@ -482,6 +502,7 @@ const Signup = () => {
                                                             className={`${styles.dropdownItem} ${formData.department === dept ? styles.selected : ''}`}
                                                             onClick={() => {
                                                                 setFormData(prev => ({ ...prev, department: dept }));
+                                                                setErrors(prev => ({ ...prev, department: '' })); // Clear error on select
                                                                 setDepartmentDropdownOpen(false);
                                                             }}
                                                         >
@@ -491,6 +512,8 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
+                                        {/* 🟢 Render Dropdown Error */}
+                                        {errors.department && <span className={styles.errorMessage}>{errors.department}</span>}
                                     </div>
 
                                     <div className={styles.inputGroup}>
@@ -513,6 +536,7 @@ const Signup = () => {
                                                             className={`${styles.dropdownItem} ${formData.semester === sem ? styles.selected : ''}`}
                                                             onClick={() => {
                                                                 setFormData(prev => ({ ...prev, semester: sem }));
+                                                                setErrors(prev => ({ ...prev, semester: '' })); // Clear error on select
                                                                 setSemesterDropdownOpen(false);
                                                             }}
                                                         >
@@ -522,15 +546,17 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
+                                        {/* 🟢 Render Dropdown Error */}
+                                        {errors.semester && <span className={styles.errorMessage}>{errors.semester}</span>}
                                     </div>
                                 </div>
                             </div>
+
                             {/* Academic Profile Section */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>📚 Academic Profile</h3>
 
                                 <div className={styles.formGrid}>
-                                    {/* Academic Strengths Multi-Select */}
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Academic Strengths</label>
                                         <div className={styles.multiSelectWrapper} ref={strengthsRef}>
@@ -569,8 +595,7 @@ const Signup = () => {
                                                     {availableSubjects.filter(s => s.active).map((subjectObj) => (
                                                         <div
                                                             key={subjectObj.name}
-                                                            className={`${styles.dropdownItem} ${formData.academicStrengths.includes(subjectObj.name) ? styles.selected : ''
-                                                                }`}
+                                                            className={`${styles.dropdownItem} ${formData.academicStrengths.includes(subjectObj.name) ? styles.selected : ''}`}
                                                             onClick={() => handleSubjectToggle('academicStrengths', subjectObj.name)}
                                                         >
                                                             <span className={styles.itemCheckbox}>
@@ -588,7 +613,6 @@ const Signup = () => {
                                         </div>
                                     </div>
 
-                                    {/* Subjects of Difficulty Multi-Select */}
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Subjects of Difficulty</label>
                                         <div className={styles.multiSelectWrapper} ref={difficultyRef}>
@@ -627,8 +651,7 @@ const Signup = () => {
                                                     {availableSubjects.filter(s => s.active).map((subjectObj) => (
                                                         <div
                                                             key={subjectObj.name}
-                                                            className={`${styles.dropdownItem} ${formData.subjectsOfDifficulty.includes(subjectObj.name) ? styles.selected : ''
-                                                                }`}
+                                                            className={`${styles.dropdownItem} ${formData.subjectsOfDifficulty.includes(subjectObj.name) ? styles.selected : ''}`}
                                                             onClick={() => handleSubjectToggle('subjectsOfDifficulty', subjectObj.name)}
                                                         >
                                                             <span className={styles.itemCheckbox}>
@@ -647,12 +670,13 @@ const Signup = () => {
                                     </div>
                                 </div>
                             </div>
+
                             {/* Learning Preferences Section */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Learning Preferences</h3>
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
-                                        <label className={styles.label}>Preferred Study Style</label>
+                                        <label className={styles.label}>Preferred Study Style *</label>
                                         <div className={styles.singleSelectWrapper} ref={studyStyleRef}>
                                             <div
                                                 className={styles.singleSelectTrigger}
@@ -671,6 +695,7 @@ const Signup = () => {
                                                             className={`${styles.dropdownItem} ${formData.studyStyle === style ? styles.selected : ''}`}
                                                             onClick={() => {
                                                                 setFormData(prev => ({ ...prev, studyStyle: style }));
+                                                                setErrors(prev => ({ ...prev, studyStyle: '' })); // Clear error on select
                                                                 setStudyStyleDropdownOpen(false);
                                                             }}
                                                         >
@@ -685,9 +710,12 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
+                                        {/* 🟢 Render Dropdown Error */}
+                                        {errors.studyStyle && <span className={styles.errorMessage}>{errors.studyStyle}</span>}
                                     </div>
                                 </div>
                             </div>
+
                             {/* Availability Section */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Availability</h3>
@@ -695,12 +723,15 @@ const Signup = () => {
                                     <label className={styles.label}>Describe your available study times</label>
                                     <textarea
                                         name="availability"
-                                        className={styles.textarea}
+                                        className={`${styles.textarea} ${errors.availability ? styles.inputError : ''}`}
                                         placeholder="E.g., Weekdays 6-9 PM, Weekends flexible..."
                                         value={formData.availability}
                                         onChange={handleInputChange}
+                                        onBlur={handleBlur}
                                         rows={4}
                                     />
+                                    {/* 🟢 Render Textarea Error */}
+                                    {errors.availability && <span className={styles.errorMessage}>{errors.availability}</span>}
                                 </div>
                             </div>
 

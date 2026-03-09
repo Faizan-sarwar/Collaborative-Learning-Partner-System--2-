@@ -18,7 +18,7 @@ const StudyTime = () => {
     const initData = async () => {
         // A. Fetch DB Stats
         try {
-            const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
             if (token) {
                 const res = await fetch('http://localhost:5000/api/auth/me', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -109,7 +109,7 @@ const StudyTime = () => {
     // 2. Save to DB if session > 5 seconds
     if (finalSeconds > 5) {
         try {
-            const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
             
             // Calculate Hours
             const currentSessionHours = finalSeconds / 3600;
@@ -137,7 +137,7 @@ const StudyTime = () => {
                 setTotalXP(newTotalXP);
                 
                 // Sync Session Storage
-                const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+                const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')) || '{}');
                 storedUser.studyHours = parseFloat(newTotalHours);
                 storedUser.xp = newTotalXP;
                 sessionStorage.setItem('user', JSON.stringify(storedUser));

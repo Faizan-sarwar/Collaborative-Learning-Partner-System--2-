@@ -34,7 +34,7 @@ const AdminProfile = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
 
         // 1. Fetch Profile
@@ -129,7 +129,7 @@ const AdminProfile = () => {
   // 🔹 Handle Save (Using FormData for File Upload)
   const handleSave = async () => {
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       
       // Use FormData to send file + text
       const formData = new FormData();
@@ -158,7 +158,7 @@ const AdminProfile = () => {
         setIsEditing(false);
         
         // Update local storage
-        const currentUser = JSON.parse(sessionStorage.getItem('user'));
+        const currentUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
         sessionStorage.setItem('user', JSON.stringify({ ...currentUser, ...data.user }));
         
         // Clear temp file

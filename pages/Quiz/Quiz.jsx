@@ -43,7 +43,7 @@ const Quiz = () => {
 
   // 🔹 INITIALIZE QUIZ
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('user');
+    const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user'));
     if (!storedUser) {
         navigate('/login');
         return;
@@ -95,9 +95,9 @@ const Quiz = () => {
       const score = calculateScore();
       
       try {
-          const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+          const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
           
-          let currentUser = JSON.parse(sessionStorage.getItem('user')) || {};
+          let currentUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user'))) || {};
           currentUser.quizCompleted = true; 
           sessionStorage.setItem('user', JSON.stringify(currentUser));
 

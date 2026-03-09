@@ -23,7 +23,7 @@ const TodoList = () => {
 
   // 🟢 4. HELPER: Save Completed Count AND XP to DB
   const saveStatsToDB = async (updatedTodos) => {
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
     if (!token) return;
 
     // Get current completed count
@@ -34,7 +34,7 @@ const TodoList = () => {
     const isCompletion = completedCount > prevCompleted;
 
     // Get Current XP from Session (safest way without another fetch)
-    const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+    const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')) || '{}');
     let currentXP = storedUser.xp || 0;
 
     // 🟢 XP Logic: +30 XP for completing a task

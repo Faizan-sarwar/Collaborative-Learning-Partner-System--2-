@@ -45,7 +45,7 @@ const Settings = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         const res = await fetch('http://localhost:5000/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -118,7 +118,7 @@ const Settings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const dataToSend = new FormData();
 
       // Append text fields
@@ -148,7 +148,7 @@ const Settings = () => {
       if (result.success) {
         setMessage({ type: 'success', text: 'Settings updated successfully!' });
         // Update Session Storage
-        const currentUser = JSON.parse(sessionStorage.getItem('user'));
+        const currentUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
         sessionStorage.setItem('user', JSON.stringify({ ...currentUser, ...result.user }));
       } else {
         setMessage({ type: 'error', text: result.message || 'Failed to update.' });

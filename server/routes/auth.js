@@ -171,10 +171,14 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: 'Server error', error: err.message }); }
 });
 
+
 router.post('/login', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email }).select('+password');
-    if (!user || !(await user.matchPassword(req.body.password))) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    // 🟢 1. EXTRACT rememberMe FROM REQUEST
+    const { email, password, rememberMe } = req.body;
+
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || !(await user.matchPassword(password))) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
     user.isOnline = true;
     let xpMessage = '';
@@ -193,13 +197,20 @@ router.post('/login', async (req, res) => {
     user.lastLogin = Date.now();
     await user.save();
 
+    // 🟢 2. SET DYNAMIC TOKEN EXPIRY
+    // 30 days if checked, 1 day if unchecked
+    const tokenExpiry = rememberMe ? '30d' : '1d';
+
     res.json({
       success: true,
-      token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_fallback_secret_key', { expiresIn: '30d' }),
+      // 🟢 3. APPLY EXPIRY TO TOKEN
+      token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_fallback_secret_key', { expiresIn: tokenExpiry }),
       user: user.toSafeObject(),
       message: xpMessage || 'Logged in successfully'
     });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, message: 'Server error' }); 
+  }
 });
 
 router.post('/logout', async (req, res) => {

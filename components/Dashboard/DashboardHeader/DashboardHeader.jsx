@@ -12,14 +12,14 @@ const DashboardHeader = ({ title, isFullWidth }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [user, setUser] = useState(JSON.parse(sessionStorage.getItem('user')) || {});
+  const [user, setUser] = useState(JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user'))) || {});
   const [notifications, setNotifications] = useState([]);
 
   const menuRef = useRef(null);
   const notifRef = useRef(null);
 
   const loadUser = () => {
-    const storedUser = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user') || '{}');
+    const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user') || '{}');
     setUser(storedUser);
   };
 
@@ -70,7 +70,7 @@ const DashboardHeader = ({ title, isFullWidth }) => {
 
   const handleLogout = async () => {
     try {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       await fetch('http://localhost:5000/api/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }

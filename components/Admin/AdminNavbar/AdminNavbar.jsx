@@ -26,7 +26,7 @@ const AdminNavbar = ({ onMenuClick }) => {
 
   // 🔹 Load User Info on Mount
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+    const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }

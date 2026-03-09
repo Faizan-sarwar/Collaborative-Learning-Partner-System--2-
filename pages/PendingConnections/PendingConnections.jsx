@@ -14,7 +14,7 @@ const PendingConnections = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         
         // Fetch Incoming
         const resIn = await fetch('http://localhost:5000/api/auth/requests/received', {
@@ -46,7 +46,7 @@ const PendingConnections = () => {
   // 🔹 ACCEPT REQUEST
   const acceptRequest = async (id) => {
     try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/accept`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -69,7 +69,7 @@ const PendingConnections = () => {
   const declineRequest = async (id) => {
     if(!window.confirm("Decline this connection request?")) return;
     try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/decline`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -84,7 +84,7 @@ const PendingConnections = () => {
   const cancelRequest = async (id) => {
     if(!window.confirm("Cancel this request?")) return;
     try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/decline`, { // Reusing decline logic as it removes from arrays
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
