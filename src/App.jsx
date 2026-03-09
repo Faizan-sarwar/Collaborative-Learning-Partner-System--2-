@@ -17,7 +17,7 @@ import Terms from "../pages/Terms/Terms";
 import Help from "../pages/Help/Help";
 import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
 import PageTransition from "../components/PageTransition/PageTransition";
-import NotFound from "../pages/NotFound";
+import NotFound from "../pages/NotFound/NotFound";
 import ProtectedRoute from "../pages/ProtectedRoutes";
 import StudyRoom from "../pages/StudyRoom/StudyRoom";
 import UserProfile from "../pages/UserProfile/UserProfile";

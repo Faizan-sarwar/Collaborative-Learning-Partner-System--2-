@@ -9,11 +9,6 @@ import PageTransition from '../../components/PageTransition/PageTransition';
 
 const departments = [
     'Information Technology',
-    'Computer Science',
-    'Software Engineering',
-    'Electrical Engineering',
-    'Mechanical Engineering',
-    'Civil Engineering'
 ];
 
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
