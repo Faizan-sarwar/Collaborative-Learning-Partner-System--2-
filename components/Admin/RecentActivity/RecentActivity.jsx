@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 🟢 Added for View All button
 import styles from './RecentActivity.module.css';
 
 const RecentActivity = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // ================= FETCH ACTIVITY =================
   const fetchRecentActivity = async () => {
@@ -35,11 +37,12 @@ const RecentActivity = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ================= TIME FORMAT =================
+  // ================= TIME FORMAT (🟢 Updated to include Days) =================
   const timeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
 
     const intervals = [
+      { label: 'day', seconds: 86400 },
       { label: 'hour', seconds: 3600 },
       { label: 'min', seconds: 60 },
     ];
@@ -52,6 +55,13 @@ const RecentActivity = () => {
     }
     return 'Just now';
   };
+
+  // ================= 7-DAY FILTER =================
+  // 🟢 Completely hides any activity older than 7 days
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const filteredActivities = activities.filter(activity => {
+    return (new Date() - new Date(activity.createdAt)) <= SEVEN_DAYS_MS;
+  });
 
   // ================= ICONS =================
   const getTypeIcon = (type) => {
@@ -103,14 +113,17 @@ const RecentActivity = () => {
     <div className={styles.card}>
       <div className={styles.header}>
         <h3>Recent Activity</h3>
-        <button className={styles.viewAllBtn}>View All</button>
+        {/* 🟢 Wired up the View All Button */}
+        <button className={styles.viewAllBtn} onClick={() => navigate('/admin/logs')}>
+            View All
+        </button>
       </div>
 
       <div className={styles.activityList}>
-        {activities.length === 0 ? (
-          <p style={{ textAlign: 'center' }}>No recent activity</p>
+        {filteredActivities.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No activity in the last 7 days</p>
         ) : (
-          activities.map((activity, index) => (
+          filteredActivities.map((activity, index) => (
             <div key={index} className={styles.activityItem}>
               <div className={`${styles.activityIcon} ${styles[getTypeColor(activity.type)]}`}>
                 {getTypeIcon(activity.type)}

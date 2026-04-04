@@ -23,8 +23,6 @@ const userSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
-  isOnline: { type: Boolean, default: false },
-  lastSeen: { type: Date, default: Date.now },
   rollNumber: {
     type: String,
     required: [true, 'Roll number is required'],
@@ -53,17 +51,6 @@ const userSchema = new mongoose.Schema({
       message: 'Semester must be between 1 and 8'
     }
   },
-  bio: { type: String },
-  availability: { type: String },
-  phone: { type: String },
-  academicStrengths: {
-    type: [String],
-    default: []
-  },
-  subjectsOfDifficulty: {
-    type: [String],
-    default: []
-  },
   studyStyle: {
     type: String,
     required: [true, 'Study style is required'],
@@ -73,49 +60,14 @@ const userSchema = new mongoose.Schema({
     },
     default: 'Individual Study'
   },
-  reliability: { type: Number, default: 0 },
-  quizCompleted: { type: Boolean, default: false },
-  availability: {
-    type: String,
-    maxlength: [500, 'Availability cannot exceed 500 characters'],
-    trim: true,
-    default: ''
+  academicStrengths: {
+    type: [String],
+    default: []
   },
-  level: {
-    type: Number,
-    default: 1
+  subjectsOfDifficulty: {
+    type: [String],
+    default: []
   },
-  xp: {
-    type: Number,
-    default: 0
-  },
-  completedModules: {
-    type: Number,
-    default: 0
-  },
-  studyHours: {
-    type: Number,
-    default: 0
-  },
-  plan: {
-    type: String,
-    enum: ['free', 'pro-trial', 'pro'],
-    default: 'pro-trial'
-  },
-  planExpiry: {
-    type: Date,
-    default: () => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days trial
-  },
-  approved: {
-    type: Boolean,
-    default: true
-  },
-  role: {
-    type: String,
-    enum: ['student', 'admin', 'moderator', 'super-admin'],
-    default: 'student'
-  },
-  // 🔹 ADDED PHONE AND BIO HERE
   phone: {
     type: String,
     default: ''
@@ -126,29 +78,55 @@ const userSchema = new mongoose.Schema({
     maxlength: [1000, 'Bio cannot exceed 1000 characters'],
     default: ''
   },
-  lastLogin: {
-    type: Date,
-    default: null
+  availability: {
+    type: String,
+    maxlength: [500, 'Availability cannot exceed 500 characters'],
+    trim: true,
+    default: ''
   },
+
+  // --- STATUS & ROLES ---
   isOnline: { type: Boolean, default: false },
+  lastLogin: { type: Date, default: Date.now },
+  approved: { type: Boolean, default: true },
+  role: {
+    type: String,
+    enum: ['student', 'admin', 'moderator', 'super-admin'],
+    default: 'student'
+  },
+  plan: {
+    type: String,
+    enum: ['free', 'pro-trial', 'pro'],
+    default: 'pro-trial'
+  },
+  planExpiry: {
+    type: Date,
+    default: () => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days trial
+  },
+
+  // --- SOCIAL & CONNECTIONS ---
   connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   receivedRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-  //  ANALYTICS FIELDS
+  // ADDED FOR BLOCK FEATURE
+  blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+  // --- ANALYTICS & GAMIFICATION ---
+  reliability: { type: Number, default: 0 },
+  quizCompleted: { type: Boolean, default: false },
+  completedModules: { type: Number, default: 0 },
   studyHours: { type: Number, default: 0 },
   tasksCompleted: { type: Number, default: 0 },
-
+  streak: { type: Number, default: 0 },
   longestStreak: { type: Number, default: 0 },
   lastStudyDate: { type: String, default: null },
-  streakHistory: { type: [Boolean], default: [] }, 
-  // Gamification Fields
+  streakHistory: { type: [Boolean], default: [] },
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
-  streak: { type: Number, default: 0 },
-  lastLogin: { type: Date, default: Date.now },
   achievements: [{ type: Number }],
 
+  // --- SETTINGS ---
   settings: {
     notifications: {
       email: { type: Boolean, default: true },
@@ -164,11 +142,7 @@ const userSchema = new mongoose.Schema({
     theme: { type: String, default: 'dark' },
     language: { type: String, default: 'en' }
   }
-
-},
-  {
-    timestamps: true
-  });
+}, { timestamps: true });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -194,7 +168,7 @@ userSchema.methods.toSafeObject = function () {
   return obj;
 };
 
-//Centralized XP Logic
+// Centralized XP Logic
 userSchema.methods.awardXP = async function (amount) {
   this.xp += amount;
 
@@ -208,7 +182,6 @@ userSchema.methods.awardXP = async function (amount) {
     { level: 6, xp: 4000 },
     { level: 7, xp: 8000 }
   ];
-
 
   let newLevel = this.level;
   for (let i = levels.length - 1; i >= 0; i--) {
@@ -225,4 +198,5 @@ userSchema.methods.awardXP = async function (amount) {
   await this.save();
   return { xp: this.xp, level: this.level, added: amount };
 };
+
 export default mongoose.model('User', userSchema);

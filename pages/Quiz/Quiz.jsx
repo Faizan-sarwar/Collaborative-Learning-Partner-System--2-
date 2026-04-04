@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Quiz.module.css';
 
-// 🟢 IMPORT THE QUESTION BANK
+//  IMPORT THE QUESTION BANK
 import QUESTION_BANK from './questionBank'; 
 
-// 🟢 UPDATED COLORS
+//  UPDATED COLORS
 const subjectColors = {
   'Web Development': '#ec4899',
   'DSA': '#10b981',
@@ -29,7 +29,7 @@ const Quiz = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🔹 ANTI-CHEAT
+  // ANTI-CHEAT
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && !showResult) {
@@ -41,7 +41,7 @@ const Quiz = () => {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [showResult]);
 
-  // 🔹 INITIALIZE QUIZ
+  // INITIALIZE QUIZ
   useEffect(() => {
     const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user'));
     if (!storedUser) {
@@ -70,7 +70,7 @@ const Quiz = () => {
     setLoading(false);
   }, [navigate]);
 
-  // 🔹 HELPER FUNCTIONS
+  // HELPER FUNCTIONS
   const handleSelectAnswer = (optionIndex) => {
     setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: optionIndex });
   };
@@ -87,7 +87,7 @@ const Quiz = () => {
     return correct;
   };
 
-  // 🔹 SUBMIT LOGIC
+  // SUBMIT LOGIC
   const submitQuiz = async () => {
       if (isSubmitting) return;
       setIsSubmitting(true);
@@ -129,7 +129,7 @@ const Quiz = () => {
       }
   };
 
-  // 🔹 NAVIGATION HANDLERS
+  // NAVIGATION HANDLERS
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
       setDirection(1);
@@ -148,7 +148,7 @@ const Quiz = () => {
     window.location.href = '/dashboard';
   };
 
-  // 🔹 ANIMATION VARIANTS
+  // ANIMATION VARIANTS
   const cardVariants = {
     enter: (direction) => ({ x: direction > 0 ? 300 : -300, opacity: 0, scale: 0.8 }),
     center: { x: 0, opacity: 1, scale: 1 },
@@ -166,13 +166,13 @@ const Quiz = () => {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   const isLastQuestion = currentQuestion === questions.length - 1;
 
-  // 🔹 RENDER RESULT VIEW (SIDEBAR SHOWN)
+  // RENDER RESULT VIEW (SIDEBAR SHOWN)
   if (showResult) {
     const score = calculateScore();
     const percentage = Math.round((score / questions.length) * 100);
 
     return (
-      // 🟢 hideSidebar is false (default) here, so sidebar appears
+      //  hideSidebar is false (default) here, so sidebar appears
       <DashboardLayout title="Results">
         <div className={styles.container}>
           <motion.div className={styles.resultCard} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
@@ -211,9 +211,9 @@ const Quiz = () => {
     );
   }
 
-  // 🔹 RENDER QUIZ VIEW (SIDEBAR HIDDEN)
+  // RENDER QUIZ VIEW (SIDEBAR HIDDEN)
   return (
-    // 🟢 hideSidebar={true} hides the sidebar during the quiz
+    //  hideSidebar={true} hides the sidebar during the quiz
     <DashboardLayout hideSidebar={true}>
       <div className={styles.container}>
         <div className={styles.header}>

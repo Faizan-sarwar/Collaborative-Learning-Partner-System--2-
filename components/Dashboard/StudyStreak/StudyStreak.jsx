@@ -12,7 +12,7 @@ const StudyStreak = () => {
 
   const [isTodayComplete, setIsTodayComplete] = useState(false);
 
-  // 🔹 Load Data on Mount (Fetch from DB + LocalStorage Fallback)
+  // Load Data on Mount (Fetch from DB + LocalStorage Fallback)
   useEffect(() => {
     const fetchData = async () => {
         // 1. Try fetching from DB first
@@ -74,7 +74,7 @@ const StudyStreak = () => {
     fetchData();
   }, []);
 
-  // 🔹 Handle Marking Complete
+  // Handle Marking Complete
   const markTodayComplete = async () => {
     if (isTodayComplete) return;
 
@@ -121,7 +121,7 @@ const StudyStreak = () => {
     localStorage.setItem('streakData', JSON.stringify(updated));
     localStorage.setItem('lastStudyDate', todayString);
 
-    // 🟢 SAVE TO DB
+    //  SAVE TO DB
     try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         if (token) {

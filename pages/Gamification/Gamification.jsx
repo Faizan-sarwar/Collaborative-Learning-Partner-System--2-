@@ -59,7 +59,7 @@ const Gamification = () => {
   
   const [earnedAchievements, setEarnedAchievements] = useState([]);
 
-  // 🔹 NOTIFICATION HELPER
+  // NOTIFICATION HELPER
   const sendNotification = (title, message, type = 'success') => {
     const existing = JSON.parse(localStorage.getItem('notifications') || '[]');
     if (existing.some(n => n.title === title)) return; 
@@ -73,7 +73,7 @@ const Gamification = () => {
     window.dispatchEvent(new Event('notificationAdded'));
   };
 
-  // 🔹 FETCH REAL DATA FROM DB & SYNC
+  // FETCH REAL DATA FROM DB & SYNC
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -99,7 +99,7 @@ const Gamification = () => {
           let needsUpdate = false;
           let updates = {};
 
-          // 🟢 2. SYNC WITH ANALYTICS: Ensure XP matches Study Hours/Tasks
+          //  2. SYNC WITH ANALYTICS: Ensure XP matches Study Hours/Tasks
           // Formula: 120 XP per Hour + 30 XP per Task
           const productivityXP = Math.floor((currentStudyHours * 120) + (currentTasks * 30));
           
@@ -191,7 +191,7 @@ const Gamification = () => {
     fetchUserData();
   }, []);
 
-  // 🔹 TOGGLE AVATAR / PHOTO
+  // TOGGLE AVATAR / PHOTO
   const handleToggleAvatar = async (showAvatar) => {
     setUseAvatar(showAvatar); 
 

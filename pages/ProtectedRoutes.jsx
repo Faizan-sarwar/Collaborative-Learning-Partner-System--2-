@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoute = ({ allowedRoles }) => {
-  // 🔹 CHANGE: Read from sessionStorage
+  // CHANGE: Read from sessionStorage
   const userString = (localStorage.getItem('user') || sessionStorage.getItem('user'));
   const user = userString ? JSON.parse(userString) : null;
 

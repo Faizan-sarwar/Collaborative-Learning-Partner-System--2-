@@ -4,7 +4,6 @@ import DashboardLayout from '../../components/Dashboard/DashboardLayout/Dashboar
 import ChatBot from '../ChatBot/ChatBot';
 import styles from './Messages.module.css';
 
-// Emoji categories
 const emojiCategories = {
   smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷'],
   gestures: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🙏', '💪', '🦾', '🦿'],
@@ -14,31 +13,26 @@ const emojiCategories = {
 };
 
 const Messages = () => {
-  // 🔹 DATA STATE
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState({}); // Stores messages per conversation ID
-  const [connections, setConnections] = useState([]); 
+  const [messages, setMessages] = useState({}); 
+  const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 UI STATE
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [newChatSearch, setNewChatSearch] = useState('');
-  
-  // 🔹 MODAL & MENU STATE
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState('smileys');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [showMessageMenu, setShowMessageMenu] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(null); // 'clear', 'delete', 'block'
-  
-  // 🔹 EDITING STATE
+  const [showConfirmModal, setShowConfirmModal] = useState(null);
+
   const [editingMessage, setEditingMessage] = useState(null);
   const [editText, setEditText] = useState('');
 
-  // 🔹 REFS
   const emojiPickerRef = useRef(null);
   const emojiButtonRef = useRef(null);
   const newChatModalRef = useRef(null);
@@ -47,8 +41,39 @@ const Messages = () => {
   const messagesEndRef = useRef(null);
 
   // -------------------------------------------------------------------------
-  // 🔹 1. API FETCHING LOGIC
+  // 🟢 NEW: CLEAR MESSAGE NOTIFICATIONS (AND RED DOT) INSTANTLY
   // -------------------------------------------------------------------------
+  useEffect(() => {
+    const clearMessageBadges = async () => {
+      const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+      const hasUnreadMessages = notifs.some(n => n.type === 'message' && (!n.read || n.unread));
+
+      if (hasUnreadMessages) {
+        // Update local storage instantly to kill the red dot
+        const updatedNotifs = notifs.map(n => n.type === 'message' ? { ...n, read: true, unread: false } : n);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifs));
+        
+        // Shout to the sidebar to turn off the red dot
+        window.dispatchEvent(new Event('notificationAdded')); 
+
+        // Tell the database you read them so they don't come back on refresh
+        try {
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          await fetch('http://localhost:5000/api/notifications/read', {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (err) {}
+      }
+    };
+
+    // Run when you open the page
+    clearMessageBadges();
+
+    // Run again if you get a new message WHILE you are on the page!
+    window.addEventListener('notificationAdded', clearMessageBadges);
+    return () => window.removeEventListener('notificationAdded', clearMessageBadges);
+  }, []);
 
   // Fetch Conversations
   const fetchConversations = async () => {
@@ -74,7 +99,6 @@ const Messages = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch Connections for New Chat
   const handleOpenNewChat = async () => {
     setShowNewChatModal(true);
     try {
@@ -83,13 +107,12 @@ const Messages = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if(data.success) {
+      if (data.success) {
         setConnections(data.connections);
       }
-    } catch(err) { console.error("Failed to load connections", err); }
+    } catch (err) { console.error("Failed to load connections", err); }
   };
 
-  // Start New Chat
   const handleStartNewChat = (user) => {
     const existingConv = conversations.find(c => c.otherUserId === user._id);
     if (existingConv) {
@@ -101,9 +124,9 @@ const Messages = () => {
         name: user.fullName,
         avatar: user.picture ? `http://localhost:5000/api/auth/student/${user._id}/picture` : null,
         lastMessage: 'Start a conversation...',
-        lastSeen: 'Just now', 
+        lastSeen: 'Just now',
         unread: 0,
-        online: false 
+        online: false
       };
       setSelectedConversation(newConv);
     }
@@ -111,7 +134,6 @@ const Messages = () => {
     setNewChatSearch('');
   };
 
-  // Fetch Messages
   useEffect(() => {
     if (!selectedConversation || !selectedConversation.id) return;
 
@@ -133,14 +155,12 @@ const Messages = () => {
     return () => clearInterval(interval);
   }, [selectedConversation]);
 
-  // Auto Scroll
   useEffect(() => {
-      if (selectedConversation && messages[selectedConversation.id]) {
-          scrollToBottom();
-      }
+    if (selectedConversation && messages[selectedConversation.id]) {
+      scrollToBottom();
+    }
   }, [messages, selectedConversation]);
 
-  // Send Message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
@@ -154,13 +174,12 @@ const Messages = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    // Optimistic Update
     const currentConvId = selectedConversation.id || 'temp';
     setMessages(prev => ({
-        ...prev,
-        [currentConvId]: [...(prev[currentConvId] || []), tempMessage]
+      ...prev,
+      [currentConvId]: [...(prev[currentConvId] || []), tempMessage]
     }));
-    
+
     setNewMessage('');
     scrollToBottom();
 
@@ -173,62 +192,108 @@ const Messages = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          conversationId: selectedConversation.id, 
-          targetUserId: selectedConversation.otherUserId, 
+          conversationId: selectedConversation.id,
+          targetUserId: selectedConversation.otherUserId,
           text: tempMessage.text
         })
       });
 
       const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setMessages(prev => ({
+          ...prev,
+          [currentConvId]: prev[currentConvId].filter(m => m.id !== tempId)
+        }));
+        alert(data.message || "Failed to send message.");
+        return;
+      }
+
       if (data.success) {
         if (!selectedConversation.id) {
-            setSelectedConversation(prev => ({ ...prev, id: data.conversationId }));
-            fetchConversations();
+          setSelectedConversation(prev => ({ ...prev, id: data.conversationId }));
+          fetchConversations();
         }
       }
     } catch (err) { console.error("Send failed", err); }
   };
 
-  // -------------------------------------------------------------------------
-  // 🔹 2. UI HANDLERS (Clear, Delete, Block, Edit)
-  // -------------------------------------------------------------------------
-
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
     if (!selectedConversation) return;
-    // Clear local state immediately
-    setMessages(prev => ({ ...prev, [selectedConversation.id]: [] }));
+    const convId = selectedConversation.id;
+
+    setMessages(prev => ({ ...prev, [convId]: [] }));
     setShowConfirmModal(null);
     setShowChatMenu(false);
+
+    if (convId) {
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        await fetch(`http://localhost:5000/api/chat/messages/${convId}/clear`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (err) { console.error("Failed to clear chat", err); }
+    }
   };
 
-  const handleDeleteChat = () => {
+  const handleDeleteChat = async () => {
     if (!selectedConversation) return;
-    // Remove conversation locally
+    const convId = selectedConversation.id;
+
+    const newConversations = conversations.filter(c => c.id !== convId);
+    setConversations(newConversations);
+    setSelectedConversation(null);
+    setShowConfirmModal(null);
+    setShowChatMenu(false);
+
+    if (convId) {
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        await fetch(`http://localhost:5000/api/chat/conversations/${convId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (err) { console.error("Failed to delete chat", err); }
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!selectedConversation) return;
+    const targetId = selectedConversation.otherUserId;
+
     const newConversations = conversations.filter(c => c.id !== selectedConversation.id);
     setConversations(newConversations);
     setSelectedConversation(null);
     setShowConfirmModal(null);
     setShowChatMenu(false);
+
+    try {
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      await fetch(`http://localhost:5000/api/chat/block/${targetId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert(`${selectedConversation.name} has been blocked.`);
+    } catch (err) { console.error("Failed to block", err); }
   };
 
-  const handleBlockUser = () => {
+  const handleDeleteMessage = async (messageId) => {
     if (!selectedConversation) return;
-    // For now, behave like delete chat + alert
-    const newConversations = conversations.filter(c => c.id !== selectedConversation.id);
-    setConversations(newConversations);
-    setSelectedConversation(null);
-    setShowConfirmModal(null);
-    setShowChatMenu(false);
-    alert(`${selectedConversation.name} has been blocked.`);
-  };
 
-  const handleDeleteMessage = (messageId) => {
-    if (!selectedConversation) return;
     setMessages(prev => ({
       ...prev,
       [selectedConversation.id]: prev[selectedConversation.id].filter(m => m.id !== messageId)
     }));
     setShowMessageMenu(null);
+
+    try {
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      await fetch(`http://localhost:5000/api/chat/message/${messageId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) { console.error("Failed to delete message", err); }
   };
 
   const handleEditMessage = (message) => {
@@ -254,14 +319,10 @@ const Messages = () => {
     setEditText('');
   };
 
-  // -------------------------------------------------------------------------
-  // 🔹 3. UTILS & FILTERS
-  // -------------------------------------------------------------------------
-
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  
+
   const handleEmojiClick = (emoji) => setNewMessage(prev => prev + emoji);
-  
+
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'CH';
 
   const filteredConversations = conversations.filter(conv =>
@@ -272,7 +333,6 @@ const Messages = () => {
     user.fullName.toLowerCase().includes(newChatSearch.toLowerCase())
   );
 
-  // Close menus on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) && !emojiButtonRef.current?.contains(event.target)) setShowEmojiPicker(false);
@@ -284,7 +344,7 @@ const Messages = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentMessages = selectedConversation 
+  const currentMessages = selectedConversation
     ? (selectedConversation.id ? (messages[selectedConversation.id] || []) : (messages['temp'] || []))
     : [];
 
@@ -294,7 +354,7 @@ const Messages = () => {
     <DashboardLayout title="Messages">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
         <div className={styles.messagesWrapper}>
-          
+
           {/* SIDEBAR */}
           <div className={styles.conversationsSidebar}>
             <div className={styles.sidebarHeader}>
@@ -315,32 +375,32 @@ const Messages = () => {
 
             <div className={styles.conversationsList}>
               {loading ? (
-                  <div style={{padding:'20px', textAlign:'center', color:'#888'}}>Loading...</div>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>Loading...</div>
               ) : filteredConversations.length === 0 ? (
-                  <div style={{padding:'20px', textAlign:'center', color:'#666'}}><p>No messages yet.</p></div>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}><p>No messages yet.</p></div>
               ) : (
-                  filteredConversations.map(conv => (
-                    <div key={conv.id} className={`${styles.conversationItem} ${selectedConversation?.id === conv.id ? styles.selected : ''}`} onClick={() => setSelectedConversation(conv)}>
-                      <div className={styles.conversationAvatar}>
-                        {conv.avatar ? (
-                            <img src={conv.avatar} alt={conv.name} className={styles.avatarImage} style={{width:'40px', height:'40px', borderRadius:'50%', objectFit:'cover'}} onError={(e)=>{e.target.style.display='none'}} />
-                        ) : (
-                            <div className={styles.avatar}>{getInitials(conv.name)}</div>
-                        )}
-                        {conv.online === true && <span className={styles.onlineIndicator}></span>}
+                filteredConversations.map(conv => (
+                  <div key={conv.id} className={`${styles.conversationItem} ${selectedConversation?.id === conv.id ? styles.selected : ''}`} onClick={() => setSelectedConversation(conv)}>
+                    <div className={styles.conversationAvatar}>
+                      {conv.avatar ? (
+                        <img src={conv.avatar} alt={conv.name} className={styles.avatarImage} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none' }} />
+                      ) : (
+                        <div className={styles.avatar}>{getInitials(conv.name)}</div>
+                      )}
+                      {conv.online === true && <span className={styles.onlineIndicator}></span>}
+                    </div>
+                    <div className={styles.conversationInfo}>
+                      <div className={styles.conversationHeader}>
+                        <span className={styles.conversationName}>{conv.name}</span>
+                        <span className={styles.conversationTime}>{conv.online === true ? 'Online' : (conv.lastSeen || '')}</span>
                       </div>
-                      <div className={styles.conversationInfo}>
-                        <div className={styles.conversationHeader}>
-                          <span className={styles.conversationName}>{conv.name}</span>
-                          <span className={styles.conversationTime}>{conv.online === true ? 'Online' : (conv.lastSeen || '')}</span>
-                        </div>
-                        <div className={styles.conversationPreview}>
-                          <span className={styles.lastMessage}>{conv.lastMessage}</span>
-                          {conv.unread > 0 && <span className={styles.unreadBadge}>{conv.unread}</span>}
-                        </div>
+                      <div className={styles.conversationPreview}>
+                        <span className={styles.lastMessage}>{conv.lastMessage}</span>
+                        {conv.unread > 0 && <span className={styles.unreadBadge}>{conv.unread}</span>}
                       </div>
                     </div>
-                  ))
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -353,9 +413,9 @@ const Messages = () => {
                   <div className={styles.chatUserInfo}>
                     <div className={styles.chatAvatar}>
                       {selectedConversation.avatar ? (
-                          <img src={selectedConversation.avatar} alt={selectedConversation.name} style={{width:'40px', height:'40px', borderRadius:'50%', objectFit:'cover'}} onError={(e)=>{e.target.style.display='none'}}/>
+                        <img src={selectedConversation.avatar} alt={selectedConversation.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none' }} />
                       ) : (
-                          getInitials(selectedConversation.name)
+                        getInitials(selectedConversation.name)
                       )}
                     </div>
                     <div className={styles.chatUserDetails}>
@@ -365,68 +425,66 @@ const Messages = () => {
                       </span>
                     </div>
                   </div>
-                  
-                  {/* 🟢 CHAT MENU BUTTONS */}
+
                   <div className={styles.chatHeaderActions}>
                     <div className={styles.chatMenuWrapper}>
-                        <button className={styles.chatMenuBtn} onClick={() => setShowChatMenu(!showChatMenu)}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                        </button>
-                        <AnimatePresence>
-                            {showChatMenu && (
-                                <motion.div ref={chatMenuRef} className={styles.chatMenuDropdown} initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-10}}>
-                                    <button className={styles.chatMenuItem} onClick={() => setShowConfirmModal('clear')}>Clear Chat</button>
-                                    <button className={styles.chatMenuItem} onClick={() => setShowConfirmModal('delete')}>Delete Chat</button>
-                                    <button className={`${styles.chatMenuItem} ${styles.dangerItem}`} onClick={() => setShowConfirmModal('block')}>Block User</button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                      <button className={styles.chatMenuBtn} onClick={() => setShowChatMenu(!showChatMenu)}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                      </button>
+                      <AnimatePresence>
+                        {showChatMenu && (
+                          <motion.div ref={chatMenuRef} className={styles.chatMenuDropdown} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                            <button className={styles.chatMenuItem} onClick={() => setShowConfirmModal('clear')}>Clear Chat</button>
+                            <button className={styles.chatMenuItem} onClick={() => setShowConfirmModal('delete')}>Delete Chat</button>
+                            <button className={`${styles.chatMenuItem} ${styles.dangerItem}`} onClick={() => setShowConfirmModal('block')}>Block User</button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                     <button className={styles.closeChat} onClick={() => setSelectedConversation(null)}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                   </div>
                 </div>
 
                 <div className={styles.messagesContainer}>
                   {currentMessages.length === 0 && (
-                      <div style={{textAlign:'center', marginTop:'50px', color:'#888'}}><p>Say hello to <strong>{selectedConversation.name}</strong>! 👋</p></div>
+                    <div style={{ textAlign: 'center', marginTop: '50px', color: '#888' }}><p>Say hello to <strong>{selectedConversation.name}</strong>! 👋</p></div>
                   )}
                   {currentMessages.map(message => (
                     <div key={message.id} className={`${styles.messageWrapper} ${message.isOwn ? styles.ownMessage : ''}`}>
                       <div className={styles.messageBubble}>
                         {editingMessage === message.id ? (
-                            <div className={styles.editContainer}>
-                                <input type="text" value={editText} onChange={(e) => setEditText(e.target.value)} className={styles.editInput} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') handleCancelEdit(); }} />
-                                <div className={styles.editActions}>
-                                    <button className={styles.saveEditBtn} onClick={handleSaveEdit}>✓</button>
-                                    <button className={styles.cancelEditBtn} onClick={handleCancelEdit}>✕</button>
-                                </div>
+                          <div className={styles.editContainer}>
+                            <input type="text" value={editText} onChange={(e) => setEditText(e.target.value)} className={styles.editInput} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') handleCancelEdit(); }} />
+                            <div className={styles.editActions}>
+                              <button className={styles.saveEditBtn} onClick={handleSaveEdit}>✓</button>
+                              <button className={styles.cancelEditBtn} onClick={handleCancelEdit}>✕</button>
                             </div>
+                          </div>
                         ) : (
-                            <>
-                                <p className={styles.messageText}>
-                                    {message.text}
-                                    {message.edited && <span className={styles.editedLabel}>(edited)</span>}
-                                </p>
-                                <span className={styles.messageTime}>{message.timestamp}</span>
-                            </>
+                          <>
+                            <p className={styles.messageText}>
+                              {message.text}
+                              {message.edited && <span className={styles.editedLabel}>(edited)</span>}
+                            </p>
+                            <span className={styles.messageTime}>{message.timestamp}</span>
+                          </>
                         )}
-                        {/* 🟢 MESSAGE OPTIONS (Edit/Delete) */}
                         {message.isOwn && !editingMessage && (
-                            <div className={styles.messageOptionsWrapper}>
-                                <button className={styles.messageOptionsBtn} onClick={() => setShowMessageMenu(showMessageMenu === message.id ? null : message.id)}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
-                                </button>
-                                <AnimatePresence>
-                                    {showMessageMenu === message.id && (
-                                        <motion.div ref={messageMenuRef} className={styles.messageMenuDropdown} initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}}>
-                                            <button className={styles.messageMenuItem} onClick={() => handleEditMessage(message)}>Edit</button>
-                                            <button className={`${styles.messageMenuItem} ${styles.dangerItem}`} onClick={() => handleDeleteMessage(message.id)}>Delete</button>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
+                          <div className={styles.messageOptionsWrapper}>
+                            <button className={styles.messageOptionsBtn} onClick={() => setShowMessageMenu(showMessageMenu === message.id ? null : message.id)}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
+                            </button>
+                            <AnimatePresence>
+                              {showMessageMenu === message.id && (
+                                <motion.div ref={messageMenuRef} className={styles.messageMenuDropdown} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+                                  <button className={styles.messageMenuItem} onClick={() => handleEditMessage(message)}>Edit</button>
+                                  <button className={`${styles.messageMenuItem} ${styles.dangerItem}`} onClick={() => handleDeleteMessage(message.id)}>Delete</button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -470,42 +528,42 @@ const Messages = () => {
                   <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                 </div>
                 <h3>Select a conversation</h3>
-                <p>Choose from sidebar or <span onClick={handleOpenNewChat} style={{color:'#6366f1', cursor:'pointer', fontWeight:'bold'}}>Start New Chat</span></p>
+                <p>Choose from sidebar or <span onClick={handleOpenNewChat} style={{ color: '#6366f1', cursor: 'pointer', fontWeight: 'bold' }}>Start New Chat</span></p>
               </div>
             )}
           </div>
         </div>
 
-        {/* 🟢 NEW CHAT MODAL */}
+        {/* NEW CHAT MODAL */}
         <AnimatePresence>
           {showNewChatModal && (
             <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <motion.div ref={newChatModalRef} className={styles.newChatModal} initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.95 }}>
-                <div className={styles.newChatHeader} style={{display:'flex', justifyContent:'space-between', marginBottom:'15px'}}>
+                <div className={styles.newChatHeader} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                   <h3>Start New Chat</h3>
                   <button className={styles.closeModalBtn} onClick={() => setShowNewChatModal(false)}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   </button>
                 </div>
-                
-                <input type="text" placeholder="Search connections..." value={newChatSearch} onChange={(e) => setNewChatSearch(e.target.value)} className={styles.newChatSearchInput} style={{width:'100%', padding:'10px', marginBottom:'15px', borderRadius:'8px', border:'1px solid var(--border-color)', background:'var(--bg-secondary)', color:'var(--text-primary)'}} />
 
-                <div className={styles.usersList} style={{maxHeight:'300px', overflowY:'auto'}}>
+                <input type="text" placeholder="Search connections..." value={newChatSearch} onChange={(e) => setNewChatSearch(e.target.value)} className={styles.newChatSearchInput} style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+
+                <div className={styles.usersList} style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {filteredAvailableUsers.length > 0 ? (
                     filteredAvailableUsers.map(user => (
-                      <div key={user._id} className={styles.userItem} style={{display:'flex', alignItems:'center', padding:'10px', cursor:'pointer', borderRadius:'8px'}} onClick={() => handleStartNewChat(user)} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                        <div className={styles.userAvatar} style={{marginRight:'10px'}}>
-                           {user.picture ? (
-                               <img src={`http://localhost:5000/api/auth/student/${user._id}/picture`} alt="" style={{width:'32px', height:'32px', borderRadius:'50%'}} onError={(e)=>{e.target.style.display='none'}}/>
-                           ) : (
-                               getInitials(user.fullName)
-                           )}
+                      <div key={user._id} className={styles.userItem} style={{ display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', borderRadius: '8px' }} onClick={() => handleStartNewChat(user)} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <div className={styles.userAvatar} style={{ marginRight: '10px' }}>
+                          {user.picture ? (
+                            <img src={`http://localhost:5000/api/auth/student/${user._id}/picture`} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%' }} onError={(e) => { e.target.style.display = 'none' }} />
+                          ) : (
+                            getInitials(user.fullName)
+                          )}
                         </div>
                         <span className={styles.userName}>{user.fullName}</span>
                       </div>
                     ))
                   ) : (
-                    <div className={styles.noUsersFound} style={{textAlign:'center', color:'#888'}}>
+                    <div className={styles.noUsersFound} style={{ textAlign: 'center', color: '#888' }}>
                       <p>No connections found.</p>
                     </div>
                   )}
@@ -515,7 +573,7 @@ const Messages = () => {
           )}
         </AnimatePresence>
 
-        {/* 🟢 CONFIRMATION MODAL */}
+        {/* CONFIRMATION MODAL */}
         <AnimatePresence>
           {showConfirmModal && (
             <motion.div className={styles.confirmOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -533,12 +591,12 @@ const Messages = () => {
                 </p>
                 <div className={styles.confirmActions}>
                   <button className={styles.confirmCancelBtn} onClick={() => setShowConfirmModal(null)}>Cancel</button>
-                  <button 
+                  <button
                     className={`${styles.confirmActionBtn} ${showConfirmModal === 'block' ? styles.dangerBtn : ''}`}
                     onClick={() => {
-                        if (showConfirmModal === 'clear') handleClearChat();
-                        if (showConfirmModal === 'delete') handleDeleteChat();
-                        if (showConfirmModal === 'block') handleBlockUser();
+                      if (showConfirmModal === 'clear') handleClearChat();
+                      if (showConfirmModal === 'delete') handleDeleteChat();
+                      if (showConfirmModal === 'block') handleBlockUser();
                     }}
                   >
                     {showConfirmModal === 'clear' && 'Clear'}

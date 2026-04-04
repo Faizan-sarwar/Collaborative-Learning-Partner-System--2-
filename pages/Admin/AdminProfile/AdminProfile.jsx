@@ -6,7 +6,7 @@ const AdminProfile = () => {
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null); // Reference for hidden file input
 
-  // 🔹 Profile State
+  // Profile State
   const [profile, setProfile] = useState({
     fullName: '',
     email: '',
@@ -18,11 +18,11 @@ const AdminProfile = () => {
     pictureUrl: null // Store the URL from backend
   });
 
-  // 🔹 Image Upload State
+  // Image Upload State
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // 🔹 Activity & Stats State
+  // Activity & Stats State
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([
     { value: '0', label: 'Actions Today', icon: 'activity' },
@@ -30,7 +30,7 @@ const AdminProfile = () => {
     { value: '0', label: 'Days Active', icon: 'calendar' },
   ]);
 
-  // 🔹 Fetch Data on Mount
+  // Fetch Data on Mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -85,7 +85,7 @@ const AdminProfile = () => {
     fetchData();
   }, []);
 
-  // 🔹 Helper Functions
+  // Helper Functions
   const getIconForAction = (action) => {
     const lower = action.toLowerCase();
     if (lower.includes('regist')) return 'user-plus';
@@ -106,7 +106,7 @@ const AdminProfile = () => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  // 🔹 Handle File Selection
+  // Handle File Selection
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -121,12 +121,12 @@ const AdminProfile = () => {
     }
   };
 
-  // 🔹 Handle Trigger Input
+  // Handle Trigger Input
   const triggerFileInput = () => {
     fileInputRef.current.click();
   };
 
-  // 🔹 Handle Save (Using FormData for File Upload)
+  // Handle Save (Using FormData for File Upload)
   const handleSave = async () => {
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
@@ -207,7 +207,7 @@ const AdminProfile = () => {
         <div className={styles.profileCard}>
           <div className={styles.profileHeader}>
             <div className={styles.avatarWrapper}>
-              {/* 🔹 Avatar Logic: Preview -> Database Photo -> Initials */}
+              {/* Avatar Logic: Preview -> Database Photo -> Initials */}
               {previewImage ? (
                 <img src={previewImage} alt="Profile" className={styles.avatarImage} style={{width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover'}} />
               ) : profile.pictureUrl ? (
@@ -221,7 +221,7 @@ const AdminProfile = () => {
               <button className={styles.avatarEditBtn} onClick={triggerFileInput}>
                 {renderIcon('upload')}
               </button>
-              {/* 🔹 Hidden File Input */}
+              {/* Hidden File Input */}
               <input 
                 type="file" 
                 ref={fileInputRef} 

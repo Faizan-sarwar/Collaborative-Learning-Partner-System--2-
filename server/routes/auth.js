@@ -3,10 +3,11 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
-import nodemailer from 'nodemailer'; 
-import dotenv from 'dotenv'; // 🟢 1. IMPORT DOTENV
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv'; //  1. IMPORT DOTENV
 
-dotenv.config(); // 🟢 2. RUN IT IMMEDIATELY so the credentials load
+
+dotenv.config(); //  2. RUN IT IMMEDIATELY so the credentials load
 
 import User from '../models/User.js';
 import StudyGroup from '../models/StudyGroup.js';
@@ -18,7 +19,7 @@ const router = express.Router();
 
 const otpStore = new Map();
 
-// 🟢 3. ADD A CHECK to warn you if credentials are still missing
+//  3. ADD A CHECK to warn you if credentials are still missing
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   console.error("⚠️ WARNING: EMAIL_USER or EMAIL_PASS is missing in your .env file!");
 }
@@ -82,7 +83,7 @@ const validateSignupData = (data) => {
   return errors;
 };
 
-// 🟢 --- PASSWORD RESET ROUTES ---
+//  --- PASSWORD RESET ROUTES ---
 
 router.post('/forgot-password', async (req, res) => {
   try {
@@ -145,10 +146,8 @@ router.post('/reset-password', async (req, res) => {
 router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
     const { fullName, email, password, rollNumber, gender, department, semester, academicStrengths, subjectsOfDifficulty, studyStyle, availability } = req.body;
-
     const validationErrors = validateSignupData(req.body);
     if (validationErrors.length > 0) return res.status(400).json({ success: false, message: validationErrors[0].message, errors: validationErrors });
-
     if (await User.findOne({ email: email.toLowerCase() })) return res.status(409).json({ success: false, message: 'Email already registered' });
     if (await User.findOne({ rollNumber })) return res.status(409).json({ success: false, message: 'Roll number already exists' });
 
@@ -160,12 +159,25 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     const userData = {
       fullName: fullName.trim(), email: email.toLowerCase().trim(), password, rollNumber: rollNumber.trim(),
       gender, department, semester, academicStrengths: parsedStrengths, subjectsOfDifficulty: parsedDifficulties,
-      studyStyle: studyStyle || 'Individual Study', availability: availability?.trim() || '', role
+      studyStyle: studyStyle || 'Individual Study', availability: availability?.trim() || '', role,
+      xp: 10
     };
     if (req.file) userData.picture = { data: req.file.buffer, contentType: req.file.mimetype };
 
     const newUser = await User.create(userData);
-    try { await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' }); } catch (e) { }
+
+    try {
+      await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' });
+
+      // 🟢 Create an explicit Registration Notification for the Admin
+      await Notification.create({
+        type: 'registration',
+        title: 'New Student Registration',
+        message: `${newUser.fullName} has joined the platform.`,
+        link: '/admin/students',
+        unread: true
+      });
+    } catch (e) { console.error("Logging failed", e); }
 
     res.status(201).json({ success: true, message: 'Profile created successfully!', token: generateToken(newUser._id), user: newUser.toSafeObject() });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error', error: err.message }); }
@@ -174,11 +186,34 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    // 🟢 1. EXTRACT rememberMe FROM REQUEST
     const { email, password, rememberMe } = req.body;
-
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await user.matchPassword(password))) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+
+    // 🟢 ONLY the Failed code goes here
+    if (!user || !(await user.matchPassword(password))) {
+      try {
+        await ActivityLog.create({
+          action: 'Failed Login Attempt',
+          user: user ? user.fullName : email,
+          userType: user ? user.role : 'student',
+          ip: getClientIp(req),
+          status: 'failed'
+        });
+      } catch (logErr) { console.error('Logging failed:', logErr); }
+
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // 🟢 Successful login log sits safely OUTSIDE the failed block
+    try {
+      await ActivityLog.create({
+        action: 'Successful Login',
+        user: user.fullName,
+        userType: user.role,
+        ip: getClientIp(req),
+        status: 'success'
+      });
+    } catch (logErr) { console.error('Logging failed:', logErr); }
 
     user.isOnline = true;
     let xpMessage = '';
@@ -187,29 +222,29 @@ router.post('/login', async (req, res) => {
     if (today.toDateString() !== lastLogin.toDateString()) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      user.streak = yesterday.toDateString() === lastLogin.toDateString() ? user.streak + 1 : 1;
+      user.streak = yesterday.toDateString() === lastLogin.toDateString() ? (user.streak || 0) + 1 : 1;
 
       const streakBonus = Math.min(10 + (user.streak * 10), 50);
-      await user.awardXP(streakBonus);
+      if (typeof user.awardXP === 'function') {
+        await user.awardXP(streakBonus);
+      } else {
+        user.xp = (user.xp || 0) + streakBonus;
+      }
       xpMessage = `Daily Login! +${streakBonus} XP (Streak: ${user.streak})`;
     }
 
     user.lastLogin = Date.now();
     await user.save();
 
-    // 🟢 2. SET DYNAMIC TOKEN EXPIRY
-    // 30 days if checked, 1 day if unchecked
     const tokenExpiry = rememberMe ? '30d' : '1d';
-
     res.json({
       success: true,
-      // 🟢 3. APPLY EXPIRY TO TOKEN
       token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_fallback_secret_key', { expiresIn: tokenExpiry }),
-      user: user.toSafeObject(),
+      user: typeof user.toSafeObject === 'function' ? user.toSafeObject() : user,
       message: xpMessage || 'Logged in successfully'
     });
-  } catch (err) { 
-    res.status(500).json({ success: false, message: 'Server error' }); 
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -348,9 +383,14 @@ router.get('/admin/analytics', async (req, res) => {
       { $sort: { "date": 1 } }
     ]);
 
-    const courseStats = await StudyGroup.aggregate([
-      { $project: { name: "$name", enrolled: { $size: "$members" }, completed: { $floor: { $multiply: [{ $size: "$members" }, 0.7] } } } },
-      { $limit: 5 }
+    // NEW: Count occurrences of each subject inside students' academicStrengths arrays
+    const courseStats = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $unwind: { path: "$academicStrengths", preserveNullAndEmptyArrays: false } },
+      { $group: { _id: "$academicStrengths", count: { $sum: 1 } } },
+      { $project: { name: "$_id", count: 1, _id: 0 } },
+      { $sort: { count: -1 } }, // Sort by most popular first
+      { $limit: 6 } // Top 6 subjects
     ]);
 
     const inactiveDate = new Date();
@@ -471,14 +511,36 @@ router.get('/admin/settings', async (req, res) => {
 router.put('/admin/settings', async (req, res) => {
   try {
     const settings = await Settings.findOneAndUpdate({}, req.body, { new: true, upsert: true });
-    if (req.headers.authorization) await ActivityLog.create({ action: 'Platform Settings Updated', user: 'Admin', target: 'System', status: 'success', date: new Date() });
+
+    if (req.headers.authorization) {
+      // 🟢 NEW: Added userType and IP address to the log
+      await ActivityLog.create({
+        action: 'Platform Settings Updated',
+        user: 'Admin',
+        userType: 'admin', // <-- This fixes the "Visitor" bug
+        ip: getClientIp(req),
+        status: 'success'
+      });
+    }
+
     res.json({ success: true, message: 'Settings updated', settings });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 router.get('/admin/notifications', async (req, res) => {
-  try { res.json({ success: true, notifications: await Notification.find().sort({ createdAt: -1 }).limit(10) }); }
-  catch (err) { res.status(500).json({ success: false, message: 'Failed to fetch' }); }
+  try {
+    res.json({
+      success: true,
+      // 🟢 Ensure Admin strictly ONLY pulls System, Admin, and Registration notifications
+      notifications: await Notification.find({ type: { $in: ['system', 'registration', 'admin'] } })
+        .sort({ createdAt: -1 })
+        .limit(20)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch' });
+  }
 });
 
 // --- Public/Student Routes ---
@@ -589,10 +651,15 @@ router.post('/requests/:senderId/:action', async (req, res) => {
     const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id, { senderId, action } = req.params;
 
     if (action === 'accept') {
-      const receiver = await User.findByIdAndUpdate(userId, { $addToSet: { connections: senderId }, $pull: { receivedRequests: senderId } });
-      await User.findByIdAndUpdate(senderId, { $addToSet: { connections: userId }, $pull: { sentRequests: userId } });
-      await Notification.create({ recipient: senderId, sender: userId, type: 'achievement', title: 'Request Accepted', message: `${receiver.fullName} accepted your request.`, link: '/messages', unread: true });
+      // 🟢 Add $inc: { xp: 75 } to instantly award the points to both users
+      const receiver = await User.findByIdAndUpdate(userId, { $addToSet: { connections: senderId }, $pull: { receivedRequests: senderId }, $inc: { xp: 75 } });
+      const sender = await User.findByIdAndUpdate(senderId, { $addToSet: { connections: userId }, $pull: { sentRequests: userId }, $inc: { xp: 75 } });
+
+      await Notification.create({ recipient: senderId, sender: userId, type: 'achievement', title: 'Request Accepted', message: `${receiver.fullName} accepted your request! +75 XP`, link: '/messages', unread: true });
+      await Notification.create({ recipient: userId, sender: senderId, type: 'achievement', title: 'New Connection', message: `You are now connected with ${sender.fullName}. +75 XP`, link: '/messages', unread: true });
+
       return res.json({ success: true, message: 'Connected successfully' });
+
     } else if (action === 'decline') {
       await User.findByIdAndUpdate(userId, { $pull: { receivedRequests: senderId } });
       await User.findByIdAndUpdate(senderId, { $pull: { sentRequests: userId } });
@@ -611,5 +678,214 @@ router.post('/connections/:targetId/remove', async (req, res) => {
     res.json({ success: true, message: 'Connection removed' });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
+// 🟢 1. Define Milestones Securely on the Server
+const MILESTONES = [
+  { level: 1, xp: 0, hours: 0, name: 'Newcomer' },
+  { level: 2, xp: 200, hours: 5, name: 'Novice Learner' },
+  { level: 3, xp: 500, hours: 15, name: 'Dedicated Student' },
+  { level: 4, xp: 1000, hours: 30, name: 'Rising Scholar' },
+  { level: 5, xp: 2000, hours: 60, name: 'Expert Learner' },
+  { level: 6, xp: 4000, hours: 100, name: 'Knowledge Master' },
+  { level: 7, xp: 8000, hours: 200, name: 'Legendary Scholar' },
+];
 
+// 🟢 2. The Universal XP Route
+router.post('/award-xp', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
+
+    const { amount, activityTitle } = req.body;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // 1. Add the XP
+    user.xp = (user.xp || 0) + Number(amount);
+
+    // 2. Check Milestones for Level Up
+    // It finds the highest level where the user meets BOTH the XP and Study Hours requirements
+    const qualifiedLevelObj = [...MILESTONES].reverse().find(m => user.xp >= m.xp && (user.studyHours || 0) >= m.hours);
+    const newLevel = qualifiedLevelObj ? qualifiedLevelObj.level : 1;
+
+    let leveledUp = false;
+
+    // 3. Handle Level Up!
+    if (newLevel > (user.level || 1)) {
+      user.level = newLevel;
+      leveledUp = true;
+
+      // Send a massive Level Up Notification
+      await Notification.create({
+        recipient: user._id,
+        type: 'achievement',
+        title: 'Level Up! 🚀',
+        message: `You reached Level ${newLevel}: ${qualifiedLevelObj.name}`,
+        unread: true
+      });
+    }
+
+    // 4. Send the standard XP Notification
+    await Notification.create({
+      recipient: user._id,
+      type: 'achievement',
+      title: 'XP Earned! ⚡',
+      message: `+${amount} XP for: ${activityTitle}`,
+      unread: true
+    });
+
+    await user.save();
+
+    res.json({
+      success: true,
+      xp: user.xp,
+      level: user.level,
+      leveledUp,
+      user: user.toSafeObject()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 🟢 RAPIDAPI CHAT TOPICS GENERATOR
+// 🟢 RAPIDAPI CHAT TOPICS GENERATOR
+router.post('/ai/chat-topics', async (req, res) => {
+  try {
+    const { subject } = req.body;
+    if (!subject) return res.status(400).json({ success: false, message: 'Subject is required' });
+
+    if (!process.env.RAPIDAPI_KEY || !process.env.RAPIDAPI_HOST) {
+      console.error("❌ CRITICAL ERROR: RAPIDAPI credentials missing in .env file!");
+      return res.status(500).json({ success: false, message: "API Credentials missing" });
+    }
+
+    const prompt = `You are a study assistant for a university student. They are struggling with the subject "${subject}". 
+    Generate 4 highly specific, engaging conversation starters or questions they can use to discuss this subject with a study partner.
+    Provide 1 short, actionable tip on how they should approach studying this subject together.
+    Also provide a single fitting emoji icon, and a hex color code that fits the vibe of the subject.
+    Return ONLY a raw JSON object in this exact format, with no markdown formatting or backticks: 
+    { "icon": "emoji", "color": "#hexcode", "topics": ["topic 1", "topic 2", "topic 3", "topic 4"], "tip": "The study tip" }`;
+
+    // 🟢 RAPIDAPI FETCH CALL (Tailored for gemini-pro-ai.p.rapidapi.com)
+    const response = await fetch(`https://${process.env.RAPIDAPI_HOST}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-rapidapi-host': process.env.RAPIDAPI_HOST,
+        'x-rapidapi-key': process.env.RAPIDAPI_KEY
+      },
+      // Formatted exactly like your code snippet!
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }]
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "RapidAPI request failed");
+    }
+
+    // 🟢 Extract the text from the Gemini-style response
+    let responseText = "";
+    if (data.candidates && data.candidates[0].content.parts[0].text) {
+      responseText = data.candidates[0].content.parts[0].text;
+    } else if (data.text) {
+      responseText = data.text; // Fallback if the API simplifies the response
+    } else {
+      responseText = JSON.stringify(data);
+    }
+
+    // Clean the text to ensure perfect JSON parsing
+    const jsonStart = responseText.indexOf('{');
+    const jsonEnd = responseText.lastIndexOf('}') + 1;
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      responseText = responseText.substring(jsonStart, jsonEnd);
+    }
+
+    const aiData = JSON.parse(responseText);
+
+    res.json({
+      success: true,
+      icon: aiData.icon,
+      color: aiData.color,
+      topics: aiData.topics,
+      tip: aiData.tip
+    });
+  } catch (err) {
+    console.error("❌ RapidAPI Generation Error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+// 🟢 ADMIN: BROADCAST NOTIFICATION TO STUDENTS
+router.post('/admin/send-notification', async (req, res) => {
+  try {
+    const { title, message, category, icon, targetType, departments, semesters } = req.body;
+
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: 'Title and message are required' });
+    }
+
+    // 1. Build the database query to find the right students
+    let query = { role: 'student' }; 
+    if (targetType === 'selected') {
+      if (departments && departments.length > 0) query.department = { $in: departments };
+      if (semesters && semesters.length > 0) query.semester = { $in: semesters };
+    }
+
+    // 2. Find all matching students
+    const students = await User.find(query).select('_id');
+
+    if (students.length === 0) {
+      return res.status(404).json({ success: false, message: 'No students matched your selected filters.' });
+    }
+
+    // 3. Create a notification for EVERY matched student!
+    const notificationsToInsert = students.map(student => ({
+      recipient: student._id,
+      type: category || 'system',
+      title: title,
+      message: message,
+      icon: icon || 'bell',
+      link: '/dashboard', 
+      unread: true
+    }));
+
+    await Notification.insertMany(notificationsToInsert);
+
+    // 4. Log the action so it appears in your Recent Activity chart
+    const targetLabel = targetType === 'all' ? 'All Students' : 'Selected Students';
+    await ActivityLog.create({
+      action: `Broadcasted "${title}"`,
+      user: 'Admin',
+      userType: 'admin',
+      status: 'success'
+    });
+
+    // 5. Send success response back to the frontend
+    res.json({ 
+      success: true, 
+      message: `Successfully sent to ${students.length} student(s)!`,
+      newHistoryItem: { 
+          id: Date.now(), 
+          title, 
+          message, 
+          recipients: targetLabel, 
+          sentAt: 'Just now', 
+          type: category, 
+          icon 
+      }
+    });
+
+  } catch (err) {
+    console.error("Broadcast Error:", err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 export default router;

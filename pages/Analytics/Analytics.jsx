@@ -14,7 +14,7 @@ const Analytics = () => {
   const [userData, setUserData] = useState(null);
   const [tasksCompleted, setTasksCompleted] = useState(0); 
   
-  // 🔹 1. LOAD DATA FROM DATABASE ON MOUNT
+  // 1. LOAD DATA FROM DATABASE ON MOUNT
   useEffect(() => {
     const fetchStats = async () => {
         try {
@@ -42,7 +42,7 @@ const Analytics = () => {
     fetchStats();
   }, []);
 
-  // 🔹 2. REAL-TIME TRACKING & AUTO-SAVE TO DB
+  // 2. REAL-TIME TRACKING & AUTO-SAVE TO DB
   useEffect(() => {
     // Session timer logic
     const storedStart = sessionStorage.getItem('sessionStartTime');
@@ -54,7 +54,7 @@ const Analytics = () => {
         const sessionMinutes = Math.floor((now - startTime) / 1000 / 60);
         setStudyTime(sessionMinutes);
 
-        // 🟢 AUTO-SAVE TO DB EVERY 1 MINUTE
+        //  AUTO-SAVE TO DB EVERY 1 MINUTE
         // We save the Grand Total (DB Previous + Current Session)
         if (sessionMinutes > 0 && sessionMinutes % 1 === 0) {
             const currentTotalMinutes = totalDatabaseHours + sessionMinutes;
@@ -83,7 +83,7 @@ const Analytics = () => {
       }
   };
 
-  // 🔹 CALCULATE DISPLAY TOTALS (DB + Current Session)
+  // CALCULATE DISPLAY TOTALS (DB + Current Session)
   const grandTotalMinutes = totalDatabaseHours + studyTime;
   const hours = Math.floor(grandTotalMinutes / 60);
   const minutes = Math.floor(grandTotalMinutes % 60);
@@ -100,7 +100,7 @@ const Analytics = () => {
   else if (studyTime > 20) { productivityScore = 'Medium 📈'; productivityColor = '#f59e0b'; }
   else { productivityScore = 'Warming Up ☕'; productivityColor = '#3b82f6'; }
 
-  // 🔹 MOCK CHART DATA (Dynamic based on total time)
+  // MOCK CHART DATA (Dynamic based on total time)
   // In a real app, you would store daily breakdowns in the DB.
   // For now, we update 'Sat' (or current day) with the grand total.
   const weeklyData = [
@@ -152,7 +152,7 @@ const Analytics = () => {
           </p>
         </motion.div>
 
-        {/* 🔹 STATS GRID */}
+        {/* STATS GRID */}
         <div className={styles.statsGrid}>
           <motion.div className={styles.statCard} variants={itemVariants}>
             <div className={styles.statIcon}>⏱️</div>
@@ -195,7 +195,7 @@ const Analytics = () => {
           </motion.div>
         </div>
 
-        {/* 🔹 CHARTS GRID */}
+        {/* CHARTS GRID */}
         <div className={styles.chartsGrid}>
           {/* Weekly Bar Chart */}
           <motion.div className={styles.chartCard} variants={itemVariants}>
@@ -252,7 +252,7 @@ const Analytics = () => {
           </motion.div>
         </div>
 
-        {/* 🔹 INSIGHTS */}
+        {/* INSIGHTS */}
         <motion.div className={styles.insightsCard} variants={itemVariants}>
           <h2>📈 Insights & Recommendations</h2>
           <div className={styles.insightsList}>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './DashboardHeader.module.css';
+import { useNotification } from '../../../src/context/NotificationContext';
 
 import maleLevel1 from '../../../src/assets/gamification/male-level-1.png';
 import femaleLevel1 from '../../../src/assets/gamification/female-level-1.png';
@@ -19,28 +20,93 @@ const DashboardHeader = ({ title, isFullWidth }) => {
   const notifRef = useRef(null);
 
   const loadUser = () => {
-    const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user') || '{}');
+    const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     setUser(storedUser);
   };
 
-  const loadNotifications = () => {
-    const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-    setNotifications(localNotifs);
+  // 🟢 FIX: The "Fork in the Road" - Admins and Students get different feeds
+  const loadNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token || !user.role) return;
+
+      // Route Admins to the admin feed, and Students to their personal feed
+      const endpoint = (user.role === 'admin' || user.role === 'super-admin')
+        ? 'http://localhost:5000/api/auth/admin/notifications'
+        : 'http://localhost:5000/api/notifications';
+
+      const res = await fetch(endpoint, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+      if (data.success && data.notifications) {
+        setNotifications(data.notifications);
+      } else {
+        const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+        setNotifications(localNotifs);
+      }
+    } catch (err) {
+      console.error("Failed to load notifications", err);
+      const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+      setNotifications(localNotifs);
+    }
   };
 
+  // 🟢 REAL-TIME SYNC: This makes the Red Dots react instantly when someone else interacts with the user
   useEffect(() => {
     loadUser();
     loadNotifications();
+
     const handleUserUpdate = () => loadUser();
     const handleNotificationAdd = () => loadNotifications();
     window.addEventListener('userUpdated', handleUserUpdate);
     window.addEventListener('notificationAdded', handleNotificationAdd);
+
+    // BACKGROUND WATCHER: Checks the database every 5 seconds
+    const liveSync = setInterval(async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+
+        // 1. Check for New Notifications (Messages, XP, etc)
+        const endpoint = (user.role === 'admin' || user.role === 'super-admin')
+          ? 'http://localhost:5000/api/auth/admin/notifications'
+          : 'http://localhost:5000/api/notifications';
+
+        const notifRes = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${token}` } });
+        const notifData = await notifRes.json();
+
+        if (notifData.success) {
+          // If there's new data, update local storage and shout out to the Sidebar to react!
+          localStorage.setItem('notifications', JSON.stringify(notifData.notifications));
+          setNotifications(notifData.notifications);
+          window.dispatchEvent(new Event('notificationAdded'));
+        }
+
+        // 2. Check for New Connection Requests
+        if (user.role === 'student') {
+          const userRes = await fetch('http://localhost:5000/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+          const userData = await userRes.json();
+
+          if (userData.success) {
+            localStorage.setItem('user', JSON.stringify(userData.user));
+            setUser(userData.user);
+            window.dispatchEvent(new Event('userUpdated')); // Wakes up the Pending Connections dot!
+          }
+        }
+
+      } catch (e) {
+        // Silently ignore network errors so it doesn't disrupt the user
+      }
+    }, 5000); // 5000ms = checks every 5 seconds
+
     return () => {
+      clearInterval(liveSync); // Cleanup when they log out
       window.removeEventListener('userUpdated', handleUserUpdate);
       window.removeEventListener('notificationAdded', handleNotificationAdd);
     };
-  }, []);
-
+  }, [user.role]);
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setShowProfileMenu(false);
@@ -50,15 +116,35 @@ const DashboardHeader = ({ title, isFullWidth }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const markAllAsRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
+  const markAllAsRead = async () => {
+    const updated = notifications.map(n => ({ ...n, unread: false, read: true }));
     setNotifications(updated);
-    localStorage.setItem('notifications', JSON.stringify(updated));
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      // Only students need to mark personal notifications as read in the DB
+      if (user.role === 'student') {
+        await fetch('http://localhost:5000/api/notifications/read', {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+    } catch (e) { console.error("Failed to mark read in DB"); }
   };
 
-  const clearNotifications = () => {
-    setNotifications([]);
-    localStorage.removeItem('notifications');
+  const clearNotifications = async () => {
+    setNotifications([]); // Instantly clear UI
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      // Only students clear personal notifications. Admins shouldn't wipe global system logs!
+      if (user.role === 'student') {
+        await fetch('http://localhost:5000/api/notifications/clear', {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+    } catch (e) { console.error("Failed to delete notifications in DB"); }
   };
 
   const toggleTheme = () => {
@@ -70,12 +156,12 @@ const DashboardHeader = ({ title, isFullWidth }) => {
 
   const handleLogout = async () => {
     try {
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       await fetch('http://localhost:5000/api/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
-    } catch (err) { console.error("Logout failed", err); } 
+    } catch (err) { console.error("Logout failed", err); }
     finally {
       localStorage.removeItem('studyTimerState');
       sessionStorage.clear();
@@ -95,27 +181,16 @@ const DashboardHeader = ({ title, isFullWidth }) => {
     return maleLevel1;
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => n.unread === true || (n.unread === undefined && !n.read)).length;
 
   return (
-    <header 
+    <header
       className={styles.header}
-      // 🟢 FIX: Use 100vw to force full viewport width
-      style={isFullWidth ? { 
-          left: 0, 
-          width: '100vw', 
-          maxWidth: '100vw', 
-          marginLeft: 0,
-          borderRadius: 0 
-      } : {}}
+      style={isFullWidth ? { left: 0, width: '100vw', maxWidth: '100vw', marginLeft: 0, borderRadius: 0 } : {}}
     >
       <div className={styles.userInfo}>
         <div className={styles.avatar}>
-          <img
-            src={getAvatarSrc()}
-            alt="User"
-            onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`}
-          />
+          <img src={getAvatarSrc()} alt="User" onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`} />
         </div>
         <div className={styles.greeting}>
           <span className={styles.hello}>Hi, {user.fullName ? user.fullName.split(' ')[0] : 'Student'}</span>
@@ -144,25 +219,25 @@ const DashboardHeader = ({ title, isFullWidth }) => {
               <motion.div className={styles.notificationDropdown} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className={styles.notifHeader}>
                   <h3>Notifications</h3>
-                  <button className={styles.markAllBtn} onClick={clearNotifications}>Clear All</button>
+                  {user.role === 'student' && <button className={styles.markAllBtn} onClick={clearNotifications}>Clear All</button>}
                 </div>
                 <div className={styles.notifList}>
                   {notifications.length === 0 ? (
                     <div className={styles.emptyNotif}><p>No new notifications</p></div>
                   ) : (
                     notifications.map((notif, index) => (
-                      <div key={index} className={`${styles.notifItem} ${!notif.read ? styles.unread : ''}`}>
+                      <div key={notif._id || index} className={`${styles.notifItem} ${notif.unread || !notif.read ? styles.unread : ''}`}>
                         <div className={styles.notifIcon}>
-                          {notif.type === 'success' ? '🎉' : '🔔'}
+                          {notif.type === 'achievement' || notif.type === 'success' ? '🎉' : '🔔'}
                         </div>
                         <div className={styles.notifContent}>
                           <span className={styles.notifTitle}>{notif.title}</span>
                           <p className={styles.notifMessage}>{notif.message}</p>
                           <span className={styles.notifTime}>
-                            {notif.timestamp ? new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                            {notif.createdAt || notif.timestamp ? new Date(notif.createdAt || notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                           </span>
                         </div>
-                        {!notif.read && <div className={styles.unreadDot} />}
+                        {(notif.unread || (notif.unread === undefined && !notif.read)) && <div className={styles.unreadDot} />}
                       </div>
                     ))
                   )}

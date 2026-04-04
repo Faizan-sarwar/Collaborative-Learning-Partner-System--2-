@@ -1,311 +1,246 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
+import { MessageCircle, Users, Lightbulb, BookOpen, ArrowRight, Sparkles, Brain, Heart, Loader2 } from 'lucide-react';
 import styles from './Courses.module.css';
 
 const Courses = () => {
-  // 🔹 State Management
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Modal States
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-  const [currentCourse, setCurrentCourse] = useState(null);
-  
-  // Form Data
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    subjects: ''
-  });
+  const navigate = useNavigate();
 
-  // 🔹 Helper: Get Icon based on course name
-  const getCourseIcon = (name) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('math')) return '📐';
-    if (lower.includes('phys')) return '⚡';
-    if (lower.includes('chem')) return '🧪';
-    if (lower.includes('bio')) return '🧬';
-    if (lower.includes('comp') || lower.includes('code')) return '💻';
-    if (lower.includes('engl') || lower.includes('lit')) return '📚';
-    if (lower.includes('hist')) return '🏛️';
-    if (lower.includes('art')) return '🎨';
-    return '🎓'; // Default icon
-  };
+  const [difficultSubjects, setDifficultSubjects] = useState([]);
+  const [aiData, setAiData] = useState({});
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // 🔹 Fetch Courses
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      // Using the /studygroup endpoint as "Courses"
-      const res = await fetch('http://localhost:5000/studygroup');
-      const data = await res.json();
-      
-      if (data.success) {
-        // Transform backend data to match UI
-        const mappedCourses = data.groups.map(g => ({
-          id: g._id,
-          name: g.name,
-          description: g.description,
-          progress: Math.floor(Math.random() * 100), // Random progress for demo (backend doesn't store this yet)
-          lessons: g.subjects.length > 0 ? g.subjects.length * 5 : 12, // Estimate lessons
-          icon: getCourseIcon(g.name),
-          subjects: g.subjects
-        }));
-        setCourses(mappedCourses);
-      }
-    } catch (err) {
-      console.error('Failed to fetch courses:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 1. FETCH USER PROFILE TO GET THEIR WEAK SUBJECTS
   useEffect(() => {
-    fetchCourses();
-  }, []);
+    const fetchProfileAndTopics = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
 
-  // 🔹 Modal Handlers
-  const openModal = (mode, course = null) => {
-    setModalMode(mode);
-    setCurrentCourse(course);
-    if (mode === 'edit' && course) {
-      setFormData({
-        name: course.name,
-        description: course.description || '',
-        subjects: course.subjects ? course.subjects.join(', ') : ''
-      });
-    } else {
-      setFormData({ name: '', description: '', subjects: '' });
-    }
-    setShowModal(true);
-  };
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
 
-  const closeModal = () => {
-    setShowModal(false);
-    setCurrentCourse(null);
-  };
+        if (data.success && data.user.subjectsOfDifficulty && data.user.subjectsOfDifficulty.length > 0) {
+          const subjects = data.user.subjectsOfDifficulty;
+          setDifficultSubjects(subjects);
 
-  // 🔹 API Actions
-  const handleSave = async (e) => {
-    e.preventDefault();
-    
-    const payload = {
-      ...formData,
-      subjects: formData.subjects.split(',').map(s => s.trim()).filter(Boolean),
-      creatorId // Required by your backend validation
+          // The moment we know their weak subjects, we ask AI for advice on each one!
+          subjects.forEach(subject => fetchAITopics(subject, token));
+        } else {
+          // Fallback just in case they have an empty profile
+          const fallbackSubjects = ['Mathematics', 'Data Structures', 'Algorithms'];
+          setDifficultSubjects(fallbackSubjects);
+          fallbackSubjects.forEach(subject => fetchAITopics(subject, token));
+        }
+      } catch (err) {
+        console.error("Failed to load profile", err);
+      } finally {
+        setLoadingProfile(false);
+      }
     };
 
-    const url = modalMode === 'add' 
-      ? 'http://localhost:5000/studygroup' 
-      : `http://localhost:5000/studygroup/${currentCourse.id}`;
-    
-    const method = modalMode === 'add' ? 'POST' : 'PUT';
+    fetchProfileAndTopics();
+  }, []);
 
+  // 2. THE AI FETCHER (Talks to your new backend route)
+  // 2. THE AI FETCHER (Talks to your new backend route)
+  const fetchAITopics = async (subject, token) => {
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await res.json();
-      if (data.success) {
-        fetchCourses();
-        closeModal();
-      } else {
-        alert(data.message);
-      }
-    } catch (err) {
-      console.error('Error saving course:', err);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this course?")) return;
-
-    try {
-      const res = await fetch(`http://localhost:5000/studygroup/${id}`, {
-        method: 'DELETE'
+      const res = await fetch('http://localhost:5000/api/auth/ai/chat-topics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ subject })
       });
       const data = await res.json();
-      
+
       if (data.success) {
-        setCourses(courses.filter(c => c.id !== id));
+        setAiData(prev => ({
+          ...prev,
+          [subject]: {
+            icon: data.icon,
+            color: data.color,
+            chatTopics: data.topics,
+            howToDiscuss: data.tip,
+          }
+        }));
       } else {
-        alert(data.message);
+        throw new Error(data.message || "AI failed to respond");
       }
     } catch (err) {
-      console.error('Error deleting course:', err);
+      console.error(`Failed to fetch AI data for ${subject}:`, err);
+      // 🟢 FIX: Stop the infinite spin! Set a fallback if the AI fails.
+      setAiData(prev => ({
+        ...prev,
+        [subject]: {
+          icon: '⚠️',
+          color: '#ef4444', // Red color for error
+          chatTopics: ['Discuss core concepts', 'Review past papers', 'Watch a tutorial together', 'Practice problem solving'],
+          howToDiscuss: 'AI generation failed right now. Start by asking your partner what they find hardest about this subject.',
+        }
+      }));
     }
-  };
+  };  
 
-  // Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
+  if (loadingProfile) {
+    return (
+      <DashboardLayout title="Study Topics">
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', color: 'var(--text-secondary)' }}>
+          <Loader2 className={styles.spin} size={40} style={{ marginBottom: '15px', color: '#6366f1' }} />
+          <span style={{ fontSize: '1.1rem' }}>Analyzing your learning profile...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <DashboardLayout title="Courses">
-      <motion.div
-        className={styles.container}
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div className={styles.header} variants={itemVariants}>
-          <div className={styles.headerText}>
-            <h1 className={styles.title}>My Courses</h1>
-            <p className={styles.subtitle}>Manage and track your course progress</p>
+    <DashboardLayout title="Study Topics">
+      <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
+
+        {/* Hero */}
+        <motion.div className={styles.hero} variants={itemVariants}>
+          <div className={styles.heroGlow} />
+          <div className={styles.heroContent}>
+            <div className={styles.heroBadge}>
+              <Sparkles size={14} />
+              <span>AI-Powered Study Guide</span>
+            </div>
+            <h1 className={styles.heroTitle}>
+              Conquer Your <span className={styles.gradientText}>Tough Subjects</span>
+            </h1>
+            <p className={styles.heroSubtitle}>
+              We noticed you struggle with these subjects. Our AI has generated custom conversation starters so you and a study partner can tackle them together.
+            </p>
           </div>
-          {/* <button className={styles.addBtn} onClick={() => openModal('add')}>
-            <span>+</span> Add New Course
-          </button> */}
+          <div className={styles.heroStats}>
+            <div className={styles.heroStat}>
+              <BookOpen size={20} />
+              <span className={styles.heroStatNum}>{difficultSubjects.length}</span>
+              <span className={styles.heroStatLabel}>Weak Subjects</span>
+            </div>
+            <div className={styles.heroStat}>
+              <MessageCircle size={20} />
+              <span className={styles.heroStatNum}>
+                {difficultSubjects.reduce((sum, s) => sum + (aiData[s]?.chatTopics?.length || 0), 0)}
+              </span>
+              <span className={styles.heroStatLabel}>AI Ideas Ready</span>
+            </div>
+          </div>
         </motion.div>
 
-        <motion.div className={styles.stats} variants={itemVariants}>
-          <div className={styles.statCard}>
-            <span className={styles.statNumber}>{courses.length}</span>
-            <span className={styles.statLabel}>Total Courses</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statNumber}>{courses.filter(c => c.progress > 0 && c.progress < 100).length}</span>
-            <span className={styles.statLabel}>In Progress</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statNumber}>{courses.filter(c => c.progress === 100).length}</span>
-            <span className={styles.statLabel}>Completed</span>
-          </div>
-        </motion.div>
+        {/* Dynamic Subjects Grid */}
+        <div className={styles.subjectsGrid}>
+          {difficultSubjects.length === 0 && (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', gridColumn: '1 / -1' }}>
+              You haven't selected any subjects of difficulty yet! Update your profile to get AI recommendations.
+            </div>
+          )}
 
-        {loading ? (
-          <div className={styles.loading}>Loading courses...</div>
-        ) : (
-          <div className={styles.coursesGrid}>
-            {courses.length === 0 ? (
-                <div className={styles.noData}>No courses found. Add one to get started!</div>
-            ) : (
-                courses.map((course) => (
-                <motion.div 
-                    key={course.id} 
-                    className={styles.courseCard}
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02 }}
-                >
-                    <div className={styles.cardHeader}>
-                        <div className={styles.courseIcon}>{course.icon}</div>
-                        <div className={styles.cardActions}>
-                            <button 
-                                className={styles.iconBtn} 
-                                onClick={(e) => { e.stopPropagation(); openModal('edit', course); }}
-                                title="Edit"
-                            >
-                                ✏️
-                            </button>
-                            <button 
-                                className={`${styles.iconBtn} ${styles.deleteBtn}`} 
-                                onClick={(e) => { e.stopPropagation(); handleDelete(course.id); }}
-                                title="Delete"
-                            >
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div className={styles.courseInfo}>
-                    <h3>{course.name}</h3>
-                    <p className={styles.desc}>{course.description || `${course.lessons} lessons included`}</p>
+          {difficultSubjects.map((subject) => {
+            const data = aiData[subject];
+            const isLoading = !data; // If we don't have the AI data yet, it's loading
+
+            return (
+              <motion.div key={subject} className={styles.subjectCard} variants={itemVariants}>
+
+                {/* Header */}
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardIconWrap} style={{ background: isLoading ? '#333' : `${data.color}20`, borderColor: isLoading ? '#444' : `${data.color}40` }}>
+                    <span className={styles.cardIcon}>{isLoading ? <Loader2 size={20} className={styles.spin} color="#888" /> : data.icon}</span>
+                  </div>
+                  <div className={styles.cardHeaderInfo}>
+                    <h3 className={styles.cardTitle}>{subject}</h3>
+                    <p className={styles.cardSubtitle}>
+                      {isLoading ? 'AI is generating topics...' : 'Custom AI Recommendations'}
+                    </p>
+                  </div>
+                </div>
+
+                {isLoading ? (
+                  /* 🟢 Skeleton Loader while waiting for Gemini AI */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px', opacity: 0.5 }}>
+                    <div style={{ height: '40px', background: 'var(--bg-secondary)', borderRadius: '8px', width: '100%' }}></div>
+                    <div style={{ height: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', width: '80%' }}></div>
+                    <div style={{ height: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', width: '90%' }}></div>
+                    <div style={{ height: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', width: '70%' }}></div>
+                  </div>
+                ) : (
+                  /* 🟢 AI Loaded Content! */
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+
+                    {/* How to discuss tip */}
+                    <div className={styles.discussTip}>
+                      <Lightbulb size={16} style={{ color: data.color, flexShrink: 0 }} />
+                      <span>{data.howToDiscuss}</span>
                     </div>
 
-                    <div className={styles.progressSection}>
-                    <div className={styles.progressBar}>
-                        <div 
-                        className={styles.progressFill} 
-                        style={{ width: `${course.progress}%` }}
-                        />
-                    </div>
-                    <span className={styles.progressText}>{course.progress}% complete</span>
+                    {/* Chat Topics */}
+                    <div className={styles.topicsSection}>
+                      <h4 className={styles.topicsTitle}>
+                        <MessageCircle size={14} style={{ color: data.color }} />
+                        Ask your partner about:
+                      </h4>
+                      <div className={styles.topicsGrid}>
+                        {data.chatTopics.map((topic, i) => (
+                          <div key={i} className={styles.topicChip} style={{ borderColor: `${data.color}30`, background: `${data.color}08` }}>
+                            <span style={{ color: data.color, marginRight: '6px', fontSize: '0.8rem' }}>•</span>
+                            <span>{topic}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    <button className={styles.startBtn}>
-                    {course.progress > 0 ? 'Continue' : 'Start Learning'}
+                    {/* CTA */}
+                    <button
+                      className={styles.findPartnerBtn}
+                      style={{ background: data.color, marginTop: 'auto', border: 'none', borderRadius: '8px', padding: '12px', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                      onClick={() => navigate('/study-matches')}
+                    >
+                      <Users size={16} />
+                      Find a partner for {subject}
+                      <ArrowRight size={14} />
                     </button>
-                </motion.div>
-                ))
-            )}
+                  </motion.div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Bottom CTA */}
+        <motion.div className={styles.motivation} variants={itemVariants}>
+          <div className={styles.motivationIcon}>
+            <Brain size={28} />
           </div>
-        )}
+          <div>
+            <h3 className={styles.motivationTitle}>Learning is better together</h3>
+            <p className={styles.motivationText}>
+              You don't need to master everything alone. Pick one of the AI conversation starters above, find a match, and start talking!
+            </p>
+          </div>
+          <button className={styles.startChatBtn} onClick={() => navigate('/messages')}>
+            <Heart size={16} />
+            Open Messages
+          </button>
+        </motion.div>
+
       </motion.div>
-
-      {/* Modal Overlay */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div 
-            className={styles.modalOverlay}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeModal}
-          >
-            <motion.div 
-              className={styles.modalContent}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2>{modalMode === 'add' ? 'Add New Course' : 'Edit Course'}</h2>
-              
-              <form onSubmit={handleSave} className={styles.form}>
-                <div className={styles.formGroup}>
-                  <label>Course Name</label>
-                  <input 
-                    type="text" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="e.g. Advanced Physics"
-                    required
-                  />
-                </div>
-                
-                <div className={styles.formGroup}>
-                  <label>Description</label>
-                  <textarea 
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Brief description of the course..."
-                    rows="3"
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>Subjects / Topics (comma separated)</label>
-                  <input 
-                    type="text" 
-                    value={formData.subjects}
-                    onChange={(e) => setFormData({...formData, subjects: e.target.value})}
-                    placeholder="e.g. Mechanics, Thermodynamics, Optics"
-                  />
-                </div>
-
-                <div className={styles.modalActions}>
-                  <button type="button" className={styles.cancelBtn} onClick={closeModal}>Cancel</button>
-                  <button type="submit" className={styles.submitBtn}>
-                    {modalMode === 'add' ? 'Create Course' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </DashboardLayout>
   );
 };

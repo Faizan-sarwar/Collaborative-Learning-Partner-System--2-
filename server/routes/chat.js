@@ -20,47 +20,37 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// 1. Get All Conversations for Current User
+// 1. Get All Conversations for Current User (Hides deleted ones)
 router.get('/conversations', verifyToken, async (req, res) => {
   try {
-    const conversations = await Conversation.find({ participants: req.userId })
+    const conversations = await Conversation.find({
+      participants: req.userId,
+      deletedBy: { $ne: req.userId } // Don't fetch if this user deleted it
+    })
       .populate('participants', 'fullName picture isOnline lastSeen')
-      .sort({ updatedAt: -1 }); // Sort by most recent activity
+      .sort({ updatedAt: -1 });
 
     const formattedConversations = conversations.map(conv => {
-      // Find the other participant
       const otherUser = conv.participants.find(p => p._id.toString() !== req.userId);
-
-      // Handle case where user might be deleted
       if (!otherUser) return null;
 
       return {
         id: conv._id,
         otherUserId: otherUser._id,
         name: otherUser.fullName,
-
-        // 🟢 Generate the Avatar URL if picture exists
-        // This checks if the buffer data exists in the DB object
         avatar: (otherUser.picture && otherUser.picture.data)
           ? `http://localhost:5000/api/auth/student/${otherUser._id}/picture`
           : null,
-
-        // 🟢 Message Preview
-        // Ensure we access the text property if lastMessage is an object
-        lastMessage: conv.lastMessage?.text || 'Start a conversation',
-
-        // 🟢 Online Status & Last Seen Logic
+        lastMessage: conv.lastMessage?.text || conv.lastMessage || 'Start a conversation',
         online: otherUser.isOnline,
         lastSeen: otherUser.isOnline
           ? 'Online'
           : otherUser.lastSeen
             ? new Date(otherUser.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : 'Offline',
-
-        // Safe access to unread count (defaults to 0 if map doesn't exist)
         unread: (conv.unreadCount && conv.unreadCount.get(req.userId)) || 0,
       };
-    }).filter(Boolean); // Filter out nulls (deleted users)
+    }).filter(Boolean);
 
     res.json({ success: true, conversations: formattedConversations });
   } catch (err) {
@@ -69,11 +59,21 @@ router.get('/conversations', verifyToken, async (req, res) => {
   }
 });
 
-// 2. Get Messages for a Conversation
+// 2. Get Messages for a Conversation (Hides cleared messages)
 router.get('/messages/:conversationId', verifyToken, async (req, res) => {
   try {
-    const messages = await Message.find({ conversationId: req.params.conversationId })
-      .sort({ createdAt: 1 });
+    const conversation = await Conversation.findById(req.params.conversationId);
+    if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
+
+    const clearTime = conversation.clearedAt?.get(req.userId);
+    let query = { conversationId: req.params.conversationId };
+
+    // Only fetch messages sent AFTER the user cleared the chat
+    if (clearTime) {
+      query.createdAt = { $gt: clearTime };
+    }
+
+    const messages = await Message.find(query).sort({ createdAt: 1 });
 
     const formattedMessages = messages.map(msg => ({
       id: msg._id,
@@ -93,11 +93,16 @@ router.get('/messages/:conversationId', verifyToken, async (req, res) => {
 router.post('/messages', verifyToken, async (req, res) => {
   try {
     const { conversationId, text, targetUserId } = req.body;
+
+    // Check if target user has blocked the sender
+    const targetUser = await User.findById(targetUserId);
+    if (targetUser && targetUser.blockedUsers && targetUser.blockedUsers.includes(req.userId)) {
+      return res.status(403).json({ success: false, message: 'You have been blocked by this user and cannot send messages.' });
+    }
+
     let convId = conversationId;
 
-    // Create conversation if it doesn't exist (First message logic)
     if (!convId && targetUserId) {
-      // Check if conversation already exists
       let existingConv = await Conversation.findOne({
         participants: { $all: [req.userId, targetUserId] }
       });
@@ -118,11 +123,12 @@ router.post('/messages', verifyToken, async (req, res) => {
       text
     });
 
-    // Update Conversation (Last Message & Unread Count)
+    // Update Conversation and pull from deletedBy so it reappears if previously deleted
     await Conversation.findByIdAndUpdate(convId, {
       lastMessage: text,
       lastMessageAt: new Date(),
-      $inc: { [`unreadCount.${req.body.targetUserId}`]: 1 } // Increment unread for receiver
+      $inc: { [`unreadCount.${targetUserId}`]: 1 },
+      $pull: { deletedBy: { $in: [req.userId, targetUserId] } }
     });
 
     res.json({
@@ -140,6 +146,60 @@ router.post('/messages', verifyToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to send message' });
+  }
+});
+
+// 4. Clear Chat (Soft Delete - keeps it in sidebar but empties messages)
+router.delete('/messages/:conversationId/clear', verifyToken, async (req, res) => {
+  try {
+    await Conversation.findByIdAndUpdate(req.params.conversationId, {
+      $set: { [`clearedAt.${req.userId}`]: new Date() },
+      $pull: { deletedBy: req.userId }
+    });
+    res.json({ success: true, message: 'Chat cleared for you' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to clear chat' });
+  }
+});
+
+// 5. Delete Chat (Hide from sidebar entirely)
+router.delete('/conversations/:id', verifyToken, async (req, res) => {
+  try {
+    const conv = await Conversation.findByIdAndUpdate(req.params.id, {
+      $addToSet: { deletedBy: req.userId }
+    }, { new: true });
+
+    // Physically wipe if BOTH users deleted it
+    if (conv && conv.deletedBy && conv.deletedBy.length === 2) {
+      await Message.deleteMany({ conversationId: req.params.id });
+      await Conversation.findByIdAndDelete(req.params.id);
+    }
+
+    res.json({ success: true, message: 'Conversation deleted for you' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete conversation' });
+  }
+});
+
+// 6. Block User Route
+router.post('/block/:targetUserId', verifyToken, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.userId, {
+      $addToSet: { blockedUsers: req.params.targetUserId }
+    });
+    res.json({ success: true, message: 'User blocked successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to block user' });
+  }
+});
+
+// 7. Delete Single Message
+router.delete('/message/:messageId', verifyToken, async (req, res) => {
+  try {
+    await Message.findByIdAndDelete(req.params.messageId);
+    res.json({ success: true, message: 'Message deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete message' });
   }
 });
 

@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import styles from './AdminManagement.module.css';
 
 const AdminManagement = () => {
-  // 🔹 State Management
+  // State Management
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [currentAdmin, setCurrentAdmin] = useState(null);
   
-  // 🔹 Store logged-in user
+  // Store logged-in user
   const [currentUser, setCurrentUser] = useState(null);
 
-  // 🔹 Form State
+  // Form State
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -21,7 +21,7 @@ const AdminManagement = () => {
     status: 'active'
   });
 
-  // 🔹 Fetch Admins
+  // Fetch Admins
   const fetchAdmins = async () => {
     try {
       setLoading(true);
@@ -60,7 +60,7 @@ const AdminManagement = () => {
     }
   }, []);
 
-  // 🔹 Handlers
+  // Handlers
   const openModal = (mode, admin = null) => {
     setModalMode(mode);
     setCurrentAdmin(admin);
@@ -141,7 +141,7 @@ const AdminManagement = () => {
     }
   };
 
-  // 🔹 Styles Helper
+  // Styles Helper
   const getRoleBadgeClass = (role) => {
     switch (role) {
       case 'super-admin': return styles.superAdmin;
@@ -151,7 +151,7 @@ const AdminManagement = () => {
     }
   };
 
-  // 🔹 Stats Logic (Will now be correct due to override)
+  // Stats Logic (Will now be correct due to override)
   const superAdminCount = admins.filter(a => a.role === 'super-admin').length;
   const adminCount = admins.filter(a => a.role === 'admin').length;
   const modCount = admins.filter(a => a.role === 'moderator').length;

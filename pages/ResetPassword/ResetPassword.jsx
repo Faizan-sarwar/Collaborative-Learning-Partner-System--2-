@@ -16,7 +16,7 @@ const ResetPassword = () => {
   // Retrieve the email passed from the VerifyOTP page
   const email = location.state?.email || '';
 
-  // 🟢 SECURITY CHECK: If someone tries to visit /reset-password directly via URL, kick them back to login
+  //  SECURITY CHECK: If someone tries to visit /reset-password directly via URL, kick them back to login
   useEffect(() => {
     if (!email) {
       navigate('/login');
@@ -64,7 +64,7 @@ const ResetPassword = () => {
     setIsSubmitting(true);
 
     try {
-      // 🟢 CONNECT TO BACKEND API
+      //  CONNECT TO BACKEND API
       const res = await fetch('http://localhost:5000/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

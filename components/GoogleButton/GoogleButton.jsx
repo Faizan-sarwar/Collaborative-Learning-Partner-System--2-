@@ -31,7 +31,7 @@ const GoogleButton = () => {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("user", JSON.stringify(data.user));
 
-          // 🟢 NEW REDIRECTION LOGIC
+          //  NEW REDIRECTION LOGIC
           if (data.user.role === 'admin' || data.user.role === 'super-admin') {
             navigate('/admin');
           } else {

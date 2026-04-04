@@ -11,9 +11,9 @@ const StudyTime = () => {
   // Database Stats
   const [totalStudyHours, setTotalStudyHours] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [totalXP, setTotalXP] = useState(0); // 🟢 Track XP
+  const [totalXP, setTotalXP] = useState(0); //  Track XP
 
-  // 🔹 1. LOAD INITIAL DATA
+  // 1. LOAD INITIAL DATA
   useEffect(() => {
     const initData = async () => {
         // A. Fetch DB Stats
@@ -27,7 +27,7 @@ const StudyTime = () => {
                 if (data.success && data.user) {
                     setTotalStudyHours(data.user.studyHours || 0);
                     setStreak(data.user.streak || 0);
-                    setTotalXP(data.user.xp || 0); // 🟢 Load XP
+                    setTotalXP(data.user.xp || 0); //  Load XP
                 }
             }
         } catch (err) { console.error("Fetch stats error", err); }
@@ -55,7 +55,7 @@ const StudyTime = () => {
     initData();
   }, []);
 
-  // 🔹 2. THE TIMER ENGINE
+  // 2. THE TIMER ENGINE
   useEffect(() => {
     let interval = null;
 
@@ -70,7 +70,7 @@ const StudyTime = () => {
     return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
-  // 🔹 3. HELPER: UPDATE STORAGE
+  // 3. HELPER: UPDATE STORAGE
   const updateStorage = (running, start, accumulated) => {
     const state = {
         isRunning: running,
@@ -80,7 +80,7 @@ const StudyTime = () => {
     localStorage.setItem('studyTimerState', JSON.stringify(state));
   };
 
-  // 🔹 4. BUTTON HANDLERS
+  // 4. BUTTON HANDLERS
   const handleStart = () => {
     const now = Date.now();
     const accumulatedMS = seconds * 1000;
@@ -115,7 +115,7 @@ const StudyTime = () => {
             const currentSessionHours = finalSeconds / 3600;
             const newTotalHours = (totalStudyHours + currentSessionHours).toFixed(2);
             
-            // 🟢 Calculate XP (2 XP per minute)
+            //  Calculate XP (2 XP per minute)
             const earnedXP = Math.floor((finalSeconds / 60) * 2);
             const newTotalXP = totalXP + earnedXP;
 
@@ -164,7 +164,7 @@ const StudyTime = () => {
     }
   };
 
-  // 🔹 HELPERS
+  // HELPERS
   const formatTime = (totalSeconds) => {
     const getSeconds = `0${(totalSeconds % 60)}`.slice(-2);
     const minutes = `${Math.floor(totalSeconds / 60)}`;

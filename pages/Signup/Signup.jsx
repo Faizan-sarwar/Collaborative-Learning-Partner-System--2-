@@ -85,7 +85,7 @@ const Signup = () => {
     const [alertError, setAlertError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // 🔹 FETCH LIVE COURSES ON MOUNT
+    // FETCH LIVE COURSES ON MOUNT
     useEffect(() => {
         const fetchCourses = async () => {
             try {
@@ -158,7 +158,7 @@ const Signup = () => {
         return issues;
     };
 
-    // 🟢 3. MASTER FIELD VALIDATOR
+    //  3. MASTER FIELD VALIDATOR
     const validateField = (name, value) => {
         switch (name) {
             case 'fullName':
@@ -246,7 +246,7 @@ const Signup = () => {
         }));
     };
 
-    // 🟢 4. COMPREHENSIVE SUBMIT HANDLER
+    //  4. COMPREHENSIVE SUBMIT HANDLER
     const handleSubmit = async (e) => {
         e.preventDefault();
         setAlertError('');
@@ -507,7 +507,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* 🟢 Render Dropdown Error */}
+                                        {/*  Render Dropdown Error */}
                                         {errors.department && <span className={styles.errorMessage}>{errors.department}</span>}
                                     </div>
 
@@ -541,7 +541,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* 🟢 Render Dropdown Error */}
+                                        {/*  Render Dropdown Error */}
                                         {errors.semester && <span className={styles.errorMessage}>{errors.semester}</span>}
                                     </div>
                                 </div>
@@ -705,7 +705,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* 🟢 Render Dropdown Error */}
+                                        {/*  Render Dropdown Error */}
                                         {errors.studyStyle && <span className={styles.errorMessage}>{errors.studyStyle}</span>}
                                     </div>
                                 </div>
@@ -725,7 +725,7 @@ const Signup = () => {
                                         onBlur={handleBlur}
                                         rows={4}
                                     />
-                                    {/* 🟢 Render Textarea Error */}
+                                    {/*  Render Textarea Error */}
                                     {errors.availability && <span className={styles.errorMessage}>{errors.availability}</span>}
                                 </div>
                             </div>

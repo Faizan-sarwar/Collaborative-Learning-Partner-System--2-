@@ -15,11 +15,11 @@ const menuItems = [
 const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
   const location = useLocation();
   
-  // 🔹 State for Dynamic User Info
+  // State for Dynamic User Info
   const [user, setUser] = useState(null);
   const [imgError, setImgError] = useState(false);
 
-  // 🔹 Load User Info on Mount
+  // Load User Info on Mount
   useEffect(() => {
     const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
     if (storedUser) {
@@ -27,7 +27,7 @@ const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
     }
   }, []);
 
-  // 🔹 Helper: Render Sidebar Profile Image
+  // Helper: Render Sidebar Profile Image
   const renderProfileImage = () => {
     if (user && user._id && !imgError) {
       return (
@@ -148,7 +148,7 @@ const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
         ))}
       </nav>
 
-      {/* 🔹 FOOTER: Dynamic Admin Info */}
+      {/* FOOTER: Dynamic Admin Info */}
       <div className={styles.footer}>
         {!collapsed && (
           <div className={styles.adminInfo}>

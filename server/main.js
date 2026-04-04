@@ -96,7 +96,7 @@ app.post('/studygroup', async (req, res) => {
 
     const savedGroup = await newGroup.save();
 
-    // 🔹 LOG ACTIVITY: Group Created
+    // LOG ACTIVITY: Group Created
     try {
       const creator = await User.findById(creatorId);
       await ActivityLog.create({
@@ -204,7 +204,7 @@ app.post('/studygroup/:id/join', async (req, res) => {
     group.members.push(userId);
     await group.save();
 
-    // 🔹 LOG ACTIVITY: Joined Group
+    // LOG ACTIVITY: Joined Group
     try {
       const joiner = await User.findById(userId);
       await ActivityLog.create({

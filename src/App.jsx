@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import React, { useEffect, useState } from "react";
+import { SettingsProvider, useSettings } from '../src/context/SettingsContext';
+import { NotificationProvider } from '../src/context/NotificationContext';
+
 import Index from "../pages/Index";
 import Login from "../pages/Login/Login";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
@@ -31,7 +34,7 @@ import StudyMatches from "../pages/StudyMatches/StudyMatches";
 import StudyRoomWaiting from "../pages/StudyRoomWaiting/StudyRoomWaiting";
 import StudyRoomActive from "../pages/StudyRoomActive/StudyRoomActive";
 import Settings from "../pages/Settings/Settings";
-import ChatBot from "../pages/ChatBot/ChatBot"; 
+import ChatBot from "../pages/ChatBot/ChatBot";
 import XP from "../pages/XP/Xp";
 import "./App.css";
 
@@ -64,7 +67,7 @@ const dashboardRoutes = [
   '/connections',
   '/settings',
   '/chatbot',
-  '/admin' 
+  '/admin'
 ];
 
 const AnimatedRoutes = () => {
@@ -73,75 +76,81 @@ const AnimatedRoutes = () => {
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
   const [isChecking, setIsChecking] = useState(true);
 
-  // 🔹 GUARD LOGIC
+  // 🟢 FIX: Call the hook here so 'settings' is defined for the guard logic below
+  const { settings } = useSettings();
+
+  // GUARD LOGIC
   useEffect(() => {
     const checkStatus = async () => {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+      const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
 
-        if (!token || !storedUserString) {
-            setIsChecking(false);
-            return;
-        }
+      if (!token || !storedUserString) {
+        setIsChecking(false);
+        return;
+      }
 
-        let user = JSON.parse(storedUserString);
-        
-        // 🟢 NEW: Check if the user is sitting on a public page
-        const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
+      let user = JSON.parse(storedUserString);
 
-        if (user.role === 'admin' || user.role === 'super-admin') {
-            // 🟢 Auto-forward admins away from login
-            if (isPublicPage) navigate('/admin');
-            setIsChecking(false);
-            return; 
-        }
+      const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
 
-        const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
-        
-        if (user.quizCompleted) {
-            // 🟢 Auto-forward students away from login
+      if (user.role === 'admin' || user.role === 'super-admin') {
+        if (isPublicPage) navigate('/admin');
+        setIsChecking(false);
+        return;
+      }
+
+      // 🟢 Now 'settings' exists and will not crash!
+      if (settings?.maintenanceMode) {
+        navigate('/maintenance');
+        setIsChecking(false);
+        return;
+      }
+
+      const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
+
+      if (user.quizCompleted) {
+        if (isPublicPage) navigate('/dashboard');
+        setIsChecking(false);
+        return;
+      }
+
+      if (hasStrengths && !user.quizCompleted) {
+        try {
+          const res = await fetch('http://localhost:5000/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+
+          if (data.success && data.user.quizCompleted) {
+            if (localStorage.getItem('token')) {
+              localStorage.setItem('user', JSON.stringify(data.user));
+            } else {
+              sessionStorage.setItem('user', JSON.stringify(data.user));
+            }
+
             if (isPublicPage) navigate('/dashboard');
             setIsChecking(false);
             return;
+          }
+        } catch (err) {
+          console.error("Auth check failed", err);
         }
 
-        if (hasStrengths && !user.quizCompleted) {
-            try {
-                const res = await fetch('http://localhost:5000/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                
-                if (data.success && data.user.quizCompleted) {
-                    if (localStorage.getItem('token')) {
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                    } else {
-                        sessionStorage.setItem('user', JSON.stringify(data.user));
-                    }
-                    
-                    // 🟢 Auto-forward students away from login
-                    if (isPublicPage) navigate('/dashboard');
-                    setIsChecking(false);
-                    return;
-                }
-            } catch (err) {
-                console.error("Auth check failed", err);
-            }
-
-            if (location.pathname !== '/quiz' && location.pathname !== '/login') {
-                navigate('/quiz');
-            }
+        if (location.pathname !== '/quiz' && location.pathname !== '/login') {
+          navigate('/quiz');
         }
-        setIsChecking(false);
+      }
+      setIsChecking(false);
     };
 
     checkStatus();
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, settings]);
 
   return (
     <>
       {!isDashboardRoute && <ThemeToggle />}
-      
+
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
 
@@ -154,8 +163,8 @@ const AnimatedRoutes = () => {
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="/verify-otp" element={<PageTransition><VerifyOTP /></PageTransition>} />
-          
-          <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} /> 
+
+          <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
 
           {/* ================= STUDENT ROUTES (Protected) ================= */}
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
@@ -205,9 +214,13 @@ const AnimatedRoutes = () => {
 };
 
 const App = () => (
-  <BrowserRouter>
-    <AnimatedRoutes />
-  </BrowserRouter>
+  <SettingsProvider>
+    <NotificationProvider>
+      <BrowserRouter>
+        <AnimatedRoutes />
+      </BrowserRouter>
+    </NotificationProvider>
+  </SettingsProvider>
 );
 
 export default App;

@@ -9,7 +9,7 @@ const StudyRoom = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   
-  // 🔹 State for Rooms & User
+  // State for Rooms & User
   const [rooms, setRooms] = useState([]);
   const [user, setUser] = useState(JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user'))) || {});
   
@@ -23,7 +23,7 @@ const StudyRoom = () => {
     startTime: ''
   });
 
-  // 🔹 Fetch Rooms
+  // Fetch Rooms
   useEffect(() => {
     // In a real app, fetch from API. For now, we simulate fetching.
     // const fetchRooms = async () => { ... }
@@ -41,7 +41,7 @@ const StudyRoom = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value }); // Fixed: added name attribute to inputs below
   };
 
-  // 🔹 HANDLE CREATE ROOM (HOST)
+  // HANDLE CREATE ROOM (HOST)
   const handleCreateRoom = async () => {
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -59,13 +59,13 @@ const StudyRoom = () => {
         id: `room-${Date.now()}`,
         ...formData,
         host: user.fullName || 'Me',
-        hostId: user._id, // 🟢 IMPORTANT: Set current user as Host
+        hostId: user._id, //  IMPORTANT: Set current user as Host
         status: 'live',
         participants: 1,
         topics: formData.topics.split(',')
       };
 
-      // 🟢 LOGIC: Hosts go directly to Active Room (No waiting)
+      //  LOGIC: Hosts go directly to Active Room (No waiting)
       setShowCreateModal(false);
       navigate(`/study-room/active/${newRoom.id}`, { state: { room: newRoom, isHost: true } });
 
@@ -74,9 +74,9 @@ const StudyRoom = () => {
     }
   };
 
-  // 🔹 HANDLE JOIN ROOM (PARTICIPANT)
+  // HANDLE JOIN ROOM (PARTICIPANT)
   const handleJoinRoom = (room) => {
-    // 🟢 LOGIC: Participants go to Waiting Room
+    //  LOGIC: Participants go to Waiting Room
     navigate(`/study-room/waiting/${room.id}`, { state: { room } });
   };
 
@@ -157,7 +157,7 @@ const StudyRoom = () => {
                     style={{ background: room.status === 'live' ? `linear-gradient(135deg, ${subjectColors[room.subject]}, ${subjectColors[room.subject]}cc)` : undefined }} 
                     whileHover={{ scale: 1.02 }} 
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleJoinRoom(room)} // 🟢 Calls logic
+                    onClick={() => handleJoinRoom(room)} //  Calls logic
                 >
                   {room.status === 'live' ? 'Join Room' : 'Set Reminder'}
                 </motion.button>

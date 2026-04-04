@@ -3,7 +3,7 @@ import ActivityLog from '../models/ActivityLog.js';
 
 const router = express.Router();
 
-// 🔹 GET LATEST 5 LOGS (For Notifications)
+// GET LATEST 5 LOGS (For Notifications)
 router.get('/latest', async (req, res) => {
   try {
     const logs = await ActivityLog

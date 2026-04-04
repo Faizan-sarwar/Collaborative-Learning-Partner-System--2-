@@ -12,7 +12,7 @@ const Settings = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const fileInputRef = useRef(null);
   
-  // 🔹 State structure matches User Model
+  // State structure matches User Model
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -41,7 +41,7 @@ const Settings = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // 🔹 1. Fetch User Data on Mount
+  // 1. Fetch User Data on Mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -77,12 +77,12 @@ const Settings = () => {
     fetchUserData();
   }, []);
 
-  // 🔹 2. Handle Input Changes
+  // 2. Handle Input Changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // 🔹 3. Handle Nested Settings Changes
+  // 3. Handle Nested Settings Changes
   const handleSettingChange = (category, key, value) => {
     setFormData(prev => ({
       ...prev,
@@ -103,7 +103,7 @@ const Settings = () => {
     }));
   };
 
-  // 🔹 4. Handle Image Upload
+  // 4. Handle Image Upload
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -112,7 +112,7 @@ const Settings = () => {
     }
   };
 
-  // 🔹 5. Save Changes
+  // 5. Save Changes
   const handleSave = async () => {
     setSaving(true);
     setMessage({ type: '', text: '' });

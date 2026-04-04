@@ -9,7 +9,7 @@ const AnalyticsCharts = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch Real Data
+  // Fetch Real Data
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
@@ -35,7 +35,10 @@ const AnalyticsCharts = () => {
 
   // Fallback if data is empty (prevents crashes)
   const registrationData = data?.registrations?.length ? data.registrations : [{ month: 'No Data', students: 0 }];
-  const courseData = data?.courses?.length ? data.courses : [{ name: 'No Courses', enrolled: 0, completed: 0 }];
+  
+  // 🟢 UPDATED: Fallback uses 'count' instead of 'enrolled'
+  const courseData = data?.courses?.length ? data.courses : [{ name: 'No Data', count: 0 }];
+  
   const statusData = data?.status || [
     { name: 'Active', value: 0, color: '#10B981' },
     { name: 'Inactive', value: 0, color: '#F59E0B' },
@@ -78,11 +81,11 @@ const AnalyticsCharts = () => {
         </div>
       </div>
 
-      {/* 2. COURSE ENGAGEMENT CHART */}
+      {/* 2. ACADEMIC STRENGTHS CHART (🟢 UPDATED) */}
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>
-          <h3>Course Engagement</h3>
-          <span className={styles.chartSubtitle}>Enrolled vs Estimated Completion</span>
+          <h3>Top Academic Strengths</h3>
+          <span className={styles.chartSubtitle}>Students per selected subject</span>
         </div>
         <div className={styles.chartContent}>
           <ResponsiveContainer width="100%" height={250}>
@@ -96,10 +99,11 @@ const AnalyticsCharts = () => {
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                 }}
+                cursor={{ fill: 'var(--bg-secondary)' }}
               />
               <Legend />
-              <Bar dataKey="enrolled" fill="#6366F1" radius={[4, 4, 0, 0]} name="Enrolled" />
-              <Bar dataKey="completed" fill="#10B981" radius={[4, 4, 0, 0]} name="Completed (Est.)" />
+              {/* 🟢 Changed dataKey to 'count' */}
+              <Bar dataKey="count" fill="#6366F1" radius={[4, 4, 0, 0]} name="Total Students" />
             </BarChart>
           </ResponsiveContainer>
         </div>

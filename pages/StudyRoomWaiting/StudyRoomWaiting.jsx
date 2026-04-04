@@ -14,7 +14,7 @@ const StudyRoomWaiting = () => {
   const [waitingTime, setWaitingTime] = useState(0);
   const [status, setStatus] = useState('pending'); // pending, approved, rejected
   
-  // 🔹 1. Send Join Request on Mount
+  // 1. Send Join Request on Mount
   useEffect(() => {
     const sendJoinRequest = async () => {
         try {
@@ -25,7 +25,7 @@ const StudyRoomWaiting = () => {
     sendJoinRequest();
   }, [roomId]);
 
-  // 🔹 2. Poll for Status Change
+  // 2. Poll for Status Change
   useEffect(() => {
     const timer = setInterval(() => {
       setWaitingTime(prev => prev + 1);
@@ -46,7 +46,7 @@ const StudyRoomWaiting = () => {
   };
   
   const handleJoinRoom = () => {
-    // 🟢 Join as Participant
+    //  Join as Participant
     navigate(`/study-room/active/${roomId}`, { state: { room: roomData, isHost: false } });
   };
   

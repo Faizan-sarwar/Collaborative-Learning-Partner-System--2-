@@ -5,17 +5,17 @@ import styles from './CourseManagement.module.css';
 const categories = ['Core Subject', 'Technical', 'Advanced', 'Elective'];
 
 const CourseManagement = () => {
-  // 🔹 State for Real Data
+  // State for Real Data
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 UI States
+  // UI States
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // 🔹 Form State
+  // Form State
   const [formData, setFormData] = useState({
     title: '',
     category: 'Core Subject',
@@ -23,7 +23,7 @@ const CourseManagement = () => {
     description: ''
   });
 
-  // 🔹 Fetch Courses from Backend
+  // Fetch Courses from Backend
   const fetchCourses = async () => {
     try {
       setLoading(true);
@@ -53,19 +53,19 @@ const CourseManagement = () => {
     fetchCourses();
   }, []);
 
-  // 🔹 Calculate Stats (Live)
+  // Calculate Stats (Live)
   const totalCourses = courses.length;
   const activeCourses = courses.filter(c => c.status === 'active').length;
   const disabledCourses = courses.filter(c => c.status === 'disabled').length;
   const totalEnrollments = courses.reduce((total, course) => total + (Number(course.students) || 0), 0);
 
-  // 🔹 Filter Logic
+  // Filter Logic
   const filteredCourses = courses.filter((course) =>
     (course.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     (course.category?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
-  // 🔹 Modal Handlers
+  // Modal Handlers
   const openModal = (mode, course = null) => {
     setModalMode(mode);
     setSelectedCourse(course);
@@ -98,7 +98,7 @@ const CourseManagement = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 🔹 API Actions
+  // API Actions
   const handleSaveCourse = async () => {
     if (!formData.title) return alert('Course Title is required');
 

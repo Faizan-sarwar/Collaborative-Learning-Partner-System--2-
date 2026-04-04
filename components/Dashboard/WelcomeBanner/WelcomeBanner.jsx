@@ -2,15 +2,37 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './WelcomeBanner.module.css';
 
+// 🟢 ADDED: Import your notification context
+import { useNotification } from '../../../src/context/NotificationContext'; 
+
 const WelcomeBanner = () => {
   const [user, setUser] = useState(null);
   const [showLevelTooltip, setShowLevelTooltip] = useState(false);
+  
+  // 🟢 ADDED: Bring in the addNotification function
+  const { addNotification } = useNotification();
 
-  // 🟢 Helper to load user
+  //  Helper to load user
   const loadUser = () => {
       const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
       if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          
+          // 🟢 ADDED: First-time login floating notification logic
+          if (parsedUser && parsedUser._id) {
+            const welcomeKey = `hasSeenWelcome_${parsedUser._id}`;
+            if (!localStorage.getItem(welcomeKey)) {
+              // Fire the toast! 
+              // Using setTimeout just to give the UI a tiny moment to render before the toast slides in
+              setTimeout(() => {
+                addNotification(`Welcome aboard, ${parsedUser.fullName.split(' ')[0]}! 🎉 Let's get started.`, 'achievement', 0);
+              }, 500);
+              
+              // Mark as seen
+              localStorage.setItem(welcomeKey, 'true');
+            }
+          }
       }
   };
 
@@ -34,18 +56,18 @@ const WelcomeBanner = () => {
       .catch(err => console.error("Banner sync failed", err));
     }
 
-    // 🟢 3. LISTEN FOR UPDATES (XP Page, Gamification Page)
+    //  3. LISTEN FOR UPDATES (XP Page, Gamification Page)
     window.addEventListener('userUpdated', loadUser);
     return () => window.removeEventListener('userUpdated', loadUser);
 
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const username = user?.fullName || 'Student';
   const reliabilityScore = user?.reliability || 0;
   const currentHours = user?.studyHours || 0;
   const currentLevel = user?.level || 1;
 
-  // 🔹 LEVEL LOGIC & COLORS
+  // LEVEL LOGIC & COLORS
   const getLevelInfo = () => {
       if (currentLevel === 1) {
           return {

@@ -21,7 +21,7 @@ const TodoList = () => {
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
 
-  // 🟢 4. HELPER: Save Completed Count AND XP to DB
+  //  4. HELPER: Save Completed Count AND XP to DB
   const saveStatsToDB = async (updatedTodos) => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
     if (!token) return;
@@ -37,7 +37,7 @@ const TodoList = () => {
     const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')) || '{}');
     let currentXP = storedUser.xp || 0;
 
-    // 🟢 XP Logic: +30 XP for completing a task
+    //  XP Logic: +30 XP for completing a task
     if (isCompletion) {
         currentXP += 30;
     }

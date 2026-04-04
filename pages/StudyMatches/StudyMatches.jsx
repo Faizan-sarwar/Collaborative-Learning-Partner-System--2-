@@ -14,7 +14,7 @@ const StudyMatches = () => {
   const [sortBy, setSortBy] = useState('name');
   const [currentUser, setCurrentUser] = useState(null);
 
-  // 🔹 FETCH DATA
+  // FETCH DATA
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -50,7 +50,7 @@ const StudyMatches = () => {
     fetchData();
   }, [navigate]);
 
-  // 🔹 CONNECT LOGIC
+  // CONNECT LOGIC
   const handleConnect = async (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
     console.log("Connecting to:", targetId);
@@ -85,7 +85,7 @@ const StudyMatches = () => {
     }
   };
 
-  // 🔹 CANCEL LOGIC
+  // CANCEL LOGIC
   const handleCancelRequest = (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
     setUsers(prevUsers => prevUsers.map(user => {
@@ -94,7 +94,7 @@ const StudyMatches = () => {
     }));
   };
 
-  // 🔹 PROFILE NAVIGATION
+  // PROFILE NAVIGATION
   const handleViewProfile = (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
     if (targetId) {
@@ -104,14 +104,14 @@ const StudyMatches = () => {
     }
   };
 
-  // 🔹 HELPER: Get Dynamic Reliability Color
+  // HELPER: Get Dynamic Reliability Color
   const getReliabilityColor = (score) => {
       if (score >= 80) return '#10b981'; // Green
       if (score >= 50) return '#f59e0b'; // Orange
       return '#ef4444'; // Red
   };
 
-  // 🔹 HELPER: Calculate Level Based on Hours
+  // HELPER: Calculate Level Based on Hours
   // Logic: < 10h = Lvl 1, 10h-19h = Lvl 2, 20h+ = Lvl 3 (Max)
   const calculateLevel = (hours) => {
     const h = Number(hours) || 0;
@@ -120,7 +120,7 @@ const StudyMatches = () => {
     return 1;
   };
 
-  // 🔹 FILTERS
+  // FILTERS
   const filteredUsers = users.filter(user => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
@@ -136,7 +136,7 @@ const StudyMatches = () => {
     return matchesSearch;
   });
 
-  // 🔹 SORTING
+  // SORTING
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     if (sortBy === 'name') return a.fullName.localeCompare(b.fullName);
     
@@ -151,7 +151,7 @@ const StudyMatches = () => {
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'ST';
   const getPlanBadge = (plan) => plan === 'pro' ? { label: 'PRO', className: styles.proBadge } : { label: 'FREE', className: styles.freeBadge };
 
-  // 🔹 BUTTON RENDERER
+  // BUTTON RENDERER
   const getConnectionButton = (user) => {
     switch(user.connectionStatus) {
       case 'connected':

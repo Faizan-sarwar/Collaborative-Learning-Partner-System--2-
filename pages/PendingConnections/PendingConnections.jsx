@@ -10,26 +10,42 @@ const PendingConnections = () => {
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 FETCH REQUESTS
+  // FETCH REQUESTS
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+        const currentUser = JSON.parse(storage.getItem('user') || '{}');
+        const existingConnections = currentUser.connections || [];
         
-        // Fetch Incoming
+        // Helper to strip out users we are already connected to
+        const isNotConnected = (req) => !existingConnections.some(c => (c._id || c) === req._id);
+
         const resIn = await fetch('http://localhost:5000/api/auth/requests/received', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const dataIn = await resIn.json();
         
-        // Fetch Outgoing
         const resOut = await fetch('http://localhost:5000/api/auth/requests/sent', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const dataOut = await resOut.json();
 
-        if (dataIn.success) setIncomingRequests(dataIn.requests);
-        if (dataOut.success) setOutgoingRequests(dataOut.requests);
+        // Filter the incoming data right away to prevent loops!
+        if (dataIn.success) {
+            const cleanIncoming = dataIn.requests.filter(isNotConnected);
+            setIncomingRequests(cleanIncoming);
+
+            // 🟢 WIPE THE PHANTOM DOT: Sync local storage to match the clean UI
+            if (currentUser.receivedRequests) {
+                currentUser.receivedRequests = cleanIncoming.map(req => req._id);
+                storage.setItem('user', JSON.stringify(currentUser));
+                window.dispatchEvent(new Event('userUpdated')); // Shout to sidebar!
+            }
+        }
+        
+        if (dataOut.success) setOutgoingRequests(dataOut.requests.filter(isNotConnected));
 
       } catch (err) {
         console.error("Failed to load requests", err);
@@ -43,10 +59,10 @@ const PendingConnections = () => {
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
 
-  // 🔹 ACCEPT REQUEST
+  // ACCEPT REQUEST
   const acceptRequest = async (id) => {
     try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/accept`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -55,7 +71,21 @@ const PendingConnections = () => {
         
         if (data.success) {
             setIncomingRequests(prev => prev.filter(req => req._id !== id));
-            // Show alert and redirect logic
+            
+            // Add them to your local memory connections
+            const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+            const currentUser = JSON.parse(storage.getItem('user'));
+            
+            if (!currentUser.connections.includes(id)) {
+                currentUser.connections.push(id);
+            }
+            // Pull them out of pending requests
+            currentUser.receivedRequests = currentUser.receivedRequests.filter(reqId => reqId !== id);
+            storage.setItem('user', JSON.stringify(currentUser));
+
+            // 🟢 WIPE THE DOT: Shout to Sidebar
+            window.dispatchEvent(new Event('userUpdated'));
+
             if(window.confirm("Connected successfully! Go to messages?")) {
                 navigate('/messages');
             }
@@ -65,27 +95,36 @@ const PendingConnections = () => {
     }
   };
 
-  // 🔹 DECLINE REQUEST
+  // DECLINE REQUEST
   const declineRequest = async (id) => {
     if(!window.confirm("Decline this connection request?")) return;
     try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/decline`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
             setIncomingRequests(prev => prev.filter(req => req._id !== id));
+
+            // 🟢 WIPE THE DOT: Update storage and shout to sidebar
+            const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+            const currentUser = JSON.parse(storage.getItem('user') || '{}');
+            if (currentUser.receivedRequests) {
+                currentUser.receivedRequests = currentUser.receivedRequests.filter(reqId => reqId !== id);
+                storage.setItem('user', JSON.stringify(currentUser));
+                window.dispatchEvent(new Event('userUpdated'));
+            }
         }
     } catch (err) { console.error(err); }
   };
 
-  // 🔹 CANCEL OUTGOING
+  // CANCEL OUTGOING
   const cancelRequest = async (id) => {
     if(!window.confirm("Cancel this request?")) return;
     try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/decline`, { // Reusing decline logic as it removes from arrays
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        const res = await fetch(`http://localhost:5000/api/auth/requests/${id}/decline`, { 
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });

@@ -9,14 +9,14 @@ const DashboardLayout = ({ children, title, hideSidebar = false }) => {
     <PageTransition>
       <div 
         className={styles.dashboard} 
-        // 🟢 FIX: Use block display to remove all grid constraints when full width
+        //  FIX: Use block display to remove all grid constraints when full width
         style={hideSidebar ? { display: 'block', paddingLeft: 0 } : {}}
       >
         {!hideSidebar && <DashboardSidebar />}
         
         <div 
             className={styles.mainArea}
-            // 🟢 FIX: Ensure main area takes full width
+            //  FIX: Ensure main area takes full width
             style={hideSidebar ? { width: '100%', marginLeft: 0, maxWidth: '100%' } : {}}
         >
           {/* Pass prop to header */}

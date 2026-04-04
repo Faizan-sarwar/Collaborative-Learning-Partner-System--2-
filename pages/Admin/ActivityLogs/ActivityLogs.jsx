@@ -7,11 +7,11 @@ const ActivityLogs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Pagination State
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // 🔹 Fetch logs from backend
+  // Fetch logs from backend
   const fetchLogs = async () => {
     setLoading(true);
     try {
@@ -29,14 +29,30 @@ const ActivityLogs = () => {
     fetchLogs();
   }, []);
 
-  // 🔹 Filtering Logic
+  // 🟢 NEW: Calculate the date from exactly 7 days ago
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // Filtering Logic
   const filteredLogs = logs.filter((log) => {
+    // 🟢 1. TIME FILTER: Exclude anything older than 7 days
+    const logDate = new Date(log.createdAt);
+    if (logDate < sevenDaysAgo) return false;
+
+    // 🟢 2. ENHANCED SEARCH: Now searches Action, User, Type, and IP Address!
+    const term = searchTerm.toLowerCase();
     const action = log.action ? log.action.toLowerCase() : '';
     const user = log.user ? log.user.toLowerCase() : '';
-    const term = searchTerm.toLowerCase();
+    const type = log.userType ? log.userType.toLowerCase() : '';
+    const ip = log.ip ? log.ip.toLowerCase() : '';
 
-    const matchesSearch = action.includes(term) || user.includes(term);
+    const matchesSearch = 
+      action.includes(term) || 
+      user.includes(term) || 
+      type.includes(term) || 
+      ip.includes(term);
 
+    // 3. BUTTON FILTER: Checks the active tab (All, Admin, Success, etc)
     const matchesFilter =
       filter === 'all' ||
       (log.userType && log.userType === filter) ||
@@ -45,7 +61,7 @@ const ActivityLogs = () => {
     return matchesSearch && matchesFilter;
   });
 
-  // 🔹 Pagination Logic
+  // Pagination Logic
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentLogs = filteredLogs.slice(startIndex, startIndex + itemsPerPage);
@@ -56,7 +72,7 @@ const ActivityLogs = () => {
     }
   };
 
-  // 🔹 Export to CSV Logic
+  // Export to CSV Logic
   const handleExport = () => {
     if (filteredLogs.length === 0) return alert("No logs to export");
 
@@ -65,21 +81,19 @@ const ActivityLogs = () => {
     
     // map data to CSV rows
     const rows = filteredLogs.map(log => [
-      `"${log.action}"`, // Quote strings to handle commas inside text
+      `"${log.action}"`, 
       `"${log.user || 'Unknown'}"`,
       log.userType || 'Unknown',
       log.ip || 'N/A',
-      new Date(log.createdAt).toLocaleString().replace(/,/g, ''), // Remove commas from date
+      new Date(log.createdAt).toLocaleString().replace(/,/g, ''), 
       log.status
     ]);
 
-    // Combine headers and rows
     const csvContent = [
       headers.join(","), 
       ...rows.map(row => row.join(","))
     ].join("\n");
 
-    // Create a Blob and trigger download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -111,7 +125,7 @@ const ActivityLogs = () => {
         <div className={styles.headerLeft}>
           <h2>Activity Logs</h2>
           <span className={styles.count}>
-            {filteredLogs.length} entries
+            {filteredLogs.length} entries (Last 7 Days)
           </span>
         </div>
         <div className={styles.headerActions}>
@@ -128,7 +142,7 @@ const ActivityLogs = () => {
         <div className={styles.searchBox}>
           <input
             type="text"
-            placeholder="Search logs..."
+            placeholder="Search by user, action, IP..."
             value={searchTerm}
             onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -176,7 +190,7 @@ const ActivityLogs = () => {
               ) : currentLogs.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
-                    No activity found
+                    No activity found in the last 7 days.
                   </td>
                 </tr>
               ) : (
@@ -218,11 +232,9 @@ const ActivityLogs = () => {
         
         <div className={styles.pageNumbers}>
             {Array.from({ length: totalPages }, (_, i) => i + 1)
-                // Limit page numbers shown (e.g., current page, first, last) for simplicity in large datasets
                 .filter(p => p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1))
                 .map((pageNum, index, arr) => (
                     <React.Fragment key={pageNum}>
-                        {/* Add ellipsis if there's a gap */}
                         {index > 0 && pageNum > arr[index - 1] + 1 && <span className={styles.ellipsis}>...</span>}
                         <button 
                             className={`${styles.pageNum} ${currentPage === pageNum ? styles.active : ''}`}

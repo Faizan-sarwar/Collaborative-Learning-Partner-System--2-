@@ -15,7 +15,6 @@ const xpActivities = [
   { id: 8, icon: '⭐', title: 'Daily Login Bonus', xp: 10, description: 'Earn 10 XP for your first login of the day', action: null },
 ];
 
-// 🟢 SYNCED WITH GAMIFICATION.JSX
 const milestones = [
   { level: 1, xp: 0, hours: 0, name: 'Newcomer' },
   { level: 2, xp: 200, hours: 5, name: 'Novice Learner' },
@@ -46,11 +45,11 @@ const XP = () => {
   const [studyHours, setStudyHours] = useState(0);
   const [recentHistory, setRecentHistory] = useState([]);
 
-  // 🔹 FETCH & SYNC DATA
+  // 🟢 CLEANED UP FETCH: Just reads the secure backend data!
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if(!token) return;
 
             const res = await fetch('http://localhost:5000/api/auth/me', {
@@ -59,77 +58,34 @@ const XP = () => {
             const data = await res.json();
             
             if (data.success && data.user) {
-                let currentXp = data.user.xp || 0;
-                let currentLevel = data.user.level || 1;
-                const hours = data.user.studyHours || 0;
-                const tasks = data.user.tasksCompleted || 0;
-
-                // 1. Retroactive XP Sync (Hours + Tasks)
-                const calculatedMinXP = Math.floor((hours * 120) + (tasks * 30));
-                let needsUpdate = false;
-
-                if (currentXp < calculatedMinXP) {
-                    currentXp = calculatedMinXP;
-                    needsUpdate = true;
-                }
-
-                // 2. Level Calculation (Must match Gamification Logic: XP AND Hours)
-                // Find the highest level where User meets BOTH requirements
-                const qualifiedLevelObj = [...milestones].reverse().find(m => currentXp >= m.xp && hours >= m.hours);
-                const qualifiedLevel = qualifiedLevelObj ? qualifiedLevelObj.level : 1;
-
-                if (qualifiedLevel > currentLevel) {
-                    currentLevel = qualifiedLevel;
-                    needsUpdate = true;
-                    // Trigger Level Up Notification
-                    const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-                    notifs.unshift({
-                        id: Date.now(), title: "Level Up! 🚀", 
-                        message: `You reached Level ${currentLevel}: ${qualifiedLevelObj.name}`, 
-                        type: 'success', read: false, timestamp: new Date()
-                    });
-                    localStorage.setItem('notifications', JSON.stringify(notifs));
-                    window.dispatchEvent(new Event('notificationAdded'));
-                }
-
-                // 3. Save Sync to DB
-                if (needsUpdate) {
-                    await fetch('http://localhost:5000/api/auth/update-stats', {
-                        method: 'PUT',
-                        headers: { 
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ xp: currentXp, level: currentLevel })
-                    });
-                    
-                    const updatedUser = { ...data.user, xp: currentXp, level: currentLevel };
-                    sessionStorage.setItem('user', JSON.stringify(updatedUser));
-                    window.dispatchEvent(new Event('userUpdated'));
-                }
-
-                setUserXp(currentXp);
-                setUserLevel(currentLevel);
+                setUserXp(data.user.xp || 0);
+                setUserLevel(data.user.level || 1);
                 setStreak(data.user.streak || 0);
-                setStudyHours(hours);
+                setStudyHours(data.user.studyHours || 0);
             }
 
-            // Load History
-            const storedNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-            const xpNotifs = storedNotifs.filter(n => 
-                n.title.includes('XP') || n.title.includes('Level') || n.title.includes('Bonus') || n.title.includes('Achievement')
-            );
-            
-            const formattedHistory = xpNotifs.slice(0, 5).map((n, i) => ({
-                id: i,
-                activity: n.title,
-                xp: n.message.match(/(\d+)\s*XP/) ? n.message.match(/(\d+)\s*XP/)[1] : '10', 
-                time: new Date(n.timestamp).toLocaleDateString() === new Date().toDateString() ? 'Today' : new Date(n.timestamp).toLocaleDateString(),
-                icon: n.title.includes('Level') ? '🚀' : n.title.includes('Bonus') ? '⭐' : '🏆'
-            }));
+            // Load History from Notifications
+            const notifRes = await fetch('http://localhost:5000/api/notifications', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const notifData = await notifRes.json();
 
-            if(formattedHistory.length > 0) setRecentHistory(formattedHistory);
-            else setRecentHistory([{ id: 1, activity: 'Welcome Bonus', xp: 10, time: 'Joined', icon: '⭐' }]);
+            if (notifData.success) {
+                const xpNotifs = notifData.notifications.filter(n => 
+                    n.title.includes('XP') || n.title.includes('Level') || n.title.includes('Bonus')
+                );
+                
+                const formattedHistory = xpNotifs.slice(0, 5).map((n, i) => ({
+                    id: n._id || i,
+                    activity: n.title,
+                    xp: n.message.match(/(\d+)\s*XP/) ? n.message.match(/(\d+)\s*XP/)[1] : '10', 
+                    time: new Date(n.createdAt).toLocaleDateString() === new Date().toDateString() ? 'Today' : new Date(n.createdAt).toLocaleDateString(),
+                    icon: n.title.includes('Level') ? '🚀' : n.title.includes('Bonus') ? '⭐' : '🏆'
+                }));
+
+                if(formattedHistory.length > 0) setRecentHistory(formattedHistory);
+                else setRecentHistory([{ id: 1, activity: 'Welcome Bonus', xp: 10, time: 'Joined', icon: '⭐' }]);
+            }
 
         } catch(err) {
             console.error("Failed to load XP data", err);
@@ -140,7 +96,6 @@ const XP = () => {
     fetchData();
   }, []);
 
-  // 🔹 CALCULATE PROGRESS
   const currentLevelObj = milestones.find(m => m.level === userLevel) || milestones[0];
   const nextLevelObj = milestones.find(m => m.level === userLevel + 1); 
   
@@ -156,7 +111,6 @@ const XP = () => {
       progressToNextLevel = Math.min(Math.max((xpGained / xpNeeded) * 100, 0), 100);
       xpToNextLevel = Math.max(nextLevelXp - userXp, 0);
   } else {
-      // Max level reached
       xpToNextLevel = 0;
       progressToNextLevel = 100;
   }
@@ -206,7 +160,6 @@ const XP = () => {
               <span>{currentLevelXp.toLocaleString()} XP</span>
               <span>{nextLevelXp.toLocaleString()} XP</span>
             </div>
-            {/* Show Hours Requirement if XP is met but Hours aren't */}
             {userXp >= nextLevelXp && studyHours < nextLevelObj?.hours && (
                 <div style={{fontSize:'0.8rem', color:'#f59e0b', marginTop:'5px'}}>
                     ⚠️ You have enough XP, but need {nextLevelObj.hours} total study hours to level up (Current: {studyHours.toFixed(1)}h)
@@ -232,7 +185,6 @@ const XP = () => {
 
         {/* Main Content Grid */}
         <div className={styles.mainGrid}>
-          {/* Ways to Earn XP */}
           <motion.div className={styles.earnCard} variants={itemVariants}>
             <div className={styles.cardHeader}>
               <span className={styles.cardIcon}>🚀</span>

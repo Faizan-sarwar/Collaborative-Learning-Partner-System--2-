@@ -10,7 +10,7 @@ const Connections = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🔹 FETCH REAL CONNECTIONS
+  // FETCH REAL CONNECTIONS
   useEffect(() => {
     const fetchConnections = async () => {
       try {
@@ -39,7 +39,7 @@ const Connections = () => {
     return name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
   };
 
-  // 🔹 REMOVE CONNECTION
+  // REMOVE CONNECTION
   const removeConnection = async (id) => {
     if (!window.confirm("Are you sure you want to remove this connection?")) return;
 

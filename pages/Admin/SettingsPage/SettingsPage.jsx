@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import styles from './SettingsPage.module.css';
 
+import { useSettings } from '../../../src/context/SettingsContext';
+
 const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
+
+  const { refreshSettings } = useSettings();
   
-  // 🔹 State for all settings
+  // State for all settings
   const [formData, setFormData] = useState({
-    platformName: 'StudyPal',
+    platformName: 'Collaborative Learning Partner System',
     logoUrl: '',
     supportEmail: '',
     allowRegistrations: true,
@@ -19,7 +23,7 @@ const SettingsPage = () => {
     dataRetention: 30
   });
 
-  // 🔹 Fetch Settings on Load
+  // Fetch Settings on Load
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -37,12 +41,12 @@ const SettingsPage = () => {
     fetchSettings();
   }, []);
 
-  // 🔹 Handle Change Helper
+  // Handle Change Helper
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // 🔹 Save Settings
+  // Save Settings
   const handleSave = async () => {
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');

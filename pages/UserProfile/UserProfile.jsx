@@ -14,16 +14,26 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState('about');
   const [imgError, setImgError] = useState(false);
 
-  // 🔹 1. FETCH PROFILE DATA & CALCULATE STATUS
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+        let currentUser = JSON.parse(storage.getItem('user'));
 
-        if (!token || !storedUser) { navigate('/login'); return; }
+        if (!token || !currentUser) { navigate('/login'); return; }
 
-        const currentUser = JSON.parse(storedUser);
+        // 🟢 1. SILENT REFRESH: Get the absolute latest connection lists from the DB
+        try {
+          const meRes = await fetch('http://localhost:5000/api/auth/me', {
+             headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const meData = await meRes.json();
+          if (meData.success) {
+             currentUser = meData.user;
+             storage.setItem('user', JSON.stringify(currentUser)); // Update local storage
+          }
+        } catch (e) { console.error("Could not refresh current user data"); }
 
         const res = await fetch(`http://localhost:5000/api/auth/public-profile/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -32,21 +42,18 @@ const UserProfile = () => {
         const data = await res.json();
 
         if (data.success) {
-          // 🟢 CALCULATE CONNECTION STATUS LOCALLY
-          // We check if the viewed user's ID exists in the logged-in user's lists
           let status = 'none';
-          const targetId = data.user._id || data.user.id;
+          // 🟢 2. STRING CASTING: Force both sides to be raw strings for a perfect match
+          const targetId = String(data.user._id || data.user.id);
 
-          // Check Connections (Handle both ID strings and Populated Objects)
-          const isConnected = currentUser.connections.some(c => (c._id || c) === targetId);
-          const isSent = currentUser.sentRequests.some(r => (r._id || r) === targetId);
-          const isReceived = currentUser.receivedRequests.some(r => (r._id || r) === targetId);
+          const isConnected = currentUser.connections.some(c => String(c._id || c) === targetId);
+          const isSent = currentUser.sentRequests.some(r => String(r._id || r) === targetId);
+          const isReceived = currentUser.receivedRequests.some(r => String(r._id || r) === targetId);
 
           if (isConnected) status = 'connected';
           else if (isSent) status = 'pending';
           else if (isReceived) status = 'received';
 
-          // Merge calculated status with user data
           setUser({ ...data.user, connectionStatus: status });
         } else {
           setError(data.message);
@@ -62,11 +69,9 @@ const UserProfile = () => {
     if (userId) fetchProfile();
   }, [userId, navigate]);
 
-  // 🔹 2. HANDLE CONNECT
   const handleConnect = async () => {
     try {
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-      
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       setUser(prev => ({ ...prev, connectionStatus: 'pending' }));
 
       const res = await fetch(`http://localhost:5000/api/auth/connect/${user._id || user.id}`, {
@@ -82,12 +87,14 @@ const UserProfile = () => {
         alert(data.message);
         setUser(prev => ({ ...prev, connectionStatus: 'none' }));
       } else {
-        // 🟢 UPDATE LOCAL STORAGE TO REFLECT SENT REQUEST
-        // This keeps the UI in sync if we leave and come back
-        const currentUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
-        if (!currentUser.sentRequests.includes(user._id)) {
-            currentUser.sentRequests.push(user._id);
-            sessionStorage.setItem('user', JSON.stringify(currentUser));
+        // 🟢 3. UPDATE STORAGE: Push to whichever storage holds the user data
+        const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+        const currentUser = JSON.parse(storage.getItem('user'));
+        const targetIdStr = String(user._id || user.id);
+        
+        if (!currentUser.sentRequests.includes(targetIdStr)) {
+            currentUser.sentRequests.push(targetIdStr);
+            storage.setItem('user', JSON.stringify(currentUser));
         }
       }
     } catch (err) {
@@ -97,10 +104,9 @@ const UserProfile = () => {
     }
   };
 
-  // 🔹 3. HANDLE CANCEL
   const handleCancelRequest = () => {
     setUser(prev => ({ ...prev, connectionStatus: 'none' }));
-    // Optional: You could add an API call here to actually cancel the request in DB
+    // Future API call here to delete from DB
   };
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'NA';
@@ -110,7 +116,6 @@ const UserProfile = () => {
     return username.substring(0, 2) + '***@' + domain;
   };
 
-  // 🔹 4. FIXED AVATAR RENDERER
   const renderAvatar = () => {
     if (user && (user._id || user.id) && !imgError) {
       return (
@@ -134,7 +139,6 @@ const UserProfile = () => {
     { id: 'schedule', label: 'Schedule', icon: '📅' }
   ];
 
-  // 🔹 5. BUTTON RENDERER
   const getConnectionButton = () => {
     switch(user?.connectionStatus) {
       case 'connected':
@@ -166,7 +170,6 @@ const UserProfile = () => {
         </div>
 
         <div className={styles.profileLayout}>
-          {/* Left Column */}
           <div className={styles.leftColumn}>
             <div className={styles.profileCard}>
               <div className={styles.profileHeader}>
@@ -193,7 +196,6 @@ const UserProfile = () => {
             </div>
           </div>
 
-          {/* Right Column */}
           <div className={styles.rightColumn}>
             <div className={styles.contentCard}>
               {activeTab === 'about' && (

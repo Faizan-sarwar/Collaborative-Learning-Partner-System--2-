@@ -70,7 +70,7 @@ const VerifyOTP = () => {
     }
   };
 
-  // 🟢 1. SUBMIT OTP TO BACKEND
+  //  1. SUBMIT OTP TO BACKEND
   const handleSubmit = async (e) => {
     e.preventDefault();
     const code = otp.join('');
@@ -110,7 +110,7 @@ const VerifyOTP = () => {
     }
   };
 
-  // 🟢 2. RESEND OTP API CALL
+  //  2. RESEND OTP API CALL
   const handleResend = async () => {
     if (!canResend) return;
     setCanResend(false);

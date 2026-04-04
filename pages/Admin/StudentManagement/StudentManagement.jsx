@@ -23,7 +23,7 @@ const StudentManagement = () => {
     status: ''
   });
 
-  // 🔹 Fetch Students
+  // Fetch Students
   const fetchStudents = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
@@ -39,7 +39,7 @@ const StudentManagement = () => {
           department: s.department || 'N/A',
           semester: s.semester || 'N/A',
           status: s.status, 
-          // 🔹 Use backend provided lastLogin or fallback
+          // Use backend provided lastLogin or fallback
           lastLogin: s.lastLogin ? new Date(s.lastLogin).toLocaleString('en-US', {
              month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
           }) : 'Never',
@@ -55,7 +55,7 @@ const StudentManagement = () => {
     }
   };
 
-  // 🔹 Auto-Refresh (10s)
+  // Auto-Refresh (10s)
   useEffect(() => {
     fetchStudents(); 
     const interval = setInterval(() => {
@@ -64,7 +64,7 @@ const StudentManagement = () => {
     return () => clearInterval(interval); 
   }, []);
 
-  // 🔹 Handlers
+  // Handlers
   const openModal = (mode, student = null) => {
     setModalMode(mode);
     setSelectedStudent(student);
@@ -244,7 +244,7 @@ const StudentManagement = () => {
                 <tr key={student.id}>
                   <td>
                     <div className={styles.studentInfo}>
-                      {/* 🔹 Avatar Logic */}
+                      {/* Avatar Logic */}
                       <div className={styles.avatar}>
                         <img 
                             src={`http://localhost:5000/api/auth/student/${student.id}/picture`} 

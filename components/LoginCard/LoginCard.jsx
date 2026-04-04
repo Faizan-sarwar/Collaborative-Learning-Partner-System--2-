@@ -6,6 +6,7 @@ import Divider from '../Divider/Divider';
 import GoogleButton from '../GoogleButton/GoogleButton';
 import Alert from '../Alert/Alert';
 import { Link } from 'react-router-dom';
+import { useSettings } from '../../src/context/SettingsContext';
 
 const LoginCard = () => {
   const [email, setEmail] = useState('');
@@ -97,8 +98,8 @@ const LoginCard = () => {
         <TextInput
           label="Email Address"
           type="email"
-          name="email"                 // 🟢 Added for browser autofill
-          autoComplete="username"      // 🟢 Tells browser to look for saved accounts
+          name="email"                 //  Added for browser autofill
+          autoComplete="username"      //  Tells browser to look for saved accounts
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -107,8 +108,8 @@ const LoginCard = () => {
         <TextInput
           label="Password"
           type="password"
-          name="password"              // 🟢 Added for browser autofill
-          autoComplete="current-password" // 🟢 Triggers the saved password/fingerprint prompt
+          name="password"              //  Added for browser autofill
+          autoComplete="current-password" //  Triggers the saved password/fingerprint prompt
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
