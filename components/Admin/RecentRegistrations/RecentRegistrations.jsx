@@ -10,7 +10,13 @@ const RecentRegistrations = () => {
   const fetchRecentRegistrations = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/auth/admin/recent-registrations');
+      const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      const res = await fetch('http://localhost:5000/api/auth/admin/recent-registrations', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`
+        }
+      });
       const data = await res.json();
 
       if (!data.success) {

@@ -74,39 +74,66 @@ const AnimatedRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
+  
+  // Start checking by default so the page waits for settings
   const [isChecking, setIsChecking] = useState(true);
 
-  // 🟢 FIX: Call the hook here so 'settings' is defined for the guard logic below
+  // Pull the settings from the Global Brain
   const { settings } = useSettings();
 
   // GUARD LOGIC
   useEffect(() => {
     const checkStatus = async () => {
+      // If settings are still null, they are likely still loading from context. Wait a beat.
+      if (!settings) return;
+
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
+      
+      let user = null;
+      if (storedUserString) {
+        try { user = JSON.parse(storedUserString); } catch(e) { console.error("Failed to parse user", e); }
+      }
 
-      if (!token || !storedUserString) {
+      // 1. GLOBAL MAINTENANCE MODE
+      if (settings?.maintenanceMode) {
+        const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
+        if (!isAdmin && location.pathname !== '/maintenance') {
+          navigate('/maintenance');
+          setIsChecking(false);
+          return;
+        }
+      } else {
+        // If maintenance is off but they are on the maintenance page, kick them to home
+        if (location.pathname === '/maintenance') {
+             navigate('/');
+        }
+      }
+
+      // 2. GLOBAL REGISTRATION LOCK
+      if (settings?.allowRegistrations === false && location.pathname === '/signup') {
+        alert("New registrations are currently disabled by the administrator.");
+        navigate('/login');
         setIsChecking(false);
         return;
       }
 
-      let user = JSON.parse(storedUserString);
+      // If no token or user, stop checking (let public routes handle it)
+      if (!token || !user) {
+        setIsChecking(false);
+        return;
+      }
 
       const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
 
+      // 3. ADMIN REDIRECT LOGIC
       if (user.role === 'admin' || user.role === 'super-admin') {
         if (isPublicPage) navigate('/admin');
         setIsChecking(false);
         return;
       }
 
-      // 🟢 Now 'settings' exists and will not crash!
-      if (settings?.maintenanceMode) {
-        navigate('/maintenance');
-        setIsChecking(false);
-        return;
-      }
-
+      // 4. STUDENT QUIZ LOGIC
       const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
 
       if (user.quizCompleted) {
@@ -147,6 +174,18 @@ const AnimatedRoutes = () => {
     checkStatus();
   }, [location.pathname, navigate, settings]);
 
+  // 🟢 NEW: Prevent the split-second flicker! 
+  if (isChecking) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#8b5cf6' }}>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+          <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
     <>
       {!isDashboardRoute && <ThemeToggle />}
@@ -163,8 +202,15 @@ const AnimatedRoutes = () => {
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="/verify-otp" element={<PageTransition><VerifyOTP /></PageTransition>} />
-
           <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+
+          {/* Fallback route for maintenance mode */}
+          <Route path="/maintenance" element={
+            <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
+              <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>We'll be back soon!</h1>
+              <p style={{ fontSize: '1.2rem', color: '#666' }}>The platform is currently undergoing scheduled maintenance. Please check back later.</p>
+            </div>
+          } />
 
           {/* ================= STUDENT ROUTES (Protected) ================= */}
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>

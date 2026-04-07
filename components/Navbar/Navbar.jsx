@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Navbar.module.css';
-
+import { useSettings } from '../../src/context/SettingsContext'; // Adjust this path based on your folder structure
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // 🟢 MAGIC: Pull settings from your global context
+  const { settings } = useSettings();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,26 +18,12 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
- const navLinks = [
-  { name: 'Home', href: '#', icon: "fa-solid fa-circle-info" },
-  { name: 'FAQ', href: '#', icon: "fa-solid fa-circle-question" },
-  { name: 'About', href: '#', icon: "fa-solid fa-users" },
-  { name: 'Contact', href: '#', icon: "fa-solid fa-envelope" },
-];
-
-
-  {
-    {
-      navLinks.map((link) => (
-        <a href={link.href} key={link.name}>
-          <i className={link.icon}></i>
-          {link.name}
-        </a>
-      ))
-    }
-
-  }
-
+  const navLinks = [
+    { name: 'Home', href: '#', icon: "fa-solid fa-circle-info" },
+    { name: 'FAQ', href: '#', icon: "fa-solid fa-circle-question" },
+    { name: 'About', href: '#', icon: "fa-solid fa-users" },
+    { name: 'Contact', href: '#', icon: "fa-solid fa-envelope" },
+  ];
 
   return (
     <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ''}`}>
@@ -53,13 +42,15 @@ const Navbar = () => {
               </defs>
             </svg>
           </div>
-          <span className={styles.logoText}>Collaborative Learning</span>
+          {/* 🟢 MAGIC HAPPENS HERE: Dynamic logo text */}
+          <span className={styles.logoText}>{settings?.platformName || 'Loading...'}</span>
         </div>
 
         <ul className={`${styles.navLinks} ${mobileMenuOpen ? styles.mobileOpen : ''}`}>
           {navLinks.map((link) => (
             <li key={link.name}>
               <a href={link.href} className={styles.navLink}>
+                <i className={link.icon} style={{ marginRight: '8px' }}></i>
                 {link.name}
               </a>
             </li>

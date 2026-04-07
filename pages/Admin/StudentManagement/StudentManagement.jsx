@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './StudentManagement.module.css';
 
 const departments = ['Information Technology', 'Computer Science', 'Electronics', 'Mechanical', 'Civil', 'Electrical'];
@@ -23,6 +23,9 @@ const StudentManagement = () => {
     semester: semesters[0],
     status: 'active'
   });
+
+  // Reference to hold the latest interval so we can clear it if needed
+  const syncInterval = useRef(null);
 
   // Get Auth Token Helper
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -60,13 +63,20 @@ const StudentManagement = () => {
     }
   };
 
-  // Auto-Refresh (10s) keeps online statuses accurate in real-time
+  // 🟢 AUTO-REFRESH ENGINE (Every 5 seconds)
   useEffect(() => {
-    fetchStudents(); 
-    const interval = setInterval(() => {
-      fetchStudents(true); 
-    }, 10000); 
-    return () => clearInterval(interval); 
+    // Initial fetch with loading screen
+    fetchStudents(false); 
+    
+    // Set up the background heartbeat
+    syncInterval.current = setInterval(() => {
+      fetchStudents(true); // true = silently update the data without triggering the loading spinner
+    }, 5000); 
+
+    // Cleanup on unmount
+    return () => {
+        if (syncInterval.current) clearInterval(syncInterval.current);
+    };
   }, []);
 
   // Handlers
@@ -107,7 +117,6 @@ const StudentManagement = () => {
     
     const method = modalMode === 'add' ? 'POST' : 'PUT';
 
-    // 🟢 FIXED: The Add payload now includes required fields to bypass validation crashes
     const payload = modalMode === 'add' 
         ? { 
             fullName: formData.name, 
@@ -141,8 +150,8 @@ const StudentManagement = () => {
         const data = await res.json();
         
         if (data.success || res.ok) {
-            alert(modalMode === 'add' ? 'Student added successfully!' : 'Student updated successfully!');
-            fetchStudents();
+            // Trigger an immediate manual fetch to show the change instantly
+            fetchStudents(true);
             closeModal();
         } else {
             alert(data.message || 'Operation failed');
@@ -163,8 +172,8 @@ const StudentManagement = () => {
         const data = await res.json();
         
         if (data.success) {
-            alert('Student deleted successfully.');
-            fetchStudents(); 
+            // Trigger immediate refresh
+            fetchStudents(true); 
             closeModal();
         } else {
             alert(data.message);
@@ -208,7 +217,7 @@ const StudentManagement = () => {
         </div>
         
         <div style={{display:'flex', gap:'10px'}}>
-            <button className={styles.addBtn} onClick={() => fetchStudents()} title="Refresh List">
+            <button className={styles.addBtn} onClick={() => fetchStudents(false)} title="Force Manual Refresh">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M23 4v6h-6"></path>
                 <path d="M1 20v-6h6"></path>

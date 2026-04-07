@@ -6,6 +6,7 @@ import { useSettings } from '../../../src/context/SettingsContext';
 const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
 
+  // Pull the refresh function from your global context
   const { refreshSettings } = useSettings();
   
   // State for all settings
@@ -22,6 +23,9 @@ const SettingsPage = () => {
     autoBackup: 'weekly',
     dataRetention: 30
   });
+
+  // Token helper
+  const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
 
   // Fetch Settings on Load
   useEffect(() => {
@@ -46,15 +50,14 @@ const SettingsPage = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Save Settings
+  // SAVE SETTINGS
   const handleSave = async () => {
     try {
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/auth/admin/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(formData)
       });
@@ -62,12 +65,53 @@ const SettingsPage = () => {
       const data = await res.json();
       if (data.success) {
         alert('Settings saved successfully!');
+        // Force the whole app to download the new settings instantly!
+        await refreshSettings(); 
       } else {
         alert('Failed to save settings');
       }
     } catch (err) {
       console.error(err);
       alert('Server error occurred');
+    }
+  };
+
+  // 🟢 DATA EXPORT HANDLER
+  const handleExportData = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/admin/export-data', {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      
+      if (!res.ok) throw new Error('Export failed');
+      
+      // Magically trigger a file download in the browser
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `platform_backup_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Failed to export data. Ensure the backend route is configured.");
+    }
+  };
+
+  // 🟢 CLEAR CACHE HANDLER
+  const handleClearCache = async () => {
+    if(!window.confirm("Are you sure you want to clear the server cache? This will reset all pending password reset requests.")) return;
+    
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/admin/clear-cache', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      const data = await res.json();
+      alert(data.message);
+    } catch (err) {
+      alert("Failed to clear cache. Ensure the backend route is configured.");
     }
   };
 
@@ -306,7 +350,7 @@ const SettingsPage = () => {
             </div>
 
             <div className={styles.actionButtons}>
-              <button className={styles.actionBtn}>
+              <button className={styles.actionBtn} onClick={handleExportData}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
@@ -314,7 +358,7 @@ const SettingsPage = () => {
                 </svg>
                 Export All Data
               </button>
-              <button className={`${styles.actionBtn} ${styles.danger}`}>
+              <button className={`${styles.actionBtn} ${styles.danger}`} onClick={handleClearCache}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />

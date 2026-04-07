@@ -12,7 +12,13 @@ const RecentActivity = () => {
   const fetchRecentActivity = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/auth/admin/recent-activity');
+      const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      const res = await fetch('http://localhost:5000/api/auth/admin/recent-activity', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`
+        }
+      });
       const data = await res.json();
 
       if (!data.success) {
@@ -115,7 +121,7 @@ const RecentActivity = () => {
         <h3>Recent Activity</h3>
         {/* 🟢 Wired up the View All Button */}
         <button className={styles.viewAllBtn} onClick={() => navigate('/admin/logs')}>
-            View All
+          View All
         </button>
       </div>
 

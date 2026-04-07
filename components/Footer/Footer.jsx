@@ -1,7 +1,9 @@
 import React from 'react';
 import styles from './Footer.module.css';
+import { useSettings } from '../../src/context/SettingsContext'; // Adjust path if needed!
 
 const Footer = () => {
+  const { settings } = useSettings(); // 🟢 Pull the global settings
 
   const helpLinks = [
     { name: 'Help Center', href: '#' },
@@ -79,7 +81,8 @@ const Footer = () => {
                   </defs>
                 </svg>
               </div>
-              <span className={styles.logoText}>Collaborative Learning</span>
+              {/* 🟢 MAGIC HAPPENS HERE: Logo text */}
+              <span className={styles.logoText}>{settings?.platformName || 'Loading...'}</span>
             </div>
             <p className={styles.brandDescription}>
               Empowering students worldwide to achieve academic excellence through collaborative learning and intelligent study tools.
@@ -121,7 +124,8 @@ const Footer = () => {
           <div className={styles.divider}></div>
           <div className={styles.bottomContent}>
             <p className={styles.copyright}>
-              © {new Date().getFullYear()} Collaborative Learning. All rights reserved.
+              {/* 🟢 MAGIC HAPPENS HERE: Copyright text */}
+              © {new Date().getFullYear()} {settings?.platformName || 'Loading...'}. All rights reserved.
             </p>
             <div className={styles.legalLinks}>
               <a href="#" className={styles.legalLink}>Privacy Policy</a>

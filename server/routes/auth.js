@@ -145,6 +145,26 @@ router.post('/reset-password', async (req, res) => {
 // --- Core Auth Routes ---
 router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
+    // 🟢 SECURITY CHECK: Are registrations allowed?
+    const settings = await Settings.findOne();
+    if (settings && settings.allowRegistrations === false) {
+      // If an admin turned off registrations, block the request at the database level!
+      try {
+        await ActivityLog.create({
+          action: 'Blocked Registration Attempt',
+          user: req.body.email || 'Unknown',
+          userType: 'system',
+          ip: getClientIp(req),
+          status: 'failed'
+        });
+      } catch (e) { }
+
+      return res.status(403).json({
+        success: false,
+        message: 'New user registrations are currently disabled by the administrator.'
+      });
+    }
+
     // 🟢 Notice we grab `referredByCode` from the frontend request body here
     const { fullName, email, password, rollNumber, gender, department, semester, academicStrengths, subjectsOfDifficulty, studyStyle, availability, referredByCode } = req.body;
 
@@ -173,19 +193,14 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     const newUser = await User.create(userData);
 
     // 🟢 --- START REFERRAL MAGIC ---
-    // If they signed up using a friend's code...
     if (referredByCode) {
       const referrer = await User.findOne({ referralCode: referredByCode });
 
       if (referrer) {
-        // 1. Link the new user to the referrer
         newUser.referredBy = referrer._id;
         await newUser.save();
-
-        // 2. Award 100 XP to the person who invited them!
         await referrer.awardXP(100);
 
-        // 3. Mark the email invite as 'joined' (if it exists) or create it
         if (mongoose.models.Referral) {
           await mongoose.model('Referral').findOneAndUpdate(
             { referrer: referrer._id, email: newUser.email },
@@ -194,7 +209,6 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
           );
         }
 
-        // 4. Send an in-app notification to the referrer so they know they got points
         await Notification.create({
           recipient: referrer._id,
           type: 'achievement',
@@ -209,7 +223,6 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     try {
       await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' });
 
-      // Create an explicit Registration Notification for the Admin
       await Notification.create({
         type: 'registration',
         title: 'New Student Registration',
@@ -936,6 +949,70 @@ router.post('/admin/send-notification', async (req, res) => {
 
   } catch (err) {
     console.error("Broadcast Error:", err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+// ==========================================
+// 🟢 ENTERPRISE DATA MANAGEMENT ROUTES
+// ==========================================
+
+// 1. Export All Data
+router.get('/admin/export-data', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    
+    // Verify admin
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const user = await User.findById(decoded.id);
+    if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    // Gather the entire platform's state
+    const exportData = {
+      timestamp: new Date().toISOString(),
+      platform: "Collaborative Learning Partner System",
+      data: {
+        users: await User.find().select('-password'), // EXCLUDE PASSWORDS FOR SECURITY!
+        groups: await StudyGroup.find(),
+        logs: await ActivityLog.find().sort({ createdAt: -1 }).limit(1000), // Cap at 1000 to prevent massive files
+        settings: await Settings.findOne()
+      }
+    };
+
+    // Log the export
+    await ActivityLog.create({ action: 'Exported Platform Data', user: user.fullName, userType: 'admin', ip: getClientIp(req), status: 'success' });
+
+    // Send as a downloadable JSON file
+    res.setHeader('Content-disposition', `attachment; filename=platform_backup_${Date.now()}.json`);
+    res.setHeader('Content-type', 'application/json');
+    res.status(200).send(JSON.stringify(exportData, null, 2));
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error during export' });
+  }
+});
+
+// 2. Clear Cache
+router.post('/admin/clear-cache', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const user = await User.findById(decoded.id);
+    if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    // Clear server RAM stores (like OTPs from password resets that might be stuck)
+    otpStore.clear();
+
+    await ActivityLog.create({ action: 'Cleared Server Cache', user: user.fullName, userType: 'admin', ip: getClientIp(req), status: 'success' });
+
+    res.json({ success: true, message: 'Server memory and caches cleared successfully!' });
+  } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

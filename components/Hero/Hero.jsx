@@ -1,7 +1,10 @@
 import React from 'react';
 import styles from './Hero.module.css';
+import { useSettings } from '../../src/context/SettingsContext'; // Adjust path if needed!
 
 const Hero = () => {
+  const { settings } = useSettings(); // 🟢 Pull the global settings
+
   return (
     <section className={styles.hero}>
       <div className={styles.backgroundGlow}></div>
@@ -20,9 +23,10 @@ const Hero = () => {
               <span className={styles.white}>Together</span>
             </h1>
             <p className={styles.description}>
-              Join with students in collaborative study groups. 
+              {/* 🟢 MAGIC HAPPENS HERE: Dynamically injects the platform name */}
+              Join with students on {settings?.platformName || 'our collaborative platform'}. 
               Share knowledge, stay motivated, and achieve your academic goals 
-              with our intelligent learning platform.
+              with our intelligent learning system.
             </p>
             <div className={styles.ctas}>
               <button className={styles.primaryBtn}>
@@ -31,29 +35,7 @@ const Hero = () => {
                   <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              {/* <button className={styles.secondaryBtn}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <polygon points="5,3 19,12 5,21" fill="currentColor"/>
-                </svg>
-                Watch Demo
-              </button> */}
             </div>
-            {/* <div className={styles.stats}>
-              <div className={styles.stat}>
-                <span className={styles.statNumber}>50K+</span>
-                <span className={styles.statLabel}>Active Students</span>
-              </div>
-              <div className={styles.statDivider}></div>
-              <div className={styles.stat}>
-                <span className={styles.statNumber}>1000+</span>
-                <span className={styles.statLabel}>Study Groups</span>
-              </div>
-              <div className={styles.statDivider}></div>
-              <div className={styles.stat}>
-                <span className={styles.statNumber}>4.9</span>
-                <span className={styles.statLabel}>User Rating</span>
-              </div>
-            </div> */}
           </div>
           <div className={styles.right}>
             <div className={styles.imageWrapper}>

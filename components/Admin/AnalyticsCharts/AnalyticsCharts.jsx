@@ -13,9 +13,15 @@ const AnalyticsCharts = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/admin/analytics');
+        const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+        const res = await fetch('http://localhost:5000/api/auth/admin/analytics', {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`
+          }
+        });
         const json = await res.json();
-        
+
         if (json.success) {
           setData(json.data);
         }
@@ -35,10 +41,10 @@ const AnalyticsCharts = () => {
 
   // Fallback if data is empty (prevents crashes)
   const registrationData = data?.registrations?.length ? data.registrations : [{ month: 'No Data', students: 0 }];
-  
+
   // 🟢 UPDATED: Fallback uses 'count' instead of 'enrolled'
   const courseData = data?.courses?.length ? data.courses : [{ name: 'No Data', count: 0 }];
-  
+
   const statusData = data?.status || [
     { name: 'Active', value: 0, color: '#10B981' },
     { name: 'Inactive', value: 0, color: '#F59E0B' },
@@ -47,7 +53,7 @@ const AnalyticsCharts = () => {
 
   return (
     <div className={styles.chartsGrid}>
-      
+
       {/* 1. REGISTRATIONS CHART */}
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>
@@ -91,7 +97,7 @@ const AnalyticsCharts = () => {
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={courseData}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-              <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={11} tick={{width: 100}} />
+              <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={11} tick={{ width: 100 }} />
               <YAxis stroke="var(--text-secondary)" fontSize={12} allowDecimals={false} />
               <Tooltip
                 contentStyle={{

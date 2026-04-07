@@ -10,7 +10,12 @@ const StatsCards = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/auth/admin/stats');
+      const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/auth/admin/stats', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`
+        }
+      });
       const data = await res.json();
 
       if (!data.success) {
@@ -159,13 +164,12 @@ const StatsCards = () => {
             <span className={styles.statLabel}>{stat.label}</span>
             <span className={styles.statValue}>{stat.value}</span>
             <span
-              className={`${styles.statChange} ${
-                stat.isPositive === true
+              className={`${styles.statChange} ${stat.isPositive === true
                   ? styles.positive
                   : stat.isPositive === false
-                  ? styles.negative
-                  : ''
-              }`}
+                    ? styles.negative
+                    : ''
+                }`}
             >
               {stat.change}
             </span>
