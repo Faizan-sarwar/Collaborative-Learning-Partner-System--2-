@@ -11,6 +11,9 @@ import gamificationRoutes from '../server/routes/gamification.js';
 import activityLogsRoutes from '../server/routes/activitylogs.js';
 import notificationRoutes from '../server/routes/notification.js';
 
+// 🟢 1. ADDED: Import the new referrals route
+import referralRoutes from '../server/routes/referrals.js'; 
+
 // Load environment variables
 dotenv.config();
 
@@ -38,6 +41,9 @@ app.use('/api/activity-logs', activityLogsRoutes);
 app.use('/api/chat', ChatRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// 🟢 2. ADDED: Tell Express to use the referrals route!
+app.use('/api/referrals', referralRoutes); 
 
 app.get('/', (req, res) => {
   res.json({
@@ -85,7 +91,7 @@ app.post('/studygroup', async (req, res) => {
     }
 
     const newGroup = new StudyGroup({
-      name: name.trim(),
+      name: name.trim(),  
       subjects: parsedSubjects || [],
       description: description?.trim() || '',
       meetingTime: meetingTime?.trim() || '',
@@ -265,7 +271,7 @@ app.post('/studygroup/:id/leave', async (req, res) => {
 app.put('/studygroup/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, subjects, meetingTime, active } = req.body; // 1. Extract 'active'
+    const { name, description, subjects, meetingTime, active } = req.body; 
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, message: 'Invalid ID' });
@@ -287,7 +293,6 @@ app.put('/studygroup/:id', async (req, res) => {
     if (parsedSubjects !== undefined) group.subjects = parsedSubjects;
     if (meetingTime !== undefined) group.meetingTime = meetingTime;
     
-    // 2. Explicitly update 'active' status
     if (active !== undefined) {
         group.active = active; 
     }
@@ -341,6 +346,7 @@ app.delete('/studygroup/:id', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);

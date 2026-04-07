@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom'; // 🟢 ADDED useLocation
 import { Filter } from 'bad-words';
 const profanityFilter = new Filter();
 import { ChevronDown, X } from 'lucide-react';
@@ -34,6 +34,8 @@ const FALLBACK_SUBJECTS = [
 ];
 
 const Signup = () => {
+    const location = useLocation(); // 🟢 Read the current URL
+
     const [availableSubjects, setAvailableSubjects] = useState([]);
     const [loadingSubjects, setLoadingSubjects] = useState(true);
     const [usingFallback, setUsingFallback] = useState(false);
@@ -76,7 +78,18 @@ const Signup = () => {
         subjectsOfDifficulty: [],
         studyStyle: '',
         availability: '',
+        referredByCode: '' // 🟢 ADDED: Store the referral code here
     });
+
+    // 🟢 ADDED: Extract referral code from URL on mount
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const refCode = queryParams.get('ref');
+        
+        if (refCode) {
+            setFormData(prev => ({ ...prev, referredByCode: refCode }));
+        }
+    }, [location]);
 
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
@@ -279,6 +292,9 @@ const Signup = () => {
         try {
             const formPayload = new FormData();
             Object.keys(formData).forEach((key) => {
+                // Ignore empty referral codes so it doesn't send "null" string
+                if (key === 'referredByCode' && !formData[key]) return; 
+
                 if (Array.isArray(formData[key])) {
                     formPayload.append(key, JSON.stringify(formData[key]));
                 } else {
@@ -350,6 +366,13 @@ const Signup = () => {
                     <div className={styles.formContainer}>
                         {alertError && <Alert type="error" message={alertError} onClose={() => setAlertError('')} />}
                         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+                        
+                        {/* 🟢 Optional: Show a subtle message if they are using a referral code */}
+                        {formData.referredByCode && (
+                            <div style={{ backgroundColor: '#10B981', color: 'white', padding: '10px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontWeight: 'bold' }}>
+                                🎉 You've been invited by a friend! Sign up now to claim your rewards.
+                            </div>
+                        )}
 
                         <div className={styles.formHeader}>
                             <h2>Student Registration</h2>
@@ -507,7 +530,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/*  Render Dropdown Error */}
+                                        {/* Render Dropdown Error */}
                                         {errors.department && <span className={styles.errorMessage}>{errors.department}</span>}
                                     </div>
 
@@ -541,7 +564,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/*  Render Dropdown Error */}
+                                        {/* Render Dropdown Error */}
                                         {errors.semester && <span className={styles.errorMessage}>{errors.semester}</span>}
                                     </div>
                                 </div>
@@ -705,7 +728,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/*  Render Dropdown Error */}
+                                        {/* Render Dropdown Error */}
                                         {errors.studyStyle && <span className={styles.errorMessage}>{errors.studyStyle}</span>}
                                     </div>
                                 </div>
@@ -725,7 +748,7 @@ const Signup = () => {
                                         onBlur={handleBlur}
                                         rows={4}
                                     />
-                                    {/*  Render Textarea Error */}
+                                    {/* Render Textarea Error */}
                                     {errors.availability && <span className={styles.errorMessage}>{errors.availability}</span>}
                                 </div>
                             </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './StudentManagement.module.css';
 
 const departments = ['Information Technology', 'Computer Science', 'Electronics', 'Mechanical', 'Civil', 'Electrical'];
+const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
 const statuses = ['active', 'logged out', 'blocked'];
 
 const StudentManagement = () => {
@@ -18,16 +19,21 @@ const StudentManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    department: '',
-    semester: '',
-    status: ''
+    department: departments[0],
+    semester: semesters[0],
+    status: 'active'
   });
 
-  // Fetch Students
+  // Get Auth Token Helper
+  const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+  // 🟢 FETCH STUDENTS (Live Syncs the Active/Logged Out status)
   const fetchStudents = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      const res = await fetch('http://localhost:5000/api/auth/admin/students');
+      const res = await fetch('http://localhost:5000/api/auth/admin/students', {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
       const data = await res.json();
       
       if (data.success) {
@@ -38,8 +44,7 @@ const StudentManagement = () => {
           username: s.username,
           department: s.department || 'N/A',
           semester: s.semester || 'N/A',
-          status: s.status, 
-          // Use backend provided lastLogin or fallback
+          status: s.status, // 🟢 Relies on Backend's logic ('active', 'logged out', 'blocked')
           lastLogin: s.lastLogin ? new Date(s.lastLogin).toLocaleString('en-US', {
              month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
           }) : 'Never',
@@ -55,7 +60,7 @@ const StudentManagement = () => {
     }
   };
 
-  // Auto-Refresh (10s)
+  // Auto-Refresh (10s) keeps online statuses accurate in real-time
   useEffect(() => {
     fetchStudents(); 
     const interval = setInterval(() => {
@@ -72,12 +77,18 @@ const StudentManagement = () => {
       setFormData({
         name: student.name,
         email: student.email,
-        department: student.department,
-        semester: student.semester,
+        department: student.department || departments[0],
+        semester: student.semester || semesters[0],
         status: student.status === 'blocked' ? 'blocked' : 'active'
       });
     } else {
-        setFormData({ name: '', email: '', department: '', semester: '', status: 'active' });
+        setFormData({ 
+            name: '', 
+            email: '', 
+            department: departments[0], 
+            semester: semesters[0], 
+            status: 'active' 
+        });
     }
     setShowModal(true);
   };
@@ -87,6 +98,7 @@ const StudentManagement = () => {
     setSelectedStudent(null);
   };
 
+  // 🟢 SAVE STUDENT (Handles Add & Edit securely)
   const handleSaveStudent = async (e) => {
     e.preventDefault();
     const url = modalMode === 'add' 
@@ -95,28 +107,41 @@ const StudentManagement = () => {
     
     const method = modalMode === 'add' ? 'POST' : 'PUT';
 
+    // 🟢 FIXED: The Add payload now includes required fields to bypass validation crashes
     const payload = modalMode === 'add' 
         ? { 
             fullName: formData.name, 
             email: formData.email, 
             department: formData.department, 
             semester: formData.semester, 
-            password: 'Student123!', 
+            password: 'Student123!', // Default temporary password
             role: 'student', 
-            approved: true 
+            approved: formData.status === 'active',
+            rollNumber: `STD-${Math.floor(1000 + Math.random() * 9000)}`, // Auto-generate to satisfy DB
+            gender: 'Male', // Default to satisfy DB
+            studyStyle: 'Individual Study' // Default to satisfy DB
           }
-        : { ...formData };
+        : { 
+            name: formData.name,
+            email: formData.email,
+            department: formData.department,
+            semester: formData.semester,
+            status: formData.status
+          };
 
     try {
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getToken()}`
+            },
             body: JSON.stringify(payload)
         });
         const data = await res.json();
         
         if (data.success || res.ok) {
-            alert(modalMode === 'add' ? 'Student added!' : 'Student updated!');
+            alert(modalMode === 'add' ? 'Student added successfully!' : 'Student updated successfully!');
             fetchStudents();
             closeModal();
         } else {
@@ -124,7 +149,7 @@ const StudentManagement = () => {
         }
     } catch (err) {
         console.error(err);
-        alert('Server Error');
+        alert('Server Error connecting to database.');
     }
   };
 
@@ -132,7 +157,8 @@ const StudentManagement = () => {
     if (!selectedStudent) return;
     try {
         const res = await fetch(`http://localhost:5000/api/auth/admin/students/${selectedStudent.id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         const data = await res.json();
         
@@ -162,7 +188,13 @@ const StudentManagement = () => {
   const getStatusClass = (status) => {
       if (status === 'active') return styles.active;
       if (status === 'blocked') return styles.blocked;
-      return styles.inactive;
+      return styles.inactive; // Applies to 'logged out'
+  };
+
+  const formatStatusText = (status) => {
+      if (status === 'active') return 'Active';
+      if (status === 'blocked') return 'Blocked';
+      return 'Logged Out';
   };
 
   return (
@@ -216,7 +248,7 @@ const StudentManagement = () => {
               className={`${styles.filterBtn} ${statusFilter === status ? styles.active : ''}`}
               onClick={() => setStatusFilter(status)}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {formatStatusText(status)}
             </button>
           ))}
         </div>
@@ -244,7 +276,6 @@ const StudentManagement = () => {
                 <tr key={student.id}>
                   <td>
                     <div className={styles.studentInfo}>
-                      {/* Avatar Logic */}
                       <div className={styles.avatar}>
                         <img 
                             src={`http://localhost:5000/api/auth/student/${student.id}/picture`} 
@@ -268,8 +299,7 @@ const StudentManagement = () => {
                   
                   <td>
                     <span className={`${styles.status} ${getStatusClass(student.status)}`}>
-                      {student.status === 'active' ? 'Active' : 
-                       student.status === 'blocked' ? 'Blocked' : 'Logged Out'}
+                      {formatStatusText(student.status)}
                     </span>
                   </td>
 
@@ -305,7 +335,7 @@ const StudentManagement = () => {
         <div className={styles.modalOverlay} onClick={closeModal}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h3>{modalMode === 'delete' ? 'Delete Student' : 'Edit Student'}</h3>
+              <h3>{modalMode === 'delete' ? 'Delete Student' : modalMode === 'add' ? 'Add New Student' : 'Edit Student'}</h3>
               <button className={styles.closeBtn} onClick={closeModal}>×</button>
             </div>
 
@@ -325,16 +355,22 @@ const StudentManagement = () => {
               <form className={styles.modalForm} onSubmit={handleSaveStudent}>
                 <div className={styles.formGroup}>
                     <label>Full Name</label>
-                    <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                 </div>
                 <div className={styles.formGroup}>
                     <label>Email</label>
-                    <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                    <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
                 </div>
                 <div className={styles.formGroup}>
                     <label>Department</label>
                     <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}>
                         {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                </div>
+                <div className={styles.formGroup}>
+                    <label>Semester</label>
+                    <select value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})}>
+                        {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
                     </select>
                 </div>
                 <div className={styles.formGroup}>

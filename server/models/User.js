@@ -126,6 +126,17 @@ const userSchema = new mongoose.Schema({
   level: { type: Number, default: 1 },
   achievements: [{ type: Number }],
 
+  // 🟢 --- REFERRAL SYSTEM ---
+  referralCode: { 
+    type: String, 
+    unique: true, 
+    sparse: true // sparse allows existing users without a code to not crash the DB
+  },
+  referredBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+
   // --- SETTINGS ---
   settings: {
     notifications: {

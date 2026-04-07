@@ -145,7 +145,9 @@ router.post('/reset-password', async (req, res) => {
 // --- Core Auth Routes ---
 router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
-    const { fullName, email, password, rollNumber, gender, department, semester, academicStrengths, subjectsOfDifficulty, studyStyle, availability } = req.body;
+    // 🟢 Notice we grab `referredByCode` from the frontend request body here
+    const { fullName, email, password, rollNumber, gender, department, semester, academicStrengths, subjectsOfDifficulty, studyStyle, availability, referredByCode } = req.body;
+
     const validationErrors = validateSignupData(req.body);
     if (validationErrors.length > 0) return res.status(400).json({ success: false, message: validationErrors[0].message, errors: validationErrors });
     if (await User.findOne({ email: email.toLowerCase() })) return res.status(409).json({ success: false, message: 'Email already registered' });
@@ -155,21 +157,59 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     try { parsedStrengths = JSON.parse(academicStrengths); } catch { }
     try { parsedDifficulties = JSON.parse(subjectsOfDifficulty); } catch { }
 
+    // 🟢 Generate a unique referral code for this new user
+    const generatedReferralCode = 'STUDY' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
     const role = email.toLowerCase().trim() === 'faizan@admin.com' ? 'super-admin' : 'student';
     const userData = {
       fullName: fullName.trim(), email: email.toLowerCase().trim(), password, rollNumber: rollNumber.trim(),
       gender, department, semester, academicStrengths: parsedStrengths, subjectsOfDifficulty: parsedDifficulties,
       studyStyle: studyStyle || 'Individual Study', availability: availability?.trim() || '', role,
-      xp: 10
+      xp: 10,
+      referralCode: generatedReferralCode // 🟢 Assign their new code
     };
     if (req.file) userData.picture = { data: req.file.buffer, contentType: req.file.mimetype };
 
     const newUser = await User.create(userData);
 
+    // 🟢 --- START REFERRAL MAGIC ---
+    // If they signed up using a friend's code...
+    if (referredByCode) {
+      const referrer = await User.findOne({ referralCode: referredByCode });
+
+      if (referrer) {
+        // 1. Link the new user to the referrer
+        newUser.referredBy = referrer._id;
+        await newUser.save();
+
+        // 2. Award 100 XP to the person who invited them!
+        await referrer.awardXP(100);
+
+        // 3. Mark the email invite as 'joined' (if it exists) or create it
+        if (mongoose.models.Referral) {
+          await mongoose.model('Referral').findOneAndUpdate(
+            { referrer: referrer._id, email: newUser.email },
+            { status: 'joined', reward: 100 },
+            { upsert: true }
+          );
+        }
+
+        // 4. Send an in-app notification to the referrer so they know they got points
+        await Notification.create({
+          recipient: referrer._id,
+          type: 'achievement',
+          title: 'Successful Referral! 🎉',
+          message: `${newUser.fullName} joined using your link! You earned 100 XP.`,
+          unread: true
+        });
+      }
+    }
+    // 🟢 --- END REFERRAL MAGIC ---
+
     try {
       await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' });
 
-      // 🟢 Create an explicit Registration Notification for the Admin
+      // Create an explicit Registration Notification for the Admin
       await Notification.create({
         type: 'registration',
         title: 'New Student Registration',
@@ -303,18 +343,29 @@ router.post("/google-login", async (req, res) => {
 });
 
 // --- Profile & Current User ---
+// --- Profile & Current User ---
 router.get('/me', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
+
     const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // 🟢 THE FIX: Auto-generate a referral code for older users who don't have one yet
+    if (!user.referralCode) {
+      user.referralCode = 'STUDY' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      await user.save(); // Save it to the database permanently
+    }
 
     const safeUser = user.toSafeObject();
     safeUser.reliability = user.reliability || 0;
     safeUser.quizCompleted = user.quizCompleted || false;
+
     res.json({ success: true, user: safeUser });
-  } catch (err) { res.status(401).json({ success: false, message: 'Not authorized' }); }
+  } catch (err) {
+    res.status(401).json({ success: false, message: 'Not authorized' });
+  }
 });
 
 router.put('/profile', upload.single('profilePicture'), async (req, res) => {
@@ -833,7 +884,7 @@ router.post('/admin/send-notification', async (req, res) => {
     }
 
     // 1. Build the database query to find the right students
-    let query = { role: 'student' }; 
+    let query = { role: 'student' };
     if (targetType === 'selected') {
       if (departments && departments.length > 0) query.department = { $in: departments };
       if (semesters && semesters.length > 0) query.semester = { $in: semesters };
@@ -853,7 +904,7 @@ router.post('/admin/send-notification', async (req, res) => {
       title: title,
       message: message,
       icon: icon || 'bell',
-      link: '/dashboard', 
+      link: '/dashboard',
       unread: true
     }));
 
@@ -869,17 +920,17 @@ router.post('/admin/send-notification', async (req, res) => {
     });
 
     // 5. Send success response back to the frontend
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Successfully sent to ${students.length} student(s)!`,
-      newHistoryItem: { 
-          id: Date.now(), 
-          title, 
-          message, 
-          recipients: targetLabel, 
-          sentAt: 'Just now', 
-          type: category, 
-          icon 
+      newHistoryItem: {
+        id: Date.now(),
+        title,
+        message,
+        recipients: targetLabel,
+        sentAt: 'Just now',
+        type: category,
+        icon
       }
     });
 
