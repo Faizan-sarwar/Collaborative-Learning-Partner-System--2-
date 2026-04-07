@@ -4,22 +4,42 @@ import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './StudyMatches.module.css';
 
+// 🟢 AVATAR COMPONENT: Secure Profile Picture with Initial Fallback
+const UserAvatar = ({ user, getInitials }) => {
+  const [imgError, setImgError] = useState(false);
+  const uId = user._id || user.id;
+
+  if (!imgError && uId) {
+    return (
+      <div className={styles.avatar} style={{ padding: 0, overflow: 'hidden', border: '2px solid var(--border-color)' }}>
+        <img
+          src={`http://localhost:5000/api/auth/student/${uId}/picture`}
+          alt={user.fullName}
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </div>
+    );
+  }
+  return <div className={styles.avatar}>{getInitials(user.fullName)}</div>;
+};
+
 const StudyMatches = () => {
   const navigate = useNavigate();
-  
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('match'); // Default to Smart Match
   const [currentUser, setCurrentUser] = useState(null);
 
   // FETCH DATA
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
         if (!storedUser || !token) {
           navigate('/login');
@@ -29,7 +49,6 @@ const StudyMatches = () => {
         const parsedUser = JSON.parse(storedUser);
         setCurrentUser(parsedUser);
 
-        // Fetch using parsed ID
         const userId = parsedUser._id || parsedUser.id;
         const response = await fetch(`http://localhost:5000/api/auth/matches/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -53,12 +72,9 @@ const StudyMatches = () => {
   // CONNECT LOGIC
   const handleConnect = async (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
-    console.log("Connecting to:", targetId);
-
     try {
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
-      // Optimistic Update
       setUsers(prevUsers => prevUsers.map(user => {
         const uId = user._id || user.id;
         return uId === targetId ? { ...user, connectionStatus: 'pending' } : user;
@@ -71,10 +87,9 @@ const StudyMatches = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await res.json();
       if (!data.success) {
-        // Revert on failure
         setUsers(prevUsers => prevUsers.map(user => {
           const uId = user._id || user.id;
           return uId === targetId ? { ...user, connectionStatus: 'none' } : user;
@@ -85,7 +100,6 @@ const StudyMatches = () => {
     }
   };
 
-  // CANCEL LOGIC
   const handleCancelRequest = (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
     setUsers(prevUsers => prevUsers.map(user => {
@@ -94,25 +108,26 @@ const StudyMatches = () => {
     }));
   };
 
-  // PROFILE NAVIGATION
   const handleViewProfile = (targetUser) => {
     const targetId = targetUser._id || targetUser.id;
-    if (targetId) {
-      navigate(`/user-profile/${targetId}`);
-    } else {
-      console.error("Invalid User ID, cannot navigate");
-    }
+    if (targetId) navigate(`/user-profile/${targetId}`);
   };
 
-  // HELPER: Get Dynamic Reliability Color
+  // 🟢 RELIABILITY HELPERS
   const getReliabilityColor = (score) => {
-      if (score >= 80) return '#10b981'; // Green
-      if (score >= 50) return '#f59e0b'; // Orange
-      return '#ef4444'; // Red
+    if (score >= 90) return '#059669'; // Elite Scholar
+    if (score >= 75) return '#3b82f6'; // Trusted Partner
+    if (score >= 60) return '#f59e0b'; // Average
+    return '#ef4444'; // Needs Improvement
   };
 
-  // HELPER: Calculate Level Based on Hours
-  // Logic: < 10h = Lvl 1, 10h-19h = Lvl 2, 20h+ = Lvl 3 (Max)
+  const getReliabilityLabel = (score) => {
+    if (score >= 90) return 'Elite Scholar';
+    if (score >= 75) return 'Trusted Partner';
+    if (score >= 60) return 'Average';
+    return 'Needs Improvement';
+  };
+
   const calculateLevel = (hours) => {
     const h = Number(hours) || 0;
     if (h >= 20) return 3;
@@ -120,60 +135,37 @@ const StudyMatches = () => {
     return 1;
   };
 
-  // FILTERS
+  // FILTERS & SORTING
   const filteredUsers = users.filter(user => {
     const query = searchQuery.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       (user.fullName || '').toLowerCase().includes(query) ||
-      (user.email || '').toLowerCase().includes(query) ||
       (user.department || '').toLowerCase().includes(query);
-    
+
     if (activeFilter === 'all') return matchesSearch;
     if (activeFilter === 'same-semester') return matchesSearch && String(user.semester) === String(currentUser?.semester);
-    if (activeFilter === 'group-study') return matchesSearch && (user.studyStyle === 'Group Collaboration');
     if (activeFilter === 'mentoring') return matchesSearch && (user.studyStyle === 'One-on-One Mentoring');
-    
     return matchesSearch;
   });
 
-  // SORTING
   const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (sortBy === 'match') return (b.matchScore || 0) - (a.matchScore || 0);
     if (sortBy === 'name') return a.fullName.localeCompare(b.fullName);
-    
-    // Sort by calculated level
-    if (sortBy === 'level') {
-        return calculateLevel(b.studyHours) - calculateLevel(a.studyHours);
-    }
-    if (sortBy === 'hours') return (b.studyHours || 0) - (a.studyHours || 0);
+    if (sortBy === 'reliability') return (b.reliability || 0) - (a.reliability || 0);
     return 0;
   });
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'ST';
   const getPlanBadge = (plan) => plan === 'pro' ? { label: 'PRO', className: styles.proBadge } : { label: 'FREE', className: styles.freeBadge };
 
-  // BUTTON RENDERER
   const getConnectionButton = (user) => {
-    switch(user.connectionStatus) {
+    switch (user.connectionStatus) {
       case 'connected':
-        return (
-          <button className={styles.connectedBtn} disabled>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20,6 9,17 4,12"></polyline></svg>
-            Connected
-          </button>
-        );
+        return <button className={styles.connectedBtn} disabled>Connected</button>;
       case 'pending':
-        return (
-          <button className={styles.pendingBtn} onClick={() => handleCancelRequest(user)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-            Cancel
-          </button>
-        );
+        return <button className={styles.pendingBtn} onClick={() => handleCancelRequest(user)}>Cancel</button>;
       case 'received':
-         return (
-            <button className={styles.pendingBtn} disabled>
-               Request Received
-            </button>
-         );
+        return <button className={styles.pendingBtn} onClick={() => navigate('/pending-connections')}>Respond</button>;
       default:
         return (
           <button className={styles.connectBtn} onClick={() => handleConnect(user)}>
@@ -184,20 +176,15 @@ const StudyMatches = () => {
     }
   };
 
-  const filters = [
-    { id: 'all', label: 'All Students' },
-    { id: 'same-semester', label: 'Same Semester' },
-    { id: 'group-study', label: 'Group Study' },
-    { id: 'mentoring', label: 'Mentoring' }
-  ];
-
   return (
     <DashboardLayout title="Study Matches">
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <h1 className={styles.title}>Study Matches</h1>
-            <p className={styles.subtitle}>Find your perfect study partner</p>
+            <h1 className={styles.title}>Smart Recommendations</h1>
+            <p className={styles.subtitle}>
+              Best partners for: {currentUser?.subjectsOfDifficulty?.length > 0 ? currentUser.subjectsOfDifficulty.join(', ') : 'Collaboration'}
+            </p>
           </div>
           <Link to='/Connections' className={styles.myConnectionsBtn}>My Connections</Link>
         </div>
@@ -207,104 +194,102 @@ const StudyMatches = () => {
             <input type="text" placeholder="Search students..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={styles.searchInput} />
             <div className={styles.searchActions}>
               <select className={styles.sortSelect} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="match">Sort by Match Score</option>
                 <option value="name">Sort by Name</option>
-                <option value="level">Sort by Level</option>
-                <option value="hours">Sort by Hours</option>
+                <option value="reliability">Sort by Reliability</option>
               </select>
             </div>
           </div>
           <div className={styles.filters}>
-            {filters.map(filter => (
-              <button key={filter.id} className={`${styles.filterBtn} ${activeFilter === filter.id ? styles.active : ''}`} onClick={() => setActiveFilter(filter.id)}>
-                {filter.label}
+            {['all', 'same-semester', 'mentoring'].map(f => (
+              <button key={f} className={`${styles.filterBtn} ${activeFilter === f ? styles.active : ''}`} onClick={() => setActiveFilter(f)}>
+                {f.replace('-', ' ').toUpperCase()}
               </button>
             ))}
           </div>
         </div>
 
-        <div className={styles.resultsInfo}>
-          <span className={styles.resultsCount}>{loading ? 'Loading...' : `${sortedUsers.length} students found`}</span>
-        </div>
-
-        {loading ? <div>Loading...</div> : (
-            <div className={styles.usersGrid}>
-            {sortedUsers.map(user => {
-                // Calculate level dynamically based on hours
-                const displayLevel = calculateLevel(user.studyHours);
-
-                return (
-                <motion.div 
-                    key={user._id || user.id} 
-                    className={styles.userCard}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
+        {loading ? <div className={styles.loading}>Loading recommendations...</div> : (
+          <div className={styles.usersGrid}>
+            {sortedUsers.map((user, index) => {
+              const isBestMatch = index === 0 && sortBy === 'match';
+              
+              return (
+                <motion.div
+                  key={user.id}
+                  className={`${styles.userCard} ${isBestMatch ? styles.bestMatchCard : ''}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                <div className={styles.cardHeader}>
+                  {/* 🏆 RANKING RIBBON */}
+                  <div className={`${styles.rankRibbon} ${isBestMatch ? styles.goldRibbon : ''}`}>
+                    {index === 0 ? '🏆 Best Match' : `#${index + 1} Ranked`}
+                  </div>
+
+                  <div className={styles.cardHeader}>
                     <div className={styles.avatarSection}>
-                        <div className={styles.avatar}>{getInitials(user.fullName)}</div>
-                        <span className={getPlanBadge(user.plan).className}>{getPlanBadge(user.plan).label}</span>
+                      <UserAvatar user={user} getInitials={getInitials} />
+                      <span className={getPlanBadge(user.plan).className}>{getPlanBadge(user.plan).label}</span>
+                      {isBestMatch && <span className={styles.matchAccuracy}>99% Match</span>}
                     </div>
                     <div className={styles.userInfo}>
-                        <h3 className={styles.userName}>{user.fullName}</h3>
-                        <span className={styles.userRoll}>{user.rollNumber}</span>
+                      <h3 className={styles.userName}>{user.fullName}</h3>
+                      <span className={styles.userRoll}>{user.rollNumber}</span>
                     </div>
-                </div>
+                  </div>
 
-                <div className={styles.cardBody}>
+                  <div className={styles.cardBody}>
                     <div className={styles.reliabilitySection}>
                       <div className={styles.reliabilityHeader}>
-                        <span className={styles.reliabilityLabel}>Reliability</span>
-                        <span className={styles.reliabilityValue}>{user.reliability || 0}%</span>
+                        <span className={styles.reliabilityLabel}>
+                          Reliability 
+                          <span className={styles.tierLabel} style={{ color: getReliabilityColor(user.reliability) }}>
+                             ({getReliabilityLabel(user.reliability)})
+                          </span>
+                        </span>
+                        <span className={styles.reliabilityValue} style={{ color: getReliabilityColor(user.reliability) }}>
+                          {user.reliability}%
+                        </span>
                       </div>
                       <div className={styles.reliabilityBar}>
-                        <div className={styles.reliabilityFill} style={{ 
-                            width: `${user.reliability || 0}%`,
-                            background: getReliabilityColor(user.reliability || 0)
-                        }}></div>
+                        <div className={styles.reliabilityFill} style={{ width: `${user.reliability}%`, background: getReliabilityColor(user.reliability) }}></div>
                       </div>
                     </div>
 
-                    <div className={styles.infoRow}><span>📚 {user.department}</span></div>
-                    <div className={styles.infoRow}><span>🎓 Semester {user.semester}</span></div>
-                    <div className={styles.infoRow}><span>💡 {user.studyStyle}</span></div>
+                    <div className={styles.matchReason}>
+                      <p className={styles.expertInLabel}>Expert Strength:</p>
+                      <div className={styles.tags}>
+                        {user.academicStrengths?.slice(0, 2).map((s, i) => (
+                           <span key={i} className={styles.expertTag}>{s}</span>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className={styles.statsRow}>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue}>{displayLevel}</span>
-                            <span className={styles.statLabel}>Level</span>
-                        </div>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue}>{user.xp || 0}</span>
-                            <span className={styles.statLabel}>XP</span>
-                        </div>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue}>{user.studyHours || 0}h</span>
-                            <span className={styles.statLabel}>Hours</span>
-                        </div>
+                      <div className={styles.stat}>
+                        <span className={styles.statValue}>{calculateLevel(user.studyHours)}</span>
+                        <span className={styles.statLabel}>Level</span>
+                      </div>
+                      <div className={styles.stat}>
+                        <span className={styles.statValue}>{user.studyHours || 0}h</span>
+                        <span className={styles.statLabel}>EXP</span>
+                      </div>
                     </div>
+                  </div>
 
-                    <div className={styles.strengthsSection}>
-                        <span className={styles.strengthsLabel}>Strengths:</span>
-                        <div className={styles.tags}>
-                            {user.academicStrengths?.slice(0, 2).map((s, i) => <span key={i} className={styles.strengthTag}>{s}</span>)}
-                            {(user.academicStrengths?.length || 0) > 2 && <span className={styles.moreTag}>+{user.academicStrengths.length - 2}</span>}
-                        </div>
-                    </div>
-                </div>
-
-                <div className={styles.cardFooter}>
+                  <div className={styles.cardFooter}>
                     <button className={styles.viewProfileBtn} onClick={() => handleViewProfile(user)}>Profile</button>
                     {getConnectionButton(user)}
-                </div>
+                  </div>
                 </motion.div>
-                );
+              );
             })}
-            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
   );
 };
 
-export default StudyMatches;  
+export default StudyMatches;

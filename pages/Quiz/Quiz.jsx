@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Quiz.module.css';
 
-//  IMPORT THE QUESTION BANK
+// IMPORT THE QUESTION BANK
 import QUESTION_BANK from './questionBank'; 
 
-//  UPDATED COLORS
 const subjectColors = {
   'Web Development': '#ec4899',
   'DSA': '#10b981',
@@ -16,6 +15,21 @@ const subjectColors = {
   'Database Management': '#f59e0b',
   'Cyber Security': '#ef4444',
   'Artificial Intelligence': '#3b82f6'
+};
+
+// 🟢 NEW: Professional Trust Tiers & Colors
+const getTrustTier = (score) => {
+    if (score >= 90) return { label: 'Elite Scholar', color: '#059669', emoji: '💎' }; // Emerald
+    if (score >= 75) return { label: 'Trusted Partner', color: '#3b82f6', emoji: '🛡️' }; // Blue
+    if (score >= 60) return { label: 'Average', color: '#f59e0b', emoji: '⭐' }; // Amber
+    return { label: 'Needs Improvement', color: '#ef4444', emoji: '📈' }; // Red
+};
+
+// 🟢 NEW: Professional Calculation Logic
+const calculateProfessionalReliability = (correctAnswers) => {
+    const baseScore = 40;
+    const earnedScore = Math.round(correctAnswers * 5.8);
+    return Math.min(baseScore + earnedScore, 98); // Capped at 98%
 };
 
 const Quiz = () => {
@@ -70,7 +84,6 @@ const Quiz = () => {
     setLoading(false);
   }, [navigate]);
 
-  // HELPER FUNCTIONS
   const handleSelectAnswer = (optionIndex) => {
     setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: optionIndex });
   };
@@ -87,7 +100,6 @@ const Quiz = () => {
     return correct;
   };
 
-  // SUBMIT LOGIC
   const submitQuiz = async () => {
       if (isSubmitting) return;
       setIsSubmitting(true);
@@ -129,7 +141,6 @@ const Quiz = () => {
       }
   };
 
-  // NAVIGATION HANDLERS
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
       setDirection(1);
@@ -148,7 +159,6 @@ const Quiz = () => {
     window.location.href = '/dashboard';
   };
 
-  // ANIMATION VARIANTS
   const cardVariants = {
     enter: (direction) => ({ x: direction > 0 ? 300 : -300, opacity: 0, scale: 0.8 }),
     center: { x: 0, opacity: 1, scale: 1 },
@@ -166,43 +176,52 @@ const Quiz = () => {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   const isLastQuestion = currentQuestion === questions.length - 1;
 
-  // RENDER RESULT VIEW (SIDEBAR SHOWN)
+  // 🟢 UPDATED: Result view utilizing Trust Tiers
   if (showResult) {
-    const score = calculateScore();
-    const percentage = Math.round((score / questions.length) * 100);
+    const rawScore = calculateScore();
+    const finalReliability = calculateProfessionalReliability(rawScore);
+    const tier = getTrustTier(finalReliability);
 
     return (
-      //  hideSidebar is false (default) here, so sidebar appears
       <DashboardLayout title="Results">
         <div className={styles.container}>
           <motion.div className={styles.resultCard} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-            <motion.div className={styles.resultIcon} initial={{ scale: 0 }} animate={{ scale: 1, rotate: 360 }}>
-              {percentage >= 70 ? '🎉' : percentage >= 50 ? '👍' : '📚'}
-            </motion.div>
             
-            <h2 className={styles.resultTitle}>Assessment Complete!</h2>
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '4rem' }}>{tier.emoji}</span>
+                <h3 style={{ color: tier.color, margin: '10px 0 5px 0', fontSize: '1.5rem' }}>{tier.label}</h3>
+            </div>
+
+            <h2 className={styles.resultTitle}>Assessment Complete</h2>
             
             <div className={styles.scoreCircle}>
                <svg viewBox="0 0 100 100">
                   <circle className={styles.scoreCircleBg} cx="50" cy="50" r="45" />
-                  <motion.circle className={styles.scoreCircleProgress} cx="50" cy="50" r="45"
-                     initial={{ strokeDashoffset: 283 }}
-                     animate={{ strokeDashoffset: 283 - (283 * percentage) / 100 }}
+                  <motion.circle 
+                      className={styles.scoreCircleProgress} 
+                      cx="50" cy="50" r="45"
+                      stroke={tier.color} // Apply dynamic color to ring
+                      initial={{ strokeDashoffset: 283 }}
+                      animate={{ strokeDashoffset: 283 - (283 * finalReliability) / 100 }}
                   />
                </svg>
                <div className={styles.scoreText}>
-                  <span className={styles.scoreNumber}>{score}</span>
-                  <span className={styles.scoreTotal}>/10</span>
+                  <span className={styles.scoreNumber} style={{ color: tier.color }}>{finalReliability}%</span>
+                  <span className={styles.scoreTotal}>Trust Score</span>
                </div>
             </div>
             
-            <p className={styles.resultMessage}>
-               Reliability Score Awarded: <strong>{percentage}%</strong>
-               <br/>
-               Progress saved. Click below to continue.
+            <p className={styles.resultMessage} style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+               You scored {rawScore}/10 on the technical quiz.<br/>
+               Study consistently on the platform to unlock the remaining {100 - finalReliability}% reliability!
             </p>
 
-            <motion.button className={styles.finishBtn} onClick={handleFinish} whileHover={{ scale: 1.05 }}>
+            <motion.button 
+                className={styles.finishBtn} 
+                onClick={handleFinish} 
+                whileHover={{ scale: 1.05 }}
+                style={{ backgroundColor: tier.color }} // Match button to tier
+            >
               Go to Dashboard
             </motion.button>
           </motion.div>
@@ -211,9 +230,8 @@ const Quiz = () => {
     );
   }
 
-  // RENDER QUIZ VIEW (SIDEBAR HIDDEN)
+  // RENDER QUIZ VIEW
   return (
-    //  hideSidebar={true} hides the sidebar during the quiz
     <DashboardLayout hideSidebar={true}>
       <div className={styles.container}>
         <div className={styles.header}>

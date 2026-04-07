@@ -242,13 +242,13 @@ router.post('/login', async (req, res) => {
     const { email, password, rememberMe } = req.body;
     const user = await User.findOne({ email }).select('+password');
 
-    // 🟢 ONLY the Failed code goes here
+    // 🟢 1. Password Check (Failed Login)
     if (!user || !(await user.matchPassword(password))) {
       try {
         await ActivityLog.create({
           action: 'Failed Login Attempt',
           user: user ? user.fullName : email,
-          userType: user ? user.role : 'student',
+          userType: user ? user.role : 'visitor',
           ip: getClientIp(req),
           status: 'failed'
         });
@@ -257,7 +257,18 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // 🟢 Successful login log sits safely OUTSIDE the failed block
+    // 🟢 2. MAINTENANCE MODE FIX
+    const settings = await Settings.findOne();
+    if (settings && settings.maintenanceMode) {
+      if (user.role !== 'admin' && user.role !== 'super-admin') {
+        return res.status(503).json({
+          success: false,
+          message: 'The platform is currently under maintenance. Only administrators can log in right now.'
+        });
+      }
+    }
+
+    // 🟢 3. Successful login log
     try {
       await ActivityLog.create({
         action: 'Successful Login',
@@ -284,6 +295,14 @@ router.post('/login', async (req, res) => {
         user.xp = (user.xp || 0) + streakBonus;
       }
       xpMessage = `Daily Login! +${streakBonus} XP (Streak: ${user.streak})`;
+
+      // 🟢 BUMP RELIABILITY FOR 7-DAY STREAKS
+      if (user.streak > 0 && user.streak % 7 === 0) {
+        if (typeof user.adjustReliability === 'function') {
+          await user.adjustReliability(2); // +2% every 7 days!
+          xpMessage += ` 🎉 7-Day Streak Bonus: +2% Trust Score!`;
+        }
+      }
     }
 
     user.lastLogin = Date.now();
@@ -654,26 +673,97 @@ router.post('/submit-quiz', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    let reliabilityPercentage = Math.round(((parseInt(req.body.score) || 0) / (parseInt(req.body.totalQuestions) || 10)) * 100);
-    res.json({ success: true, message: 'Quiz submitted', user: (await User.findByIdAndUpdate(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id, { reliability: Math.max(0, Math.min(100, reliabilityPercentage)), quizCompleted: true }, { new: true })).toSafeObject() });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
+
+    const score = parseInt(req.body.score) || 0;
+
+    // 🟢 NEW PROFESSIONAL ALGORITHM
+    const baseScore = 40;
+    const earnedScore = Math.round(score * 5.8);
+    const finalReliability = Math.min(baseScore + earnedScore, 98); // Max 98% initially
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        reliability: finalReliability,
+        quizCompleted: true
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Quiz submitted',
+      user: updatedUser.toSafeObject()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 // --- Connections & Matches ---
+// 🟢 SMART MATCHMAKING ROUTE
 router.get('/matches/:userId', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ success: false, message: 'Invalid ID' });
     const currentUser = await User.findById(req.params.userId);
-    const candidates = await User.find({ _id: { $ne: req.params.userId }, role: { $nin: ['super-admin', 'admin'] }, quizCompleted: true }).select('-password').limit(50);
+    if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
 
-    res.json({
-      success: true, matches: candidates.map(u => ({
-        id: u._id, fullName: u.fullName, rollNumber: u.rollNumber, department: u.department || 'General', semester: u.semester || '1', studyStyle: u.studyStyle || 'Individual',
-        academicStrengths: u.academicStrengths || [], level: u.level || 1, xp: u.xp || 0, studyHours: u.studyHours || 0, plan: u.plan || 'free', availability: u.availability || 'Flexible',
-        reliability: u.reliability || 0, connectionStatus: currentUser.connections.includes(u._id) ? 'connected' : currentUser.sentRequests.includes(u._id) ? 'pending' : currentUser.receivedRequests.includes(u._id) ? 'received' : 'none'
-      }))
+    const myDifficulties = currentUser.subjectsOfDifficulty || [];
+
+    // 1. Find Candidates: Not me, passed quiz, and STRENGTH in my DIFFICULTY
+    let candidates = await User.find({
+      _id: { $ne: currentUser._id },
+      role: 'student',
+      quizCompleted: true,
+      academicStrengths: { $in: myDifficulties }
     });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+
+    // 2. Fallback: If no direct experts found, show top students from same department
+    if (candidates.length === 0) {
+      candidates = await User.find({
+        _id: { $ne: currentUser._id },
+        role: 'student',
+        quizCompleted: true,
+        department: currentUser.department
+      }).limit(10);
+    }
+
+    // 3. Map and Calculate Match Rank
+    const matches = candidates.map(u => {
+      const connections = currentUser.connections.map(id => id.toString());
+      const sentReqs = currentUser.sentRequests.map(id => id.toString());
+      const receivedReqs = currentUser.receivedRequests.map(id => id.toString());
+      const targetId = u._id.toString();
+
+      // RANKING FORMULA: Reliability is 80% weight, Level is 20%
+      const matchScore = ((u.reliability || 0) * 0.8) + ((u.level || 1) * 2);
+
+      return {
+        id: u._id,
+        fullName: u.fullName,
+        rollNumber: u.rollNumber,
+        department: u.department,
+        semester: u.semester,
+        academicStrengths: u.academicStrengths,
+        reliability: u.reliability || 0,
+        level: u.level || 1,
+        studyHours: u.studyHours || 0,
+        matchScore: matchScore,
+        connectionStatus: connections.includes(targetId) ? 'connected'
+          : sentReqs.includes(targetId) ? 'pending'
+            : receivedReqs.includes(targetId) ? 'received'
+              : 'none'
+      };
+    });
+
+    // 4. Final Sorting: Highest Match Score first
+    matches.sort((a, b) => b.matchScore - a.matchScore);
+
+    res.json({ success: true, matches });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 router.get('/connections', async (req, res) => {
@@ -961,7 +1051,7 @@ router.get('/admin/export-data', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    
+
     // Verify admin
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
     const user = await User.findById(decoded.id);
@@ -999,7 +1089,7 @@ router.post('/admin/clear-cache', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
     const user = await User.findById(decoded.id);
     if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
@@ -1014,6 +1104,168 @@ router.post('/admin/clear-cache', async (req, res) => {
     res.json({ success: true, message: 'Server memory and caches cleared successfully!' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+// 🟢 CONTACT FORM SUBMISSION ROUTE
+router.post('/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
+    }
+
+    // 1. Get the support email from Admin Settings
+    const settings = await Settings.findOne();
+    const supportEmail = settings?.supportEmail || process.env.EMAIL_USER;
+
+    // 2. Prepare the Email Content
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: supportEmail, // The message goes TO the admin/support team
+      replyTo: email,    // So the admin can just click "Reply" to answer the user
+      subject: `[Contact Form] ${subject || 'New Inquiry'} from ${name}`,
+      text: `You received a new message from your platform contact form:\n\n` +
+        `Name: ${name}\n` +
+        `Email: ${email}\n\n` +
+        `Message:\n${message}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+          <h2 style="color: #6366f1;">New Contact Form Submission</h2>
+          <p><strong>From:</strong> ${name} (${email})</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <hr />
+          <p><strong>Message:</strong></p>
+          <p style="white-space: pre-wrap;">${message}</p>
+        </div>
+      `
+    };
+
+    // 3. Send the email
+    await transporter.sendMail(mailOptions);
+
+    // 4. Log the activity for the admin to see
+    try {
+      await ActivityLog.create({
+        action: 'Contact Form Submitted',
+        user: name,
+        userType: 'visitor',
+        ip: getClientIp(req),
+        status: 'success'
+      });
+    } catch (e) { }
+
+    res.json({ success: true, message: 'Your message has been sent successfully!' });
+
+  } catch (err) {
+    console.error("Contact Form Error:", err);
+    res.status(500).json({ success: false, message: 'Failed to send message. Please try again later.' });
+  }
+});
+// 🟢 DATABASE MIGRATION: Retroactively update Reliability Scores
+router.post('/admin/migrate-reliability', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader.startsWith('Bearer null')) {
+      return res.status(401).json({ message: 'Unauthorized: No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // Verify Admin safely
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    } catch (jwtErr) {
+      return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    }
+
+    const adminUser = await User.findById(decoded.id);
+    if (!adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super-admin')) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    // Get all students who have completed the quiz
+    const students = await User.find({ role: 'student', quizCompleted: true });
+    let updatedCount = 0;
+
+    for (const student of students) {
+      const oldReliability = student.reliability || 0;
+      const rawScore = Math.round((oldReliability / 100) * 10);
+
+      const baseScore = 40;
+      const earnedScore = Math.round(rawScore * 5.8);
+      const newReliability = Math.min(baseScore + earnedScore, 98);
+
+      // 🟢 SAFEST METHOD: Using updateOne bypasses Mongoose validation 
+      // so old test users don't crash the migration!
+      await User.updateOne(
+        { _id: student._id },
+        { $set: { reliability: newReliability } }
+      );
+      updatedCount++;
+    }
+
+    // Log the system action
+    await ActivityLog.create({
+      action: `Migrated Reliability Scores for ${updatedCount} users`,
+      user: adminUser.fullName,
+      userType: adminUser.role, // Dynamically use admin or super-admin
+      ip: getClientIp(req),
+      status: 'success'
+    });
+
+    res.json({ success: true, message: `Successfully updated ${updatedCount} users to the new Reliability Algorithm.` });
+  } catch (err) {
+    console.error("Migration Error:", err);
+    res.status(500).json({ success: false, message: 'Migration failed. Check server console for details.' });
+  }
+});
+// 🟢 POST: Accept a Connection Request
+router.post('/requests/:id/accept', async (req, res) => {
+  try {
+    // 1. Verify who is accepting the request
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key');
+    const receiverId = decoded.id; // The logged-in user
+    const senderId = req.params.id; // The user who sent the request
+
+    // 2. Fetch both users from the database
+    const receiver = await User.findById(receiverId);
+    const sender = await User.findById(senderId);
+
+    if (!receiver || !sender) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 3. Connect them! Add to connections, remove from pending requests
+    if (!receiver.connections.includes(senderId)) receiver.connections.push(senderId);
+    if (!sender.connections.includes(receiverId)) sender.connections.push(receiverId);
+
+    receiver.receivedRequests.pull(senderId);
+    sender.sentRequests.pull(receiverId);
+
+    // 4. Award XP for networking
+    if (typeof receiver.awardXP === 'function') await receiver.awardXP(75);
+    else receiver.xp = (receiver.xp || 0) + 75;
+
+    if (typeof sender.awardXP === 'function') await sender.awardXP(75);
+    else sender.xp = (sender.xp || 0) + 75;
+
+    // 🟢 5. THE PROFESSIONAL RELIABILITY BUMP! (+0.5% for both)
+    if (typeof receiver.adjustReliability === 'function') await receiver.adjustReliability(0.5);
+    if (typeof sender.adjustReliability === 'function') await sender.adjustReliability(0.5);
+
+    // 6. Save changes to the database
+    await receiver.save();
+    await sender.save();
+
+    res.json({ success: true, message: 'Connection accepted successfully!' });
+  } catch (err) {
+    console.error('Accept Request Error:', err);
+    res.status(500).json({ success: false, message: 'Server error while accepting request' });
   }
 });
 export default router;

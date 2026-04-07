@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom'; // 🟢 ADDED useLocation
+import { Link, useLocation } from 'react-router-dom';
 import { Filter } from 'bad-words';
 const profanityFilter = new Filter();
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Eye, EyeOff } from 'lucide-react'; // Added explicit icons
 import styles from './Signup.module.css';
 import Alert from '../../components/Alert/Alert';
 import PageTransition from '../../components/PageTransition/PageTransition';
 
 const departments = [
     'Information Technology',
+    'Computer Science',
+    'Electronics',
+    'Mechanical',
+    'Civil',
+    'Electrical'
 ];
 
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -19,7 +24,6 @@ const studyStyles = [
     'One-on-One Mentoring'
 ];
 
-// Fallback now includes active status
 const FALLBACK_SUBJECTS = [
     { name: 'Mathematics', active: true },
     { name: 'Physics', active: true },
@@ -34,7 +38,7 @@ const FALLBACK_SUBJECTS = [
 ];
 
 const Signup = () => {
-    const location = useLocation(); // 🟢 Read the current URL
+    const location = useLocation();
 
     const [availableSubjects, setAvailableSubjects] = useState([]);
     const [loadingSubjects, setLoadingSubjects] = useState(true);
@@ -52,7 +56,6 @@ const Signup = () => {
     const semesterRef = useRef(null);
     const studyStyleRef = useRef(null);
 
-    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (strengthsRef.current && !strengthsRef.current.contains(event.target)) setStrengthsDropdownOpen(false);
@@ -65,12 +68,14 @@ const Signup = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // 🟢 ADDED: confirmPassword and acceptTerms to the payload
     const [formData, setFormData] = useState({
         fullName: '',
         rollNumber: '',
         profilePicture: null,
         email: '',
         password: '',
+        confirmPassword: '',
         gender: '',
         department: '',
         semester: '',
@@ -78,14 +83,13 @@ const Signup = () => {
         subjectsOfDifficulty: [],
         studyStyle: '',
         availability: '',
-        referredByCode: '' // 🟢 ADDED: Store the referral code here
+        referredByCode: '',
+        acceptTerms: false
     });
 
-    // 🟢 ADDED: Extract referral code from URL on mount
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         const refCode = queryParams.get('ref');
-        
         if (refCode) {
             setFormData(prev => ({ ...prev, referredByCode: refCode }));
         }
@@ -94,17 +98,16 @@ const Signup = () => {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false); // 🟢 Added
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [alertError, setAlertError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // FETCH LIVE COURSES ON MOUNT
     useEffect(() => {
         const fetchCourses = async () => {
             try {
                 const res = await fetch('http://localhost:5000/studygroup');
                 const data = await res.json();
-
                 if (data.success && data.groups.length > 0) {
                     const courses = data.groups.map(g => ({ name: g.name, active: g.active }));
                     setAvailableSubjects(courses);
@@ -123,13 +126,11 @@ const Signup = () => {
         fetchCourses();
     }, []);
 
-    //  1. STRICT HUMAN NAME VALIDATOR
     const validateHumanName = (name) => {
         const trimmedName = name.trim();
         if (!trimmedName) return 'Full name is required';
         if (trimmedName.length < 2) return 'Name must be at least 2 characters';
 
-        //  1. Check for Profanity FIRST
         if (profanityFilter.isProfane(trimmedName)) {
             return 'Please enter an appropriate and respectful name.';
         }
@@ -139,7 +140,6 @@ const Signup = () => {
         if (/[\-']{2,}/.test(trimmedName) || /\s{2,}/.test(trimmedName)) return 'Name cannot contain consecutive spaces or symbols';
         if (/^[\-']|[\-']$/.test(trimmedName)) return 'Name cannot start or end with a symbol';
 
-        //  2. Keep the check for reserved system words
         const blockedWords = ['admin', 'root', 'test', 'fake', 'dummy', 'null', 'student', 'user'];
         if (trimmedName.toLowerCase().split(/\s+/).some(word => blockedWords.includes(word))) {
             return 'This name is not permitted. Please use your real name.';
@@ -147,7 +147,6 @@ const Signup = () => {
         return '';
     };
 
-    //  2. STRICT ROLL NUMBER VALIDATOR
     const validateRollNumber = (roll) => {
         const trimmedRoll = roll.trim();
         if (!trimmedRoll) return 'Roll number is required';
@@ -163,15 +162,14 @@ const Signup = () => {
 
     const validatePassword = (password) => {
         const issues = [];
-        if (password.length < 8) issues.push('at least 8 characters');
-        if (!/[A-Z]/.test(password)) issues.push('one uppercase letter');
-        if (!/[a-z]/.test(password)) issues.push('one lowercase letter');
-        if (!/[0-9]/.test(password)) issues.push('one number');
-        if (!/[^A-Za-z0-9]/.test(password)) issues.push('one special character');
+        if (password.length < 8) issues.push('at least 8 chars');
+        if (!/[A-Z]/.test(password)) issues.push('1 uppercase');
+        if (!/[a-z]/.test(password)) issues.push('1 lowercase');
+        if (!/[0-9]/.test(password)) issues.push('1 number');
+        if (!/[^A-Za-z0-9]/.test(password)) issues.push('1 special char');
         return issues;
     };
 
-    //  3. MASTER FIELD VALIDATOR
     const validateField = (name, value) => {
         switch (name) {
             case 'fullName':
@@ -188,7 +186,11 @@ const Signup = () => {
             case 'password':
                 if (!value) return 'Password is required';
                 const passwordIssues = validatePassword(value);
-                return passwordIssues.length > 0 ? `Password must contain ${passwordIssues.join(', ')}` : '';
+                return passwordIssues.length > 0 ? `Needs: ${passwordIssues.join(', ')}` : '';
+            case 'confirmPassword':
+                if (!value) return 'Please confirm your password';
+                if (value !== formData.password) return 'Passwords do not match';
+                return '';
             case 'department':
                 return !value ? 'Please select your department' : '';
             case 'semester':
@@ -196,7 +198,12 @@ const Signup = () => {
             case 'studyStyle':
                 return !value ? 'Please select a preferred study style' : '';
             case 'availability':
-                return value.length > 500 ? 'Availability description must be less than 500 characters' : '';
+                if (value.length > 500) return 'Description must be less than 500 characters';
+                // 🟢 SECURITY: Block basic HTML injection attempts
+                if (/[<>]/.test(value)) return 'Angle brackets (< >) are not allowed';
+                return '';
+            case 'acceptTerms':
+                return !value ? 'You must agree to the Terms and Privacy Policy to register.' : '';
             default:
                 return '';
         }
@@ -213,15 +220,27 @@ const Signup = () => {
     const passwordStrength = getPasswordStrength(formData.password);
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
+        const target = e.target;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+
         setFormData((prev) => ({ ...prev, [name]: value }));
+
         if (touched[name]) {
             setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+        }
+
+        // 🟢 Re-validate confirm password if primary password changes
+        if (name === 'password' && touched.confirmPassword) {
+            setErrors(prev => ({ ...prev, confirmPassword: validateField('confirmPassword', formData.confirmPassword) }));
         }
     };
 
     const handleBlur = (e) => {
-        const { name, value } = e.target;
+        const target = e.target;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+
         setTouched((prev) => ({ ...prev, [name]: true }));
         setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
     };
@@ -259,7 +278,6 @@ const Signup = () => {
         }));
     };
 
-    //  4. COMPREHENSIVE SUBMIT HANDLER
     const handleSubmit = async (e) => {
         e.preventDefault();
         setAlertError('');
@@ -267,8 +285,8 @@ const Signup = () => {
 
         const newErrors = {};
         const fieldsToValidate = [
-            'fullName', 'email', 'password', 'rollNumber', 'gender',
-            'department', 'semester', 'studyStyle', 'availability'
+            'fullName', 'email', 'password', 'confirmPassword', 'rollNumber', 'gender',
+            'department', 'semester', 'studyStyle', 'availability', 'acceptTerms'
         ];
 
         fieldsToValidate.forEach(f => {
@@ -276,11 +294,16 @@ const Signup = () => {
             if (err) newErrors[f] = err;
         });
 
+        // Re-run confirm password check against current state just to be safe
+        if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
+        }
+
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            setAlertError('Please fix errors in the form.');
+            setAlertError('Please fix errors in the form before submitting.');
 
-            // Auto-scroll to the first error
+            // Auto-scroll to the first validation error
             const firstErrorField = document.querySelector(`[name="${Object.keys(newErrors)[0]}"]`);
             if (firstErrorField) firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -292,8 +315,8 @@ const Signup = () => {
         try {
             const formPayload = new FormData();
             Object.keys(formData).forEach((key) => {
-                // Ignore empty referral codes so it doesn't send "null" string
-                if (key === 'referredByCode' && !formData[key]) return; 
+                if (key === 'confirmPassword' || key === 'acceptTerms') return; // Don't send these to DB
+                if (key === 'referredByCode' && !formData[key]) return;
 
                 if (Array.isArray(formData[key])) {
                     formPayload.append(key, JSON.stringify(formData[key]));
@@ -320,6 +343,9 @@ const Signup = () => {
 
             setSuccess("Profile created successfully! Redirecting...");
 
+            // 🟢 MAGIC FIX: Instantly scroll smoothly to the top to show the success banner
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
             setTimeout(() => {
                 if (data.user.role === 'admin') {
                     window.location.href = '/admin';
@@ -332,6 +358,9 @@ const Signup = () => {
 
         } catch (error) {
             setAlertError(error.message);
+
+            // 🟢 MAGIC FIX: Scroll to the top if there's a backend error (e.g., "Email already registered")
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {
             setIsSubmitting(false);
         }
@@ -366,11 +395,10 @@ const Signup = () => {
                     <div className={styles.formContainer}>
                         {alertError && <Alert type="error" message={alertError} onClose={() => setAlertError('')} />}
                         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
-                        
-                        {/* 🟢 Optional: Show a subtle message if they are using a referral code */}
-                        {formData.referredByCode && (
-                            <div style={{ backgroundColor: '#10B981', color: 'white', padding: '10px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontWeight: 'bold' }}>
-                                🎉 You've been invited by a friend! Sign up now to claim your rewards.
+
+                        {formData.referredByCode && !alertError && !success && (
+                            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', color: '#10B981', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
+                                🎉 You've been invited by a friend! Sign up to claim your rewards.
                             </div>
                         )}
 
@@ -380,7 +408,7 @@ const Signup = () => {
                         </div>
 
                         <form className={styles.form} onSubmit={handleSubmit} noValidate>
-                            {/* Student Info Section */}
+                            {/* === STUDENT INFO SECTION === */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Student Information</h3>
                                 <div className={styles.formGrid}>
@@ -394,6 +422,7 @@ const Signup = () => {
                                             value={formData.fullName}
                                             onChange={handleInputChange}
                                             onBlur={handleBlur}
+                                            aria-invalid={!!errors.fullName}
                                         />
                                         {errors.fullName && <span className={styles.errorMessage}>{errors.fullName}</span>}
                                     </div>
@@ -467,6 +496,11 @@ const Signup = () => {
                                     </div>
 
                                     <div className={styles.inputGroup}>
+                                        {/* Blank space to keep grid alignment if needed, or leave empty */}
+                                    </div>
+
+                                    {/* 🟢 PASSWORD SETUP */}
+                                    <div className={styles.inputGroup}>
                                         <label className={styles.label}>Password *</label>
                                         <div className={styles.passwordWrapper}>
                                             <input
@@ -483,7 +517,7 @@ const Signup = () => {
                                                 className={styles.eyeButton}
                                                 onClick={() => setShowPassword(!showPassword)}
                                             >
-                                                {showPassword ? 'Hide' : 'Show'}
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
                                         {formData.password && !errors.password && (
@@ -501,12 +535,32 @@ const Signup = () => {
                                     </div>
 
                                     <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Confirm Password *</label>
+                                        <div className={styles.passwordWrapper}>
+                                            <input
+                                                type={showConfirmPassword ? 'text' : 'password'}
+                                                name="confirmPassword"
+                                                className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`}
+                                                placeholder="Confirm your password"
+                                                value={formData.confirmPassword}
+                                                onChange={handleInputChange}
+                                                onBlur={handleBlur}
+                                            />
+                                            <button
+                                                type="button"
+                                                className={styles.eyeButton}
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            >
+                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                        {errors.confirmPassword && <span className={styles.errorMessage}>{errors.confirmPassword}</span>}
+                                    </div>
+
+                                    <div className={styles.inputGroup}>
                                         <label className={styles.label}>Department *</label>
                                         <div className={styles.multiSelectWrapper} ref={departmentRef}>
-                                            <div
-                                                className={styles.multiSelectTrigger}
-                                                onClick={() => setDepartmentDropdownOpen(!departmentDropdownOpen)}
-                                            >
+                                            <div className={styles.multiSelectTrigger} onClick={() => setDepartmentDropdownOpen(!departmentDropdownOpen)}>
                                                 <span className={formData.department ? styles.selectedText : styles.placeholder}>
                                                     {formData.department || "Select your department"}
                                                 </span>
@@ -520,7 +574,7 @@ const Signup = () => {
                                                             className={`${styles.dropdownItem} ${formData.department === dept ? styles.selected : ''}`}
                                                             onClick={() => {
                                                                 setFormData(prev => ({ ...prev, department: dept }));
-                                                                setErrors(prev => ({ ...prev, department: '' })); // Clear error on select
+                                                                setErrors(prev => ({ ...prev, department: '' }));
                                                                 setDepartmentDropdownOpen(false);
                                                             }}
                                                         >
@@ -530,17 +584,13 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Render Dropdown Error */}
                                         {errors.department && <span className={styles.errorMessage}>{errors.department}</span>}
                                     </div>
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Semester *</label>
                                         <div className={styles.multiSelectWrapper} ref={semesterRef}>
-                                            <div
-                                                className={styles.multiSelectTrigger}
-                                                onClick={() => setSemesterDropdownOpen(!semesterDropdownOpen)}
-                                            >
+                                            <div className={styles.multiSelectTrigger} onClick={() => setSemesterDropdownOpen(!semesterDropdownOpen)}>
                                                 <span className={formData.semester ? styles.selectedText : styles.placeholder}>
                                                     {formData.semester ? `Semester ${formData.semester}` : "Select your semester"}
                                                 </span>
@@ -554,7 +604,7 @@ const Signup = () => {
                                                             className={`${styles.dropdownItem} ${formData.semester === sem ? styles.selected : ''}`}
                                                             onClick={() => {
                                                                 setFormData(prev => ({ ...prev, semester: sem }));
-                                                                setErrors(prev => ({ ...prev, semester: '' })); // Clear error on select
+                                                                setErrors(prev => ({ ...prev, semester: '' }));
                                                                 setSemesterDropdownOpen(false);
                                                             }}
                                                         >
@@ -564,13 +614,12 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Render Dropdown Error */}
                                         {errors.semester && <span className={styles.errorMessage}>{errors.semester}</span>}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Academic Profile Section */}
+                            {/* === ACADEMIC PROFILE SECTION === */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>📚 Academic Profile</h3>
 
@@ -578,10 +627,7 @@ const Signup = () => {
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Academic Strengths</label>
                                         <div className={styles.multiSelectWrapper} ref={strengthsRef}>
-                                            <div
-                                                className={styles.multiSelectTrigger}
-                                                onClick={() => setStrengthsDropdownOpen(!strengthsDropdownOpen)}
-                                            >
+                                            <div className={styles.multiSelectTrigger} onClick={() => setStrengthsDropdownOpen(!strengthsDropdownOpen)}>
                                                 <div className={styles.selectedTags}>
                                                     {formData.academicStrengths.length === 0 ? (
                                                         <span className={styles.placeholder}>Select your strengths...</span>
@@ -589,33 +635,22 @@ const Signup = () => {
                                                         formData.academicStrengths.map((subject) => (
                                                             <span key={subject} className={styles.tag}>
                                                                 {subject}
-                                                                <button
-                                                                    type="button"
-                                                                    className={styles.tagRemove}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        removeSubject('academicStrengths', subject);
-                                                                    }}
-                                                                >
+                                                                <button type="button" className={styles.tagRemove} onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeSubject('academicStrengths', subject);
+                                                                }}>
                                                                     <X size={12} />
                                                                 </button>
                                                             </span>
                                                         ))
                                                     )}
                                                 </div>
-                                                <ChevronDown
-                                                    size={18}
-                                                    className={`${styles.dropdownIcon} ${strengthsDropdownOpen ? styles.rotated : ''}`}
-                                                />
+                                                <ChevronDown size={18} className={`${styles.dropdownIcon} ${strengthsDropdownOpen ? styles.rotated : ''}`} />
                                             </div>
                                             {strengthsDropdownOpen && (
                                                 <div className={styles.dropdownMenu}>
                                                     {availableSubjects.filter(s => s.active).map((subjectObj) => (
-                                                        <div
-                                                            key={subjectObj.name}
-                                                            className={`${styles.dropdownItem} ${formData.academicStrengths.includes(subjectObj.name) ? styles.selected : ''}`}
-                                                            onClick={() => handleSubjectToggle('academicStrengths', subjectObj.name)}
-                                                        >
+                                                        <div key={subjectObj.name} className={`${styles.dropdownItem} ${formData.academicStrengths.includes(subjectObj.name) ? styles.selected : ''}`} onClick={() => handleSubjectToggle('academicStrengths', subjectObj.name)}>
                                                             <span className={styles.itemCheckbox}>
                                                                 {formData.academicStrengths.includes(subjectObj.name) && (
                                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -634,10 +669,7 @@ const Signup = () => {
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Subjects of Difficulty</label>
                                         <div className={styles.multiSelectWrapper} ref={difficultyRef}>
-                                            <div
-                                                className={styles.multiSelectTrigger}
-                                                onClick={() => setDifficultyDropdownOpen(!difficultyDropdownOpen)}
-                                            >
+                                            <div className={styles.multiSelectTrigger} onClick={() => setDifficultyDropdownOpen(!difficultyDropdownOpen)}>
                                                 <div className={styles.selectedTags}>
                                                     {formData.subjectsOfDifficulty.length === 0 ? (
                                                         <span className={styles.placeholder}>Select difficult subjects...</span>
@@ -645,33 +677,22 @@ const Signup = () => {
                                                         formData.subjectsOfDifficulty.map((subject) => (
                                                             <span key={subject} className={styles.tag}>
                                                                 {subject}
-                                                                <button
-                                                                    type="button"
-                                                                    className={styles.tagRemove}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        removeSubject('subjectsOfDifficulty', subject);
-                                                                    }}
-                                                                >
+                                                                <button type="button" className={styles.tagRemove} onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeSubject('subjectsOfDifficulty', subject);
+                                                                }}>
                                                                     <X size={12} />
                                                                 </button>
                                                             </span>
                                                         ))
                                                     )}
                                                 </div>
-                                                <ChevronDown
-                                                    size={18}
-                                                    className={`${styles.dropdownIcon} ${difficultyDropdownOpen ? styles.rotated : ''}`}
-                                                />
+                                                <ChevronDown size={18} className={`${styles.dropdownIcon} ${difficultyDropdownOpen ? styles.rotated : ''}`} />
                                             </div>
                                             {difficultyDropdownOpen && (
                                                 <div className={styles.dropdownMenu}>
                                                     {availableSubjects.filter(s => s.active).map((subjectObj) => (
-                                                        <div
-                                                            key={subjectObj.name}
-                                                            className={`${styles.dropdownItem} ${formData.subjectsOfDifficulty.includes(subjectObj.name) ? styles.selected : ''}`}
-                                                            onClick={() => handleSubjectToggle('subjectsOfDifficulty', subjectObj.name)}
-                                                        >
+                                                        <div key={subjectObj.name} className={`${styles.dropdownItem} ${formData.subjectsOfDifficulty.includes(subjectObj.name) ? styles.selected : ''}`} onClick={() => handleSubjectToggle('subjectsOfDifficulty', subjectObj.name)}>
                                                             <span className={styles.itemCheckbox}>
                                                                 {formData.subjectsOfDifficulty.includes(subjectObj.name) && (
                                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -689,17 +710,14 @@ const Signup = () => {
                                 </div>
                             </div>
 
-                            {/* Learning Preferences Section */}
+                            {/* === LEARNING PREFERENCES === */}
                             <div className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Learning Preferences</h3>
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Preferred Study Style *</label>
                                         <div className={styles.singleSelectWrapper} ref={studyStyleRef}>
-                                            <div
-                                                className={styles.singleSelectTrigger}
-                                                onClick={() => setStudyStyleDropdownOpen(!studyStyleDropdownOpen)}
-                                            >
+                                            <div className={styles.singleSelectTrigger} onClick={() => setStudyStyleDropdownOpen(!studyStyleDropdownOpen)}>
                                                 <span className={formData.studyStyle ? styles.selectedText : styles.placeholder}>
                                                     {formData.studyStyle || "Select study style"}
                                                 </span>
@@ -708,19 +726,13 @@ const Signup = () => {
                                             {studyStyleDropdownOpen && (
                                                 <div className={styles.dropdownMenu}>
                                                     {studyStyles.map((style) => (
-                                                        <div
-                                                            key={style}
-                                                            className={`${styles.dropdownItem} ${formData.studyStyle === style ? styles.selected : ''}`}
-                                                            onClick={() => {
-                                                                setFormData(prev => ({ ...prev, studyStyle: style }));
-                                                                setErrors(prev => ({ ...prev, studyStyle: '' })); // Clear error on select
-                                                                setStudyStyleDropdownOpen(false);
-                                                            }}
-                                                        >
+                                                        <div key={style} className={`${styles.dropdownItem} ${formData.studyStyle === style ? styles.selected : ''}`} onClick={() => {
+                                                            setFormData(prev => ({ ...prev, studyStyle: style }));
+                                                            setErrors(prev => ({ ...prev, studyStyle: '' }));
+                                                            setStudyStyleDropdownOpen(false);
+                                                        }}>
                                                             <div className={styles.itemRadio}>
-                                                                {formData.studyStyle === style && (
-                                                                    <div className={styles.radioInner} />
-                                                                )}
+                                                                {formData.studyStyle === style && <div className={styles.radioInner} />}
                                                             </div>
                                                             <span>{style}</span>
                                                         </div>
@@ -728,16 +740,26 @@ const Signup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Render Dropdown Error */}
                                         {errors.studyStyle && <span className={styles.errorMessage}>{errors.studyStyle}</span>}
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Availability Section */}
-                            <div className={styles.section}>
-                                <h3 className={styles.sectionTitle}>Availability</h3>
-                                <div className={styles.inputGroup}>
+                                    {/* 🟢 ADDED: Manual Referral Code Entry */}
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Referral Code (Optional)</label>
+                                        <input
+                                            type="text"
+                                            name="referredByCode"
+                                            className={styles.input}
+                                            placeholder="Got a code from a friend?"
+                                            value={formData.referredByCode}
+                                            onChange={handleInputChange}
+                                            style={{ textTransform: 'uppercase' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Availability Section */}
+                                <div className={styles.inputGroup} style={{ marginTop: '20px' }}>
                                     <label className={styles.label}>Describe your available study times</label>
                                     <textarea
                                         name="availability"
@@ -746,19 +768,36 @@ const Signup = () => {
                                         value={formData.availability}
                                         onChange={handleInputChange}
                                         onBlur={handleBlur}
-                                        rows={4}
+                                        rows={3}
                                     />
-                                    {/* Render Textarea Error */}
                                     {errors.availability && <span className={styles.errorMessage}>{errors.availability}</span>}
                                 </div>
+                            </div>
+
+                            {/* 🟢 ADDED: Legal / TOS Checkbox */}
+                            <div className={styles.legalSection} style={{ marginTop: '30px', marginBottom: '20px' }}>
+                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        name="acceptTerms"
+                                        checked={formData.acceptTerms}
+                                        onChange={handleInputChange}
+                                        style={{ marginTop: '4px', width: '18px', height: '18px', cursor: 'pointer' }}
+                                    />
+                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                        I agree to the <Link to="/terms" style={{ color: 'var(--primary-color)' }}>Terms of Service</Link> and <Link to="/privacy" style={{ color: 'var(--primary-color)' }}>Privacy Policy</Link>.
+                                    </span>
+                                </label>
+                                {errors.acceptTerms && <span className={styles.errorMessage} style={{ display: 'block', marginTop: '5px' }}>{errors.acceptTerms}</span>}
                             </div>
 
                             <button
                                 type="submit"
                                 className={styles.submitButton}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || !formData.acceptTerms}
+                                style={{ opacity: (!formData.acceptTerms || isSubmitting) ? 0.6 : 1 }}
                             >
-                                {isSubmitting ? 'Creating Profile...' : 'Create Profile'}
+                                {isSubmitting ? 'Creating Secure Profile...' : 'Create Profile'}
                             </button>
                         </form>
                     </div>

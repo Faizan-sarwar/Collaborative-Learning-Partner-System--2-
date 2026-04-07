@@ -1,22 +1,21 @@
 import mongoose from 'mongoose';
 
-const activityLogSchema = new mongoose.Schema(
-  {
-    action: String,
-    user: String,
-    userType: {
-      type: String,
-      enum: ['admin', 'student', 'system', 'unknown'],
-      default: 'unknown',
-    },
-    ip: String,
-    status: {
-      type: String,
-      enum: ['success', 'failed'],
-      default: 'success',
-    },
+const activityLogSchema = new mongoose.Schema({
+  action: { type: String, required: true },
+  user: { type: String },
+  
+  userType: { 
+    type: String, 
+    enum: ['student', 'admin', 'super-admin', 'system', 'visitor'], 
+    default: 'visitor' 
   },
-  { timestamps: true }
-);
+  
+  ip: { type: String },
+  status: { 
+    type: String, 
+    enum: ['success', 'failed'], 
+    required: true 
+  }
+}, { timestamps: true });
 
 export default mongoose.model('ActivityLog', activityLogSchema);

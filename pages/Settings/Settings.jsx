@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Bell, Shield, Sliders, Lock, Camera, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import styles from './Settings.module.css';
 import PageTransition from '../../components/PageTransition/PageTransition';
 import DashboardSidebar from '../../components/Dashboard/DashboardSidebar/DashboardSidebar';
@@ -21,7 +22,6 @@ const Settings = () => {
     department: 'CS',
     semester: '1',
     studyStyle: 'Individual Study',
-    // Default settings structure
     settings: {
       notifications: {
         email: true,
@@ -52,7 +52,6 @@ const Settings = () => {
         const data = await res.json();
 
         if (data.success) {
-          // Merge fetched data with default structure to prevent null errors
           setFormData(prev => ({
             ...prev,
             ...data.user,
@@ -62,9 +61,13 @@ const Settings = () => {
             }
           }));
           
-          // Set Avatar Preview
           if (data.user._id) {
             setPreviewImage(`http://localhost:5000/api/auth/student/${data.user._id}/picture`);
+          }
+          
+          // Apply initial theme
+          if (data.user.settings?.theme) {
+              document.documentElement.setAttribute('data-theme', data.user.settings.theme);
           }
         }
       } catch (err) {
@@ -77,12 +80,10 @@ const Settings = () => {
     fetchUserData();
   }, []);
 
-  // 2. Handle Input Changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // 3. Handle Nested Settings Changes
   const handleSettingChange = (category, key, value) => {
     setFormData(prev => ({
       ...prev,
@@ -101,18 +102,18 @@ const Settings = () => {
       ...prev,
       settings: { ...prev.settings, theme: value }
     }));
+    // Instantly apply theme to DOM for real-time preview
+    document.documentElement.setAttribute('data-theme', value);
   };
 
-  // 4. Handle Image Upload
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file)); // Show local preview
+      setPreviewImage(URL.createObjectURL(file)); 
     }
   };
 
-  // 5. Save Changes
   const handleSave = async () => {
     setSaving(true);
     setMessage({ type: '', text: '' });
@@ -121,25 +122,21 @@ const Settings = () => {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const dataToSend = new FormData();
 
-      // Append text fields
       dataToSend.append('fullName', formData.fullName);
       dataToSend.append('phone', formData.phone || '');
       dataToSend.append('bio', formData.bio || '');
       dataToSend.append('department', formData.department);
       dataToSend.append('semester', formData.semester);
       dataToSend.append('studyStyle', formData.studyStyle);
-      
-      // Append Nested Settings as JSON string
       dataToSend.append('settings', JSON.stringify(formData.settings));
 
-      // Append Image if selected
       if (selectedFile) {
         dataToSend.append('profilePicture', selectedFile);
       }
 
       const res = await fetch('http://localhost:5000/api/auth/profile', {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }, // Don't set Content-Type for FormData
+        headers: { 'Authorization': `Bearer ${token}` }, 
         body: dataToSend
       });
 
@@ -147,9 +144,14 @@ const Settings = () => {
 
       if (result.success) {
         setMessage({ type: 'success', text: 'Settings updated successfully!' });
-        // Update Session Storage
-        const currentUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
-        sessionStorage.setItem('user', JSON.stringify({ ...currentUser, ...result.user }));
+        
+        // Update Session Storage & Trigger Global Update
+        const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+        const currentUser = JSON.parse(storage.getItem('user'));
+        storage.setItem('user', JSON.stringify({ ...currentUser, ...result.user }));
+        
+        // 🟢 SHOUT TO SIDEBAR/HEADER TO RE-RENDER IMMEDIATELY
+        window.dispatchEvent(new Event('userUpdated'));
       } else {
         setMessage({ type: 'error', text: result.message || 'Failed to update.' });
       }
@@ -158,22 +160,21 @@ const Settings = () => {
       setMessage({ type: 'error', text: 'Server error occurred.' });
     } finally {
       setSaving(false);
-      // Clear message after 3 seconds
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      setTimeout(() => setMessage({ type: '', text: '' }), 4000);
     }
   };
 
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'account', label: 'Account', icon: '🔐' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'privacy', label: 'Privacy', icon: '🛡️' },
-    { id: 'preferences', label: 'Preferences', icon: '⚙️' },
+    { id: 'profile', label: 'Public Profile', icon: <User size={18} /> },
+    { id: 'preferences', label: 'Preferences', icon: <Sliders size={18} /> },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
+    { id: 'privacy', label: 'Privacy & Visibility', icon: <Shield size={18} /> },
+    { id: 'account', label: 'Account Security', icon: <Lock size={18} /> },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  const fadeVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   };
 
   if (loading) return <div className={styles.loading}>Loading Settings...</div>;
@@ -186,25 +187,36 @@ const Settings = () => {
         <div className={styles.mainArea}>
           <DashboardHeader username={formData.fullName} />
           
-          <motion.main 
-            className={styles.content}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
+          {/* 🟢 FLOATING TOAST NOTIFICATION */}
+          <AnimatePresence>
+            {message.text && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, x: '-50%' }}
+                exit={{ opacity: 0, y: -20, x: '-50%' }}
+                style={{
+                    position: 'fixed', top: '80px', left: '50%', zIndex: 1000,
+                    backgroundColor: message.type === 'success' ? '#10b981' : '#ef4444',
+                    color: 'white', padding: '12px 24px', borderRadius: '8px',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', fontWeight: '500'
+                }}
+              >
+                {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                {message.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <main className={styles.content}>
             <div className={styles.pageHeader}>
               <h1>Settings</h1>
-              <p>Manage your account settings and preferences</p>
+              <p>Manage your account settings, profile, and app preferences.</p>
             </div>
 
-            {/* Success/Error Message Toast */}
-            {message.text && (
-              <div className={`${styles.toast} ${message.type === 'success' ? styles.success : styles.error}`}>
-                {message.text}
-              </div>
-            )}
-
             <div className={styles.settingsContainer}>
+              
+              {/* SIDEBAR TABS */}
               <div className={styles.tabsSidebar}>
                 {tabs.map((tab) => (
                   <button
@@ -218,29 +230,38 @@ const Settings = () => {
                 ))}
               </div>
 
+              {/* CONTENT AREA */}
               <div className={styles.tabContent}>
+                
+                {/* 🟢 PROFILE TAB */}
                 {activeTab === 'profile' && (
-                  <motion.div className={styles.section} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <h2>Profile Information</h2>
-                    <p className={styles.sectionDesc}>Update your personal details and photo</p>
+                  <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                    <div className={styles.sectionHeader}>
+                        <h2>Public Profile</h2>
+                        <p className={styles.sectionDesc}>This is how others will see you on the platform.</p>
+                    </div>
 
                     <div className={styles.profilePhoto}>
-                      <img 
-                        src={previewImage || `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`} 
-                        alt="Profile" 
-                        onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`}
-                      />
+                      <div className={styles.avatarWrapper} onClick={() => fileInputRef.current.click()}>
+                          <img 
+                            src={previewImage || `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`} 
+                            alt="Profile" 
+                            onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`}
+                          />
+                          <div className={styles.avatarOverlay}>
+                              <Camera size={24} />
+                          </div>
+                      </div>
                       <div className={styles.photoActions}>
                         <input 
-                          type="file" 
-                          ref={fileInputRef} 
+                          type="file" ref={fileInputRef} 
                           onChange={handleImageChange} 
-                          style={{display: 'none'}} 
-                          accept="image/*"
+                          style={{display: 'none'}} accept="image/*"
                         />
-                        <button className={styles.uploadBtn} onClick={() => fileInputRef.current.click()}>
-                          Upload Photo
+                        <button type="button" className={styles.uploadBtn} onClick={() => fileInputRef.current.click()}>
+                          Change Avatar
                         </button>
+                        <p>JPG, GIF or PNG. Max size 5MB.</p>
                       </div>
                     </div>
 
@@ -248,110 +269,147 @@ const Settings = () => {
                       <div className={styles.formGroup}>
                         <label>Full Name</label>
                         <input 
-                          type="text" 
-                          value={formData.fullName}
+                          type="text" value={formData.fullName}
                           onChange={(e) => handleInputChange('fullName', e.target.value)}
                         />
                       </div>
                       <div className={styles.formGroup}>
                         <label>Email Address</label>
-                        <input type="email" value={formData.email} disabled className={styles.disabledInput} />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label>Phone Number</label>
-                        <input 
-                          type="tel" 
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                        />
+                        <input type="email" value={formData.email} disabled />
                       </div>
                       <div className={styles.formGroup}>
                         <label>Department</label>
-                        <select 
-                          value={formData.department}
-                          onChange={(e) => handleInputChange('department', e.target.value)}
-                        >
-                          <option value="IT">Information Technology</option>
-                          <option value="CS">Computer Science</option>
-                          <option value="ECE">Electronics</option>
-                          <option value="ME">Mechanical</option>
+                        <select value={formData.department} onChange={(e) => handleInputChange('department', e.target.value)}>
+                          <option value="Information Technology">Information Technology</option>
+                          <option value="Computer Science">Computer Science</option>
+                          <option value="Electronics">Electronics</option>
+                          <option value="Mechanical">Mechanical</option>
+                          <option value="Civil">Civil</option>
+                          <option value="Electrical">Electrical</option>
                         </select>
                       </div>
                       <div className={styles.formGroup}>
                         <label>Semester</label>
-                        <select 
-                          value={formData.semester}
-                          onChange={(e) => handleInputChange('semester', e.target.value)}
-                        >
+                        <select value={formData.semester} onChange={(e) => handleInputChange('semester', e.target.value)}>
                           {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
                             <option key={sem} value={sem}>Semester {sem}</option>
                           ))}
                         </select>
                       </div>
                       <div className={styles.formGroup}>
-                        <label>Study Style</label>
-                        <select 
-                          value={formData.studyStyle}
-                          onChange={(e) => handleInputChange('studyStyle', e.target.value)}
-                        >
+                        <label>Preferred Study Style</label>
+                        <select value={formData.studyStyle} onChange={(e) => handleInputChange('studyStyle', e.target.value)}>
                           <option value="Individual Study">Individual Study</option>
                           <option value="Group Collaboration">Group Collaboration</option>
                           <option value="One-on-One Mentoring">One-on-One Mentoring</option>
                         </select>
                       </div>
+                      <div className={styles.formGroup}>
+                        <label>Phone Number (Optional)</label>
+                        <input 
+                          type="tel" value={formData.phone} placeholder="+1 (555) 000-0000"
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                        <label>Bio</label>
+                        <textarea 
+                          value={formData.bio} placeholder="Write a short introduction about yourself..."
+                          onChange={(e) => handleInputChange('bio', e.target.value)}
+                        />
+                      </div>
                     </div>
 
-                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                      <label>Bio</label>
-                      <textarea 
-                        value={formData.bio}
-                        onChange={(e) => handleInputChange('bio', e.target.value)}
-                        rows={4}
-                      />
+                    <div className={styles.saveAction}>
+                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16}/> Save Profile</>}
+                        </button>
                     </div>
-
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
                   </motion.div>
                 )}
 
-                {activeTab === 'notifications' && (
-                  <motion.div className={styles.section} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <h2>Notification Preferences</h2>
-                    <p className={styles.sectionDesc}>Choose how you want to be notified</p>
+                {/* 🟢 PREFERENCES TAB */}
+                {activeTab === 'preferences' && (
+                  <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                    <div className={styles.sectionHeader}>
+                        <h2>App Preferences</h2>
+                        <p className={styles.sectionDesc}>Customize your app experience.</p>
+                    </div>
+                    <div className={styles.formGrid}>
+                      <div className={styles.formGroup}>
+                        <label>App Theme</label>
+                        <select value={formData.settings.theme} onChange={(e) => handleThemeChange(e.target.value)}>
+                          <option value="dark">Dark Mode</option>
+                          <option value="light">Light Mode</option>
+                        </select>
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Language</label>
+                        <select value={formData.settings.language} onChange={(e) => handleSettingChange('settings', 'language', e.target.value)}>
+                          <option value="en">English</option>
+                          <option value="es">Spanish</option>
+                          <option value="fr">French</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className={styles.saveAction}>
+                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                          {saving ? 'Saving...' : <><Save size={16}/> Save Preferences</>}
+                        </button>
+                    </div>
+                  </motion.div>
+                )}
 
+                {/* 🟢 NOTIFICATIONS TAB */}
+                {activeTab === 'notifications' && (
+                  <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                    <div className={styles.sectionHeader}>
+                        <h2>Notifications</h2>
+                        <p className={styles.sectionDesc}>Control when and how you are notified.</p>
+                    </div>
                     <div className={styles.toggleList}>
-                      {Object.keys(formData.settings.notifications).map((key) => (
-                        <div className={styles.toggleItem} key={key}>
+                      {[
+                          { key: 'email', label: 'Email Notifications', desc: 'Receive daily summaries and updates.' },
+                          { key: 'push', label: 'Push Notifications', desc: 'Real-time alerts in your browser.' },
+                          { key: 'studyReminders', label: 'Study Reminders', desc: 'Get reminded for scheduled sessions.' },
+                          { key: 'messages', label: 'Direct Messages', desc: 'Notify me when someone sends a message.' }
+                      ].map((item) => (
+                        <div className={styles.toggleItem} key={item.key}>
                           <div className={styles.toggleInfo}>
-                            <h4>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</h4>
+                            <h4>{item.label}</h4>
+                            <p>{item.desc}</p>
                           </div>
                           <label className={styles.toggle}>
                             <input 
                               type="checkbox" 
-                              checked={formData.settings.notifications[key]}
-                              onChange={(e) => handleSettingChange('notifications', key, e.target.checked)}
+                              checked={formData.settings.notifications[item.key]}
+                              onChange={(e) => handleSettingChange('notifications', item.key, e.target.checked)}
                             />
                             <span className={styles.slider}></span>
                           </label>
                         </div>
                       ))}
                     </div>
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Preferences'}
-                    </button>
+                    <div className={styles.saveAction}>
+                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16}/> Save Notifications</>}
+                        </button>
+                    </div>
                   </motion.div>
                 )}
 
+                {/* 🟢 PRIVACY TAB */}
                 {activeTab === 'privacy' && (
-                  <motion.div className={styles.section} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <h2>Privacy Settings</h2>
+                  <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                    <div className={styles.sectionHeader}>
+                        <h2>Privacy & Visibility</h2>
+                        <p className={styles.sectionDesc}>Control who can see your profile and activity.</p>
+                    </div>
                     <div className={styles.toggleList}>
                       <div className={styles.toggleItem}>
                         <div className={styles.toggleInfo}>
                           <h4>Show Profile</h4>
-                          <p>Allow others to view your profile</p>
+                          <p>Allow others to discover you in Study Matches.</p>
                         </div>
                         <label className={styles.toggle}>
                           <input 
@@ -364,8 +422,8 @@ const Settings = () => {
                       </div>
                       <div className={styles.toggleItem}>
                         <div className={styles.toggleInfo}>
-                          <h4>Show Activity</h4>
-                          <p>Show when you are online</p>
+                          <h4>Show Online Status</h4>
+                          <p>Let connections see when you are currently active.</p>
                         </div>
                         <label className={styles.toggle}>
                           <input 
@@ -377,40 +435,50 @@ const Settings = () => {
                         </label>
                       </div>
                     </div>
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Privacy Settings'}
-                    </button>
-                  </motion.div>
-                )}
-
-                {activeTab === 'preferences' && (
-                  <motion.div className={styles.section} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <h2>App Preferences</h2>
-                    <div className={styles.formGrid}>
-                      <div className={styles.formGroup}>
-                        <label>Theme</label>
-                        <select 
-                          value={formData.settings.theme}
-                          onChange={(e) => handleThemeChange(e.target.value)}
-                        >
-                          <option value="dark">Dark Mode</option>
-                          <option value="light">Light Mode</option>
-                        </select>
-                      </div>
+                    <div className={styles.saveAction}>
+                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16}/> Save Privacy</>}
+                        </button>
                     </div>
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Preferences'}
-                    </button>
                   </motion.div>
                 )}
                 
+                {/* 🟢 ACCOUNT TAB */}
                 {activeTab === 'account' && (
-                    <motion.div className={styles.section} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        <h2>Account Security</h2>
-                        <div className={styles.securityCard}>
-                            <div className={styles.securityInfo}>
-                                <h3>Password</h3>
-                                <p>For security, please contact support to change your password or use the "Forgot Password" link on the login page.</p>
+                    <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                        <div className={styles.sectionHeader}>
+                            <h2>Account Security</h2>
+                            <p className={styles.sectionDesc}>Manage your security settings and account deletion.</p>
+                        </div>
+                        
+                        <div className={styles.formGroup} style={{ marginBottom: '30px' }}>
+                            <label>Password</label>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '10px', marginTop: 0 }}>
+                                Need to change your password? Click below to receive a secure reset link.
+                            </p>
+                            <div>
+                                <button type="button" className={styles.uploadBtn} onClick={() => alert("A password reset link would be sent to your email.")}>
+                                    Send Reset Link
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={styles.dangerZone}>
+                            <div className={styles.dangerHeader}>
+                                <h3>Danger Zone</h3>
+                            </div>
+                            <div className={styles.dangerContent}>
+                                <div className={styles.dangerInfo}>
+                                    <h4>Delete Account</h4>
+                                    <p>Once you delete your account, there is no going back. Please be certain.</p>
+                                </div>
+                                <button className={styles.deleteBtn} onClick={() => {
+                                    if(window.confirm("Are you absolutely sure? This will delete all your data.")) {
+                                        alert("Contact support to process deletion.");
+                                    }
+                                }}>
+                                    Delete Account
+                                </button>
                             </div>
                         </div>
                     </motion.div>
@@ -418,7 +486,7 @@ const Settings = () => {
 
               </div>
             </div>
-          </motion.main>
+          </main>
         </div>
       </div>
     </PageTransition>

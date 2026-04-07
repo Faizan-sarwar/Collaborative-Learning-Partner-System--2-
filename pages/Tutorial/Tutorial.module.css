@@ -1,0 +1,316 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.hero {
+  position: relative;
+  padding: 160px 24px 80px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.heroBg { position: absolute; inset: 0; z-index: 0; }
+
+.glowOrb1 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+}
+
+.glowOrb2 {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+  bottom: -50px;
+  left: -50px;
+}
+
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.heroContent { position: relative; z-index: 1; }
+
+.badge {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 100px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.heroTitle {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 16px;
+}
+
+.gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSubtitle {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Content */
+.content { padding: 0 24px 100px; }
+.container { max-width: 1100px; margin: 0 auto; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 40px;
+  margin-bottom: 60px;
+}
+
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 100px;
+  align-self: start;
+}
+
+.sidebarBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: left;
+}
+
+.sidebarBtn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.sidebarActive {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.sidebarIcon { font-size: 1.1rem; }
+
+/* Tutorials */
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.tutorialsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tutorialCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition-fast);
+}
+
+.tutorialCard:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.tutorialHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 20px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.tutorialHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tutorialNumber {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.tutorialTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tutorialHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.duration {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+.chevron {
+  color: var(--text-muted);
+  transition: transform 0.3s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Steps */
+.tutorialSteps {
+  overflow: hidden;
+}
+
+.stepsInner {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.stepNum {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+  color: var(--accent-blue);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stepText {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-top: 3px;
+}
+
+/* Help CTA */
+.helpCta {
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 48px;
+}
+
+.ctaTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.ctaText {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.ctaBtn {
+  display: inline-block;
+  padding: 12px 32px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: var(--transition-fast);
+}
+
+.ctaBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: static;
+    gap: 8px;
+  }
+
+  .sidebarBtn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .tutorialHeader {
+    padding: 16px;
+  }
+
+  .tutorialHeaderLeft {
+    gap: 10px;
+  }
+
+  .tutorialTitle {
+    font-size: 0.9rem;
+  }
+}

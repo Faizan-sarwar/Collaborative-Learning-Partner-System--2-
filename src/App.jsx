@@ -35,6 +35,9 @@ import StudyRoomWaiting from "../pages/StudyRoomWaiting/StudyRoomWaiting";
 import StudyRoomActive from "../pages/StudyRoomActive/StudyRoomActive";
 import Settings from "../pages/Settings/Settings";
 import ChatBot from "../pages/ChatBot/ChatBot";
+import FAQ from "../components/FAQ/FAQ";
+import About from "../pages/About/About";
+import Contact from "../pages/Contact/Contact";
 import XP from "../pages/XP/Xp";
 import "./App.css";
 
@@ -60,7 +63,6 @@ const dashboardRoutes = [
   '/messages',
   '/quiz',
   '/gamification',
-  // '/refer',
   '/study-matches',
   '/user-profile',
   '/pending-connections',
@@ -74,7 +76,7 @@ const AnimatedRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
-  
+
   // Start checking by default so the page waits for settings
   const [isChecking, setIsChecking] = useState(true);
 
@@ -89,24 +91,25 @@ const AnimatedRoutes = () => {
 
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
       const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
-      
+
       let user = null;
       if (storedUserString) {
-        try { user = JSON.parse(storedUserString); } catch(e) { console.error("Failed to parse user", e); }
+        try { user = JSON.parse(storedUserString); } catch (e) { console.error("Failed to parse user", e); }
       }
 
-      // 1. GLOBAL MAINTENANCE MODE
+      // 1. GLOBAL HARD LOCKDOWN (Maintenance Mode)
       if (settings?.maintenanceMode) {
         const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
+
+        // 🟢 CLOSED THE KEYHOLE: No one can access /login.
         if (!isAdmin && location.pathname !== '/maintenance') {
           navigate('/maintenance');
           setIsChecking(false);
           return;
         }
       } else {
-        // If maintenance is off but they are on the maintenance page, kick them to home
         if (location.pathname === '/maintenance') {
-             navigate('/');
+          navigate('/');
         }
       }
 
@@ -174,7 +177,7 @@ const AnimatedRoutes = () => {
     checkStatus();
   }, [location.pathname, navigate, settings]);
 
-  // 🟢 NEW: Prevent the split-second flicker! 
+  // Prevent the split-second flicker! 
   if (isChecking) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#8b5cf6' }}>
@@ -202,6 +205,9 @@ const AnimatedRoutes = () => {
           <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="/verify-otp" element={<PageTransition><VerifyOTP /></PageTransition>} />
+          <Route path="/faq" element={<PageTransition><FAQ /></PageTransition>} />
+          <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+          <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
           <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
 
           {/* Fallback route for maintenance mode */}

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Navbar.module.css';
-import { useSettings } from '../../src/context/SettingsContext'; // Adjust this path based on your folder structure
+import { useSettings } from '../../src/context/SettingsContext';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // 🟢 MAGIC: Pull settings from your global context
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -18,11 +16,12 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // 1. Updated routes to point to standard URL paths
   const navLinks = [
-    { name: 'Home', href: '#', icon: "fa-solid fa-circle-info" },
-    { name: 'FAQ', href: '#', icon: "fa-solid fa-circle-question" },
-    { name: 'About', href: '#', icon: "fa-solid fa-users" },
-    { name: 'Contact', href: '#', icon: "fa-solid fa-envelope" },
+    { name: 'Home', path: '/', icon: "fa-solid fa-circle-info" },
+    { name: 'FAQ', path: '/faq', icon: "fa-solid fa-circle-question" },
+    { name: 'About', path: '/about', icon: "fa-solid fa-users" },
+    { name: 'Contact', path: '/contact', icon: "fa-solid fa-envelope" },
   ];
 
   return (
@@ -42,17 +41,20 @@ const Navbar = () => {
               </defs>
             </svg>
           </div>
-          {/* 🟢 MAGIC HAPPENS HERE: Dynamic logo text */}
           <span className={styles.logoText}>{settings?.platformName || 'Loading...'}</span>
         </div>
 
         <ul className={`${styles.navLinks} ${mobileMenuOpen ? styles.mobileOpen : ''}`}>
           {navLinks.map((link) => (
             <li key={link.name}>
-              <a href={link.href} className={styles.navLink}>
+              <Link 
+                to={link.path} 
+                className={styles.navLink}
+                onClick={() => setMobileMenuOpen(false)} // Close menu on click (mobile)
+              >
                 <i className={link.icon} style={{ marginRight: '8px' }}></i>
                 {link.name}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

@@ -38,7 +38,7 @@ const [logs, setLogs] = useState([]);
     } finally {
       if (!isBackground) setLoading(false);
     }
-  };F
+  };
 
   // 🟢 AUTO-REFRESH ENGINE (Every 5 seconds)
   useEffect(() => {

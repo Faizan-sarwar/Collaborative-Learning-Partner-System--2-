@@ -2,12 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './AdminNavbar.module.css';
 import ThemeToggle from '../../ThemeToggle/ThemeToggle';
+// 🟢 IMPORT GLOBAL SETTINGS
+import { useSettings } from '../../../src/context/SettingsContext'; 
 
 const NOTIFICATION_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
 
 const AdminNavbar = ({ onMenuClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // 🟢 PULL SETTINGS FOR MAINTENANCE CHECK
+  const { settings } = useSettings();
   
   const [user, setUser] = useState(null);
   const [imgError, setImgError] = useState(false);
@@ -102,10 +107,9 @@ const AdminNavbar = ({ onMenuClick }) => {
     setShowNotifications(!showNotifications);
   };
 
-  // 🟢 Fix: Hide notifications visually when "Mark read" is clicked
   const handleMarkRead = () => {
     setUnreadCount(0);
-    setNotifications([]); // Temporarily clear from the dropdown view to simulate "read"
+    setNotifications([]); 
   };
 
   const renderProfileImage = () => {
@@ -199,17 +203,30 @@ const AdminNavbar = ({ onMenuClick }) => {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Profile
                 </button>
                 <button onClick={() => handleNavigation('/admin/settings')} className={styles.dropdownItem}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg> Settings
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg> Settings
                 </button>
                 <div className={styles.dropdownDivider}></div>
-                <button onClick={() => {
+                
+                {/* 🟢 HARD LOCKDOWN: Logout Button Security */}
+                <button 
+                  onClick={() => {
+                    if (settings?.maintenanceMode) {
+                      alert("⚠️ SECURITY LOCK: You cannot log out while Maintenance Mode is active. Please turn off Maintenance Mode in Settings before logging out to prevent getting permanently locked out.");
+                      return;
+                    }
                     sessionStorage.clear();
                     localStorage.removeItem('user');
                     localStorage.removeItem('token');
                     window.location.href = '/login';
-                }} className={styles.dropdownItem}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Logout
+                  }} 
+                  className={styles.dropdownItem}
+                  style={settings?.maintenanceMode ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  title={settings?.maintenanceMode ? "Disabled to prevent lockout during maintenance" : "Logout"}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> 
+                  Logout {settings?.maintenanceMode && '(Locked)'}
                 </button>
+
               </div>
             </div>
           )}

@@ -20,7 +20,6 @@ const Index = () => {
       <WhyGroupStudy />
       <Impact />
       <FAQ />
-      <Footer />
     </div>
   );
 };
