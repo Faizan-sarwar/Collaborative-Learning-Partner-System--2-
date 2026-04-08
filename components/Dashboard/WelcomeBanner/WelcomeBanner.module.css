@@ -1,251 +1,301 @@
-.banner {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
+.bannerContainer {
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
+  border-radius: 20px;
   overflow: hidden;
-}
-
-.promoBar {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.3));
-  font-size: 14px;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
 }
 
-.promoIcon {
-  font-size: 18px;
-}
-
-.promoText {
-  flex: 1;
-  color: var(--text-primary);
-}
-
-.promoBtn {
-  padding: 6px 16px;
-  background: white;
-  border: none;
-  border-radius: 6px;
-  color: var(--accent-purple);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.promoBtn:hover {
-  transform: scale(1.02);
-}
-
-.promoDismiss {
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.promoDismiss:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.content {
+/* 🟢 Hero Section */
+.heroSection {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 24px;
-  gap: 24px;
+  align-items: center;
+  padding: 32px;
+  background: linear-gradient(to right, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 0.4) 100%);
+  border-bottom: 1px solid var(--border-color, #1e293b);
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-.leftContent {
+.greeting {
   flex: 1;
 }
 
 .title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 12px 0;
-}
-
-.levelBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, var(--accent-green), #059669);
-  border-radius: 20px;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
-  color: var(--text-secondary);
-  font-size: 15px;
-  margin: 0 0 20px 0;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 1.05rem;
+  margin: 0;
 }
 
-.progressSection {
+.heroActions {
   display: flex;
-  align-items: center;
   gap: 12px;
 }
 
-.progressBar {
-  flex: 1;
-  max-width: 300px;
-  height: 8px;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
+.primaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.primaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.secondaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--bg-tertiary, #1e293b);
+  color: var(--text-primary, #f8fafc);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+/* 🟢 Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border-color, #1e293b);
+  border-bottom: 1px solid var(--border-color, #1e293b);
+}
+
+.statCard {
+  background: var(--bg-secondary, #0f172a);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.statHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.statLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tierBadge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.statBody {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.statSubtext {
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 500;
+}
+
+.insightBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.insightBtn:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+/* 🟢 Path to Elite Section (Tips) */
+.improvementSection {
+  background: #0b1120;
+  padding: 0 32px; /* Vertically animated, so padding is managed carefully */
+  border-bottom: 1px solid var(--border-color, #1e293b);
   overflow: hidden;
 }
 
-.progressFill {
-  height: 100%;
-  background: rgb(253, 59, 59);
-  border-radius: 4px;
+.improvementHeader {
+  padding-top: 32px;
+  margin-bottom: 24px;
 }
 
-.progressText {
-  font-size: 13px;
-  color: var(--text-secondary);
+.improvementHeader h3 {
+  color: #f8fafc;
+  font-size: 1.25rem;
+  margin: 0 0 8px 0;
 }
 
-.rightContent {
-  flex-shrink: 0;
+.improvementHeader p {
+  color: #94a3b8;
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-.planCard {
+.tipsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-bottom: 32px;
+}
+
+.tipCard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
-  padding: 16px 20px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  background: var(--bg-secondary, #0f172a);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color, #1e293b);
 }
 
-.planIcon {
+.tipIcon {
   width: 48px;
   height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent-yellow), #f59e0b);
-  border-radius: 12px;
-  color: white;
+  flex-shrink: 0;
 }
 
-.planInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.tipCard h4 {
+  color: #f8fafc;
+  font-size: 1rem;
+  margin: 0 0 6px 0;
 }
 
-.planLabel {
-  font-size: 12px;
-  color: var(--text-secondary);
+.tipCard p {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
 }
 
-.planType {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--accent-yellow);
+.tipCard strong {
+  color: #e2e8f0;
 }
 
-.planExpiry {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.onlineStatus {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(34, 197, 94, 0.1);
-  border-radius: 20px;
-  font-size: 12px;
-  color: var(--accent-green);
-}
-
-.onlineDot {
-  width: 8px;
-  height: 8px;
-  background: var(--accent-green);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
+/* 🟢 Navigation Tabs */
 .tabs {
   display: flex;
-  gap: 8px;
-  padding: 0 24px 16px;
+  gap: 12px;
+  padding: 20px 32px;
+  background: var(--bg-secondary, #0f172a);
   overflow-x: auto;
 }
 
 .tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  font-size: 14px;
+  padding: 8px 16px;
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .tab:hover {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: #334155;
+  color: var(--text-primary, #f8fafc);
 }
 
 .tab.active {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
-  border-color: var(--accent-purple);
-  color: var(--text-primary);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+/* 🟢 Responsive Design */
+@media (max-width: 1024px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tipsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
-  .content {
+  .heroSection {
     flex-direction: column;
-    padding: 16px;
+    align-items: flex-start;
+    padding: 24px;
   }
-  
-  .title {
-    font-size: 22px;
-  }
-  
-  .rightContent {
+  .heroActions {
     width: 100%;
   }
-  
-  .planCard {
-    width: 100%;
+  .primaryBtn, .secondaryBtn {
+    flex: 1;
+    justify-content: center;
   }
-  
-  .promoBar {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .promoText {
-    width: 100%;
+  .statsGrid {
+    grid-template-columns: 1fr;
   }
 }

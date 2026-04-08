@@ -1,18 +1,43 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Zap, Search, MonitorPlay, BookOpen, ChevronRight } from 'lucide-react';
 import styles from './QuickLinks.module.css';
 
-const links = [
-  { id: 'find-match', icon: '🔍', label: 'Find New Match' },
-  { id: 'create-session', icon: '📝', label: 'Create Study Session' },
-  { id: 'resources', icon: '📚', label: 'Access Resources' },
-];
-
 const QuickLinks = () => {
+  const navigate = useNavigate();
+
+  // Define links with exact paths matching your router
+  const links = [
+    { 
+      id: 'find-match', 
+      icon: <Search size={18} />, 
+      label: 'Find New Match',
+      path: '/study-matches',
+      color: '#3b82f6' // Blue
+    },
+    { 
+      id: 'create-session', 
+      icon: <MonitorPlay size={18} />, 
+      label: 'Create Study Session',
+      path: '/study-time', // Or wherever your focus rooms are
+      color: '#10b981' // Emerald
+    },
+    { 
+      id: 'resources', 
+      icon: <BookOpen size={18} />, 
+      label: 'Access Resources',
+      path: '/courses',
+      color: '#8b5cf6' // Purple
+    },
+  ];
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <span className={styles.icon}>⚡</span>
+        <div className={styles.iconWrapper}>
+          <Zap size={20} className={styles.icon} />
+        </div>
         <h3 className={styles.title}>Quick Links</h3>
       </div>
 
@@ -21,14 +46,20 @@ const QuickLinks = () => {
           <motion.button
             key={link.id}
             className={styles.linkBtn}
+            onClick={() => navigate(link.path)}
             whileHover={{ x: 4 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className={styles.linkIcon}>{link.icon}</span>
+            <div 
+              className={styles.linkIconWrapper} 
+              style={{ color: link.color, backgroundColor: `${link.color}15` }}
+            >
+              {link.icon}
+            </div>
+            
             <span className={styles.linkLabel}>{link.label}</span>
-            <svg className={styles.arrow} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            
+            <ChevronRight size={18} className={styles.arrow} />
           </motion.button>
         ))}
       </div>

@@ -1,42 +1,55 @@
 .container {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.iconWrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.15); /* Amber tint */
+  border-radius: 10px;
 }
 
 .icon {
-  font-size: 18px;
+  color: #f59e0b; /* Amber */
 }
 
 .title {
-  font-size: 16px;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #f8fafc);
   margin: 0;
 }
 
 .links {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .linkBtn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
-  padding: 14px 16px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  padding: 12px 16px;
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -44,26 +57,39 @@
 }
 
 .linkBtn:hover {
-  background: var(--bg-primary);
-  border-color: var(--accent-purple);
+  background: var(--bg-primary, #020617);
+  border-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.linkIcon {
-  font-size: 18px;
+.linkIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.linkBtn:hover .linkIconWrapper {
+  transform: scale(1.05);
 }
 
 .linkLabel {
   flex: 1;
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary, #f8fafc);
 }
 
 .arrow {
-  color: var(--text-tertiary);
-  transition: transform 0.2s ease;
+  color: var(--text-secondary, #94a3b8);
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .linkBtn:hover .arrow {
-  transform: translateX(4px);
-  color: var(--accent-purple);
+  transform: translateX(2px);
+  color: var(--text-primary, #f8fafc);
 }

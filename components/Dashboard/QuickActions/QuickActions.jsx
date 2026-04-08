@@ -1,27 +1,56 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Bot, Timer, Newspaper, Users, BarChart3, Zap } from 'lucide-react';
 import styles from './QuickActions.module.css';
 
 const actions = [
-  { id: 'ai-tutor', icon: '🤖', label: 'AI Tutor', path: '/messages' },
-  { id: 'focus-rooms', icon: '🍅', label: 'Focus Rooms', path: '/study-room' },
-  { id: 'study-feed', icon: '📰', label: 'Study Feed', path: '/social' },
-  { id: 'find-partners', icon: '🤝', label: 'Find Study Partners', path: '/study-matches' },
-  { id: 'track-time', icon: '⏱️', label: 'Track Study Time', path: '/analytics' },
+  { 
+    id: 'ai-tutor', 
+    icon: <Bot size={24} />, 
+    label: 'AI Tutor', 
+    path: '/messages',
+    color: '#8b5cf6' // Purple
+  },
+  { 
+    id: 'focus-rooms', 
+    icon: <Timer size={24} />, 
+    label: 'Focus Rooms', 
+    path: '/study-room',
+    color: '#ef4444' // Red
+  },
+  { 
+    id: 'study-feed', 
+    icon: <Newspaper size={24} />, 
+    label: 'Study Feed', 
+    path: '/social',
+    color: '#3b82f6' // Blue
+  },
+  { 
+    id: 'find-partners', 
+    icon: <Users size={24} />, 
+    label: 'Find Partners', 
+    path: '/study-matches',
+    color: '#10b981' // Emerald
+  },
+  { 
+    id: 'track-time', 
+    icon: <BarChart3 size={24} />, 
+    label: 'Analytics', 
+    path: '/analytics',
+    color: '#f59e0b' // Amber
+  },
 ];
 
 const QuickActions = () => {
   const navigate = useNavigate();
 
-  const handleAction = (path) => {
-    navigate(path);
-  };
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <span className={styles.icon}>⚡</span>
+        <div className={styles.iconWrapper}>
+          <Zap size={20} className={styles.icon} />
+        </div>
         <h3 className={styles.title}>Quick Actions</h3>
       </div>
       
@@ -30,11 +59,16 @@ const QuickActions = () => {
           <motion.button
             key={action.id}
             className={styles.actionBtn}
-            onClick={() => handleAction(action.path)}
-            whileHover={{ scale: 1.02, y: -2 }}
+            onClick={() => navigate(action.path)}
+            whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className={styles.actionIcon}>{action.icon}</span>
+            <div 
+              className={styles.actionIconWrapper}
+              style={{ color: action.color, backgroundColor: `${action.color}15` }}
+            >
+              {action.icon}
+            </div>
             <span className={styles.actionLabel}>{action.label}</span>
           </motion.button>
         ))}

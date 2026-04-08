@@ -1,41 +1,44 @@
 .container {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .navBtn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 10px;
+  color: var(--text-secondary, #94a3b8);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .navBtn:hover {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--bg-primary, #020617);
+  color: var(--text-primary, #f8fafc);
+  border-color: #3b82f6;
 }
 
 .monthTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
   margin: 0;
+  letter-spacing: 0.5px;
 }
 
 .daysHeader {
@@ -47,9 +50,9 @@
 
 .dayLabel {
   text-align: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary, #64748b);
   padding: 8px 0;
 }
 
@@ -60,66 +63,113 @@
 }
 
 .dayBtn {
+  position: relative;
   aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: none;
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 13px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .dayBtn:hover:not(.empty) {
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary, #1e293b);
 }
 
 .dayBtn.empty {
   cursor: default;
 }
 
+/* Today's Date */
 .dayBtn.today {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
+/* Selected Date */
 .dayBtn.selected:not(.today) {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--accent-purple);
+  background: var(--bg-tertiary, #1e293b);
+  border: 2px solid #3b82f6;
+  font-weight: 700;
 }
 
+/* Event Dot Indicator */
+.eventDot {
+  width: 4px;
+  height: 4px;
+  background-color: #ec4899; /* Pink dot for events */
+  border-radius: 50%;
+  position: absolute;
+  bottom: 4px;
+}
+
+/* 🟢 DYNAMIC FOOTER AGENDA */
 .footer {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color, #1e293b);
 }
 
-.emptyDay {
+.agendaItem {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.agendaIconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--bg-tertiary, #1e293b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.agendaIconWrapper.hasEvents {
+  background: rgba(236, 72, 153, 0.15);
 }
 
 .emptyIcon {
-  font-size: 24px;
+  color: var(--text-tertiary, #64748b);
 }
 
-.emptyDay h4 {
-  font-size: 14px;
+.activeIcon {
+  color: #ec4899;
+}
+
+.agendaContent {
+  flex: 1;
+}
+
+.agendaContent h4 {
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #f8fafc);
   margin: 0 0 4px 0;
 }
 
-.emptyDay p {
-  font-size: 12px;
-  color: var(--text-secondary);
+.agendaContent p {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
   line-height: 1.4;
   margin: 0;
+}
+
+.eventTitle {
+  color: #3b82f6 !important;
+  font-weight: 500;
 }
 
 .openBtn {
@@ -128,18 +178,19 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
+  padding: 14px;
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .openBtn:hover {
-  background: var(--bg-primary);
-  border-color: var(--accent-purple);
+  background: var(--bg-primary, #020617);
+  border-color: #3b82f6;
+  color: #3b82f6;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Clock, Zap, Flame, Lock, User as UserIcon, Camera, Trophy, Medal, Crown, Target, Users, BookOpen } from 'lucide-react';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Gamification.module.css';
 
@@ -35,13 +36,13 @@ const levels = [
 ];
 
 const achievements = [
-  { id: 1, name: 'First Step', icon: '🎯', requirement: 'Complete your first study session (1 hour)', xpReward: 50, condition: (stats) => stats.studyHours >= 1 },
-  { id: 2, name: 'Early Bird', icon: '🌅', requirement: 'Study before 8 AM', xpReward: 100, condition: (stats) => false },
-  { id: 3, name: 'Streak Master', icon: '🔥', requirement: 'Maintain a 7-day study streak', xpReward: 300, condition: (stats) => stats.streak >= 7 },
-  { id: 4, name: 'Quiz Champion', icon: '🧠', requirement: 'Score 100% on any quiz', xpReward: 150, condition: (stats) => false },
-  { id: 5, name: 'Social Learner', icon: '👥', requirement: 'Join 3 study groups', xpReward: 200, condition: (stats) => false },
-  { id: 6, name: 'Knowledge Sharer', icon: '📚', requirement: 'Help 5 students', xpReward: 250, condition: (stats) => false },
-  { id: 7, name: 'Legend', icon: '👑', requirement: 'Reach Level 7', xpReward: 1000, condition: (stats) => stats.currentLevel >= 7 },
+  { id: 1, name: 'First Step', icon: <Target />, requirement: 'Complete your first study session (1 hour)', xpReward: 50, condition: (stats) => stats.studyHours >= 1 },
+  { id: 2, name: 'Early Bird', icon: <Clock />, requirement: 'Study before 8 AM', xpReward: 100, condition: (stats) => false },
+  { id: 3, name: 'Streak Master', icon: <Flame />, requirement: 'Maintain a 7-day study streak', xpReward: 300, condition: (stats) => stats.streak >= 7 },
+  { id: 4, name: 'Quiz Champion', icon: <Medal />, requirement: 'Score 100% on any quiz', xpReward: 150, condition: (stats) => false },
+  { id: 5, name: 'Social Learner', icon: <Users />, requirement: 'Join 3 study groups', xpReward: 200, condition: (stats) => false },
+  { id: 6, name: 'Knowledge Sharer', icon: <BookOpen />, requirement: 'Help 5 students', xpReward: 250, condition: (stats) => false },
+  { id: 7, name: 'Legend', icon: <Crown />, requirement: 'Reach Level 7', xpReward: 1000, condition: (stats) => stats.currentLevel >= 7 },
 ];
 
 const Gamification = () => {
@@ -49,6 +50,7 @@ const Gamification = () => {
   const [gender, setGender] = useState('male');
   const [useAvatar, setUseAvatar] = useState(true);
   const [profilePicture, setProfilePicture] = useState(null);
+  const [userName, setUserName] = useState('Student');
   
   const [userStats, setUserStats] = useState({
     studyHours: 0,
@@ -59,7 +61,6 @@ const Gamification = () => {
   
   const [earnedAchievements, setEarnedAchievements] = useState([]);
 
-  // NOTIFICATION HELPER
   const sendNotification = (title, message, type = 'success') => {
     const existing = JSON.parse(localStorage.getItem('notifications') || '[]');
     if (existing.some(n => n.title === title)) return; 
@@ -73,7 +74,6 @@ const Gamification = () => {
     window.dispatchEvent(new Event('notificationAdded'));
   };
 
-  // FETCH REAL DATA FROM DB & SYNC
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -87,8 +87,8 @@ const Gamification = () => {
 
         if (data.success) {
           const user = data.user;
+          setUserName(user.fullName || 'Student');
           
-          // 1. Get Base Stats
           let currentXp = user.xp || 0;
           let currentLevel = user.level || 1;
           const currentStudyHours = user.studyHours || 0;
@@ -99,17 +99,13 @@ const Gamification = () => {
           let needsUpdate = false;
           let updates = {};
 
-          //  2. SYNC WITH ANALYTICS: Ensure XP matches Study Hours/Tasks
-          // Formula: 120 XP per Hour + 30 XP per Task
           const productivityXP = Math.floor((currentStudyHours * 120) + (currentTasks * 30));
           
-          // If stored XP is lagging behind actual work done, bump it up
           if (currentXp < productivityXP) {
               currentXp = productivityXP;
               needsUpdate = true;
           }
 
-          // 3. Initial XP Bonus for New Users
           if (currentXp === 0 && currentStudyHours === 0) {
             currentXp = 10;
             needsUpdate = true;
@@ -124,7 +120,6 @@ const Gamification = () => {
             streak: currentStreak,
           };
 
-          // 4. CHECK FOR NEW ACHIEVEMENTS
           let newAchievements = [...currentAchievements];
           let newXp = currentXp;
 
@@ -137,7 +132,6 @@ const Gamification = () => {
              }
           });
 
-          // 5. CHECK FOR LEVEL UP
           const qualifiedLevelObj = [...levels].reverse().find(l => newXp >= l.xpRequired && currentStudyHours >= l.hoursRequired);
           const qualifiedLevel = qualifiedLevelObj ? qualifiedLevelObj.level : 1;
 
@@ -148,7 +142,6 @@ const Gamification = () => {
              sendNotification("Level Up! 🚀", `Congratulations! You are now Level ${qualifiedLevel}: ${qualifiedLevelObj.name}`);
           }
 
-          // 6. UPDATE STATE
           setUserStats({
             studyHours: currentStudyHours,
             xp: newXp,
@@ -157,11 +150,16 @@ const Gamification = () => {
           });
           setEarnedAchievements(newAchievements);
           
+          // 🟢 LOAD AVATAR PREFERENCES
           if (user.gender) setGender(user.gender.toLowerCase());
-          if (user._id) setProfilePicture(`http://localhost:5000/api/auth/student/${user._id}/picture`);
-          if (user.settings?.showAvatar !== undefined) setUseAvatar(user.settings.showAvatar);
+          // Append timestamp to bypass browser caching if user changed their photo recently
+          if (user._id) setProfilePicture(`http://localhost:5000/api/auth/student/${user._id}/picture?t=${Date.now()}`);
+          
+          // Explicitly check for false, default to true
+          if (user.settings && typeof user.settings.showAvatar === 'boolean') {
+              setUseAvatar(user.settings.showAvatar);
+          }
 
-          // 7. SAVE CHANGES TO DB
           if (needsUpdate) {
              updates.xp = newXp;
              updates.achievements = newAchievements;
@@ -176,7 +174,8 @@ const Gamification = () => {
              });
 
              const updatedUser = { ...user, ...updates };
-             sessionStorage.setItem('user', JSON.stringify(updatedUser));
+             const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+             storage.setItem('user', JSON.stringify(updatedUser));
              window.dispatchEvent(new Event('userUpdated')); 
           }
 
@@ -191,34 +190,39 @@ const Gamification = () => {
     fetchUserData();
   }, []);
 
-  // TOGGLE AVATAR / PHOTO
-  const handleToggleAvatar = async (showAvatar) => {
-    setUseAvatar(showAvatar); 
-
+  // 🟢 PERSIST AVATAR TOGGLE ACROSS DB AND LOCAL STORAGE
+  const handleToggleAvatar = async (showAvatarValue) => {
+    // 1. Optimistic UI update for snappy feel
+    setUseAvatar(showAvatarValue); 
+    
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+      const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+      const storedUser = JSON.parse(storage.getItem('user') || '{}');
       
+      // 2. Prepare the full settings object so we don't accidentally wipe out other settings
+      const newSettings = { 
+          ...(storedUser.settings || {}), 
+          showAvatar: showAvatarValue 
+      };
+
+      // 3. Save to LocalStorage so Header and Sidebar update instantly
+      storedUser.settings = newSettings;
+      storage.setItem('user', JSON.stringify(storedUser));
+      window.dispatchEvent(new Event('userUpdated')); // Triggers re-render in Header
+      
+      // 4. Save to Database
       await fetch('http://localhost:5000/api/auth/profile', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify({
-          settings: { showAvatar } 
-        })
+        body: JSON.stringify({ settings: newSettings })
       });
 
-      const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')));
-      if (storedUser) {
-        if (!storedUser.settings) storedUser.settings = {};
-        storedUser.settings.showAvatar = showAvatar;
-        sessionStorage.setItem('user', JSON.stringify(storedUser));
-        window.dispatchEvent(new Event('userUpdated'));
-      }
-
     } catch (err) {
-      console.error("Failed to update avatar preference", err);
+      console.error("Failed to update avatar preference in database", err);
     }
   };
 
@@ -236,8 +240,8 @@ const Gamification = () => {
   };
 
   const getTierColor = (tier) => {
-    const colors = { basic: '#9ca3af', intermediate: '#60a5fa', advanced: '#fbbf24', master: '#f87171', legendary: '#a78bfa' };
-    return colors[tier] || '#9ca3af';
+    const colors = { basic: '#94a3b8', intermediate: '#3b82f6', advanced: '#f59e0b', master: '#ef4444', legendary: '#a855f7' };
+    return colors[tier] || '#94a3b8';
   };
 
   const currentAvatar = avatars[gender]?.[userStats.currentLevel] || avatars['male'][1];
@@ -245,7 +249,7 @@ const Gamification = () => {
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
-  if (loading) return <DashboardLayout title="Gamification"><div style={{color:'white', padding:'20px'}}>Loading progress...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout title="Gamification"><div style={{color:'var(--text-secondary)', padding:'20px'}}>Loading progress...</div></DashboardLayout>;
 
   return (
     <DashboardLayout title="Gamification">
@@ -259,18 +263,19 @@ const Gamification = () => {
         <div className={styles.mainGrid}>
           
           <motion.div className={styles.avatarCard} variants={itemVariants}>
-            <h3>Your Avatar</h3>
+            <h3>Your Appearance</h3>
             
             <div className={styles.avatarDisplay}>
               <motion.img
                 key={`${useAvatar ? 'avatar' : 'profile'}-${gender}-${userStats.currentLevel}`}
-                src={useAvatar ? currentAvatar : (profilePicture || 'https://via.placeholder.com/200')}
+                src={useAvatar ? currentAvatar : (profilePicture || `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`)}
                 alt="Current Avatar"
                 className={styles.avatarImage}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/200'; }}
+                // Enterprise fallback: Use generated initials instead of a broken image
+                onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`; }}
               />
               <span className={styles.levelBadge} style={{ background: getTierColor(getCurrentLevelData()?.tier) }}>
                 Level {userStats.currentLevel}
@@ -279,8 +284,12 @@ const Gamification = () => {
 
             <div className={styles.controlGroup}>
               <div className={styles.avatarToggle}>
-                <button className={`${styles.toggleBtn} ${useAvatar ? styles.active : ''}`} onClick={() => handleToggleAvatar(true)}>🎭 Avatar</button>
-                <button className={`${styles.toggleBtn} ${!useAvatar ? styles.active : ''}`} onClick={() => handleToggleAvatar(false)}>📷 Photo</button>
+                <button className={`${styles.toggleBtn} ${useAvatar ? styles.active : ''}`} onClick={() => handleToggleAvatar(true)}>
+                    <UserIcon size={16} /> Avatar
+                </button>
+                <button className={`${styles.toggleBtn} ${!useAvatar ? styles.active : ''}`} onClick={() => handleToggleAvatar(false)}>
+                    <Camera size={16} /> Photo
+                </button>
               </div>
             </div>
 
@@ -300,19 +309,31 @@ const Gamification = () => {
           <div className={styles.rightSection}>
             <motion.div className={styles.statsGrid} variants={itemVariants}>
               <div className={styles.statCard}>
-                <div className={styles.statIcon}>⏱️</div>
-                <div className={styles.statValue}>{userStats.studyHours}h</div>
-                <div className={styles.statLabel}>Study Hours</div>
+                <div className={styles.iconWrapper} style={{color: '#3b82f6', background: 'rgba(59,130,246,0.1)'}}>
+                    <Clock size={24} />
+                </div>
+                <div className={styles.statContent}>
+                    <div className={styles.statValue}>{Number(userStats.studyHours || 0).toFixed(1)}h</div>
+                    <div className={styles.statLabel}>Study Hours</div>
+                </div>
               </div>
               <div className={styles.statCard}>
-                <div className={styles.statIcon}>⚡</div>
-                <div className={styles.statValue}>{userStats.xp}</div>
-                <div className={styles.statLabel}>Total XP</div>
+                <div className={styles.iconWrapper} style={{color: '#f59e0b', background: 'rgba(245,158,11,0.1)'}}>
+                    <Zap size={24} />
+                </div>
+                <div className={styles.statContent}>
+                    <div className={styles.statValue}>{userStats.xp}</div>
+                    <div className={styles.statLabel}>Total XP</div>
+                </div>
               </div>
               <div className={styles.statCard}>
-                <div className={styles.statIcon}>🔥</div>
-                <div className={styles.statValue}>{userStats.streak}</div>
-                <div className={styles.statLabel}>Day Streak</div>
+                <div className={styles.iconWrapper} style={{color: '#ef4444', background: 'rgba(239,68,68,0.1)'}}>
+                    <Flame size={24} />
+                </div>
+                <div className={styles.statContent}>
+                    <div className={styles.statValue}>{userStats.streak}</div>
+                    <div className={styles.statLabel}>Day Streak</div>
+                </div>
               </div>
             </motion.div>
 
@@ -330,19 +351,19 @@ const Gamification = () => {
                     >
                       <div className={styles.levelAvatarContainer}>
                         <img 
-                          src={avatars[gender][level.level]} 
+                          src={avatars[gender]?.[level.level] || avatars['male'][1]} 
                           alt={`Level ${level.level}`} 
-                          className={styles.levelListAvatar} 
+                          className={styles.levelAvatar} 
                           style={{ filter: isUnlocked ? 'none' : 'grayscale(100%) blur(2px)', opacity: isUnlocked ? 1 : 0.6 }}
                         />
-                        {!isUnlocked && <span className={styles.lockIcon}>🔒</span>}
+                        {!isUnlocked && <span className={styles.lockIcon}><Lock size={16}/></span>}
                       </div>
                       <div className={styles.levelInfo}>
-                        <h4>{level.name} <span className={styles.tierBadge} style={{ background: getTierColor(level.tier) }}>{level.tier}</span></h4>
+                        <h4>{level.name} <span className={styles.tierBadge} style={{ backgroundColor: `${getTierColor(level.tier)}20`, color: getTierColor(level.tier) }}>{level.tier}</span></h4>
                         <p>{level.description}</p>
-                        <span className={styles.levelReq}>📚 {level.hoursRequired}h • ⚡ {level.xpRequired} XP</span>
+                        <span className={styles.levelRequirement}>📚 {level.hoursRequired}h • ⚡ {level.xpRequired} XP</span>
                       </div>
-                      <div className={styles.levelStatus}>
+                      <div className={styles.levelStatusWrapper}>
                         {isCurrent ? <span className={styles.statusCurrent}>Current</span> : 
                          isUnlocked ? <span className={styles.statusUnlocked}>✓ Unlocked</span> : 
                          <span className={styles.statusLocked}>Locked</span>}
@@ -360,7 +381,7 @@ const Gamification = () => {
                   const isEarned = earnedAchievements.includes(achievement.id);
                   return (
                     <motion.div key={achievement.id} className={`${styles.achievement} ${isEarned ? styles.earned : ''}`} whileHover={{ scale: 1.05 }}>
-                      <span className={styles.achievementIcon}>{achievement.icon}</span>
+                      <span className={styles.achievementIconWrapper}>{achievement.icon}</span>
                       <div className={styles.achievementTooltip}>
                         <strong>{achievement.name}</strong>
                         <p>{achievement.requirement}</p>

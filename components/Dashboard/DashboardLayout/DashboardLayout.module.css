@@ -1,20 +1,62 @@
 .dashboard {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-primary, #020617);
+  position: relative;
+}
+
+.dashboardFull {
+  display: block;
 }
 
 .mainArea {
   flex: 1;
-  margin-left: 70px;
+  /* Leaves room for the fixed sidebar */
+  margin-left: 70px; 
   display: flex;
   flex-direction: column;
+  min-width: 0; /* Critical: Prevents flexbox from blowing out screen width on large tables/grids */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mainAreaFull {
+  margin-left: 0;
+  width: 100%;
 }
 
 .content {
   flex: 1;
-  padding: 24px;
+  padding: 32px 40px;
   overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* 🟢 ENTERPRISE UPGRADE: Centers content on massive screens */
+.contentInner {
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  /* Optional: Adds a very subtle micro-interaction when pages load */
+  animation: contentFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 🟢 RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .content {
+    padding: 24px;
+  }
 }
 
 @media (max-width: 768px) {

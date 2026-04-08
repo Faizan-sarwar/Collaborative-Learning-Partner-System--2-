@@ -702,42 +702,63 @@ router.post('/submit-quiz', async (req, res) => {
   }
 });
 
-// --- Connections & Matches ---
-// 🟢 SMART MATCHMAKING ROUTE
+// 🟢 ENTERPRISE MATCHMAKING ROUTE (Add this to server/routes/auth.js)
 router.get('/matches/:userId', async (req, res) => {
   try {
     const currentUser = await User.findById(req.params.userId);
     if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const myDifficulties = currentUser.subjectsOfDifficulty || [];
+    // 1. Normalize subjects to ignore case/spacing typos (e.g., "Web Develpoment" vs "web development")
+    const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const myDifficulties = (currentUser.subjectsOfDifficulty || []).map(normalize);
 
-    // 1. Find Candidates: Not me, passed quiz, and STRENGTH in my DIFFICULTY
-    let candidates = await User.find({
+    // 2. Fetch all other students
+    const candidates = await User.find({
       _id: { $ne: currentUser._id },
-      role: 'student',
-      quizCompleted: true,
-      academicStrengths: { $in: myDifficulties }
+      role: 'student'
     });
 
-    // 2. Fallback: If no direct experts found, show top students from same department
-    if (candidates.length === 0) {
-      candidates = await User.find({
-        _id: { $ne: currentUser._id },
-        role: 'student',
-        quizCompleted: true,
-        department: currentUser.department
-      }).limit(10);
-    }
+    const connections = (currentUser.connections || []).map(id => id.toString());
+    const sentReqs = (currentUser.sentRequests || []).map(id => id.toString());
+    const receivedReqs = (currentUser.receivedRequests || []).map(id => id.toString());
 
-    // 3. Map and Calculate Match Rank
+    // 3. Score every candidate
     const matches = candidates.map(u => {
-      const connections = currentUser.connections.map(id => id.toString());
-      const sentReqs = currentUser.sentRequests.map(id => id.toString());
-      const receivedReqs = currentUser.receivedRequests.map(id => id.toString());
-      const targetId = u._id.toString();
+      const theirStrengthsRaw = u.academicStrengths || [];
+      const theirStrengthsNorm = theirStrengthsRaw.map(normalize);
 
-      // RANKING FORMULA: Reliability is 80% weight, Level is 20%
-      const matchScore = ((u.reliability || 0) * 0.8) + ((u.level || 1) * 2);
+      let matchCount = 0;
+      let matchedSubjects = [];
+
+      // Check for exact intersections
+      theirStrengthsRaw.forEach((strength, index) => {
+        if (myDifficulties.includes(theirStrengthsNorm[index])) {
+          matchCount++;
+          matchedSubjects.push(strength); // Keep original casing for the UI
+        }
+      });
+
+      const isExpertMatch = matchCount > 0;
+
+      // 🟢 THE MATH:
+      // If they possess a skill you need: Base 75% + 10% per match + Reliability bonus
+      // If they DO NOT possess a skill you need: Max 50% match
+      let matchAccuracy = 0;
+      if (isExpertMatch) {
+        matchAccuracy = 75 + (matchCount * 10) + ((u.reliability || 0) * 0.1);
+        matchAccuracy = Math.min(99, Math.round(matchAccuracy)); // Cap at 99%
+      } else {
+        matchAccuracy = Math.round((u.reliability || 0) * 0.5); // Cap at 50%
+      }
+
+      // matchScore is used purely for sorting so experts ALWAYS float to the top
+      const matchScore = isExpertMatch ? 1000 + matchAccuracy : matchAccuracy;
+
+      let connectionStatus = 'none';
+      const targetId = u._id.toString();
+      if (connections.includes(targetId)) connectionStatus = 'connected';
+      else if (sentReqs.includes(targetId)) connectionStatus = 'pending';
+      else if (receivedReqs.includes(targetId)) connectionStatus = 'received';
 
       return {
         id: u._id,
@@ -749,19 +770,24 @@ router.get('/matches/:userId', async (req, res) => {
         reliability: u.reliability || 0,
         level: u.level || 1,
         studyHours: u.studyHours || 0,
-        matchScore: matchScore,
-        connectionStatus: connections.includes(targetId) ? 'connected'
-          : sentReqs.includes(targetId) ? 'pending'
-            : receivedReqs.includes(targetId) ? 'received'
-              : 'none'
+        xp: u.xp || 0,
+        plan: u.plan || 'free',
+        gender: u.gender,
+        settings: u.settings, // Required for Avatar toggling!
+        isExpertMatch,       // Tells UI whether to show the Gold Ribbon
+        matchedSubjects,     // Tells UI which specific tags to highlight green
+        matchAccuracy,       // The actual percentage (e.g., 94%)
+        matchScore,          // Hidden score for strict sorting
+        connectionStatus
       };
     });
 
-    // 4. Final Sorting: Highest Match Score first
+    // 4. Sort strictly by highest score
     matches.sort((a, b) => b.matchScore - a.matchScore);
 
     res.json({ success: true, matches });
-  } catch (err) {
+  } catch (error) {
+    console.error("Matchmaking Error:", error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -1266,6 +1292,31 @@ router.post('/requests/:id/accept', async (req, res) => {
   } catch (err) {
     console.error('Accept Request Error:', err);
     res.status(500).json({ success: false, message: 'Server error while accepting request' });
+  }
+});
+
+// Add this to server/routes/auth.js
+router.put('/track-time', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key');
+
+    // The frontend will send minutes. We convert to hours for the DB.
+    const minutesToAdd = parseFloat(req.body.minutes) || 0;
+    const hoursToAdd = minutesToAdd / 60;
+
+    // 🟢 $inc safely ADDS to the total, preventing multi-tab overwrites!
+    const updatedUser = await User.findByIdAndUpdate(
+      decoded.id,
+      { $inc: { studyHours: hoursToAdd } },
+      { new: true }
+    );
+
+    res.json({ success: true, totalHours: updatedUser.studyHours });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 export default router;

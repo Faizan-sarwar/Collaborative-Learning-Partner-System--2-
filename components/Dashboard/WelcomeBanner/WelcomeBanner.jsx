@@ -1,36 +1,29 @@
-import React, { useEffect, useState, } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { Shield, Zap, Clock, Flame, ArrowRight, CheckCircle2, TrendingUp, Users } from 'lucide-react';
 import styles from './WelcomeBanner.module.css';
-
-// 🟢 ADDED: Import your notification context
 import { useNotification } from '../../../src/context/NotificationContext';
-import { Link } from 'react-router-dom';
 
 const WelcomeBanner = () => {
   const [user, setUser] = useState(null);
-  const [showLevelTooltip, setShowLevelTooltip] = useState(false);
-
-  // 🟢 ADDED: Bring in the addNotification function
+  const [showTips, setShowTips] = useState(false);
+  const navigate = useNavigate();
   const { addNotification } = useNotification();
 
-  //  Helper to load user
   const loadUser = () => {
     const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
 
-      // 🟢 ADDED: First-time login floating notification logic
+      // First-time login floating notification
       if (parsedUser && parsedUser._id) {
         const welcomeKey = `hasSeenWelcome_${parsedUser._id}`;
         if (!localStorage.getItem(welcomeKey)) {
-          // Fire the toast! 
-          // Using setTimeout just to give the UI a tiny moment to render before the toast slides in
           setTimeout(() => {
             addNotification(`Welcome aboard, ${parsedUser.fullName.split(' ')[0]}! 🎉 Let's get started.`, 'achievement', 0);
           }, 500);
-
-          // Mark as seen
           localStorage.setItem(welcomeKey, 'true');
         }
       }
@@ -38,10 +31,8 @@ const WelcomeBanner = () => {
   };
 
   useEffect(() => {
-    // 1. Initial Load
     loadUser();
 
-    // 2. Fetch fresh data to ensure reliability score is synced
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
     if (token) {
       fetch('http://localhost:5000/api/auth/me', {
@@ -51,161 +42,160 @@ const WelcomeBanner = () => {
         .then(data => {
           if (data.success && data.user) {
             setUser(data.user);
-            sessionStorage.setItem('user', JSON.stringify(data.user));
+            const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+            storage.setItem('user', JSON.stringify(data.user));
           }
         })
         .catch(err => console.error("Banner sync failed", err));
     }
 
-    //  3. LISTEN FOR UPDATES (XP Page, Gamification Page)
     window.addEventListener('userUpdated', loadUser);
     return () => window.removeEventListener('userUpdated', loadUser);
-
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const username = user?.fullName || 'Student';
+  const username = user?.fullName?.split(' ')[0] || 'Student';
   const reliabilityScore = user?.reliability || 0;
   const currentHours = user?.studyHours || 0;
   const currentLevel = user?.level || 1;
+  const currentStreak = user?.streak || 0;
 
-  // LEVEL LOGIC & COLORS
-  const getLevelInfo = () => {
-    if (currentLevel === 1) {
-      return {
-        bg: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', // Blue
-        shadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
-        nextLevel: 2,
-        remaining: (5 - currentHours).toFixed(1) // Assuming lvl 2 needs 5h
-      };
-    }
-    if (currentLevel === 2) {
-      return {
-        bg: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', // Purple
-        shadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
-        nextLevel: 3,
-        remaining: (15 - currentHours).toFixed(1)
-      };
-    }
-    return {
-      bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', // Gold
-      shadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
-      nextLevel: null,
-      remaining: 0
-    };
+  // 🟢 TRUST TIER HELPER
+  const getTrustTier = (score) => {
+    if (score >= 90) return { label: 'Elite Scholar', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
+    if (score >= 75) return { label: 'Trusted Partner', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' };
+    if (score >= 60) return { label: 'Average', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' };
+    return { label: 'Needs Improvement', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' };
   };
 
-  const levelInfo = getLevelInfo();
-
-  const getBarColor = (score) => {
-    if (score >= 80) return '#10b981';
-    if (score >= 50) return '#f59e0b';
-    return '#ef4444';
-  };
+  const tier = getTrustTier(reliabilityScore);
 
   return (
     <motion.div
-      className={styles.banner}
+      className={styles.bannerContainer}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
     >
-      <div className={styles.content}>
-        <div className={styles.leftContent}>
-          <h1 className={styles.title}>
-            Welcome, {username}!
-          </h1>
+      {/* 🟢 HERO SECTION */}
+      <div className={styles.heroSection}>
+        <div className={styles.greeting}>
+          <h1 className={styles.title}>Welcome back, {username}! 👋</h1>
+          <p className={styles.subtitle}>Here is your learning command center. Let's make today productive.</p>
+        </div>
+        <div className={styles.heroActions}>
+          <button className={styles.primaryBtn} onClick={() => navigate('/study-time')}>
+            <Clock size={16} /> Start Focus Session
+          </button>
+          <button className={styles.secondaryBtn} onClick={() => navigate('/study-matches')}>
+            <Users size={16} /> Find Partners
+          </button>
+        </div>
+      </div>
 
-          <div
-            className={styles.levelBadge}
-            style={{ background: levelInfo.bg, boxShadow: levelInfo.shadow, cursor: 'pointer', position: 'relative' }}
-            onMouseEnter={() => setShowLevelTooltip(true)}
-            onMouseLeave={() => setShowLevelTooltip(false)}
+      {/* 🟢 EXECUTIVE STATS GRID */}
+      <div className={styles.statsGrid}>
+        
+        {/* Trust Score Card */}
+        <div className={styles.statCard} style={{ borderColor: tier.color, background: `linear-gradient(135deg, var(--bg-tertiary) 0%, ${tier.bg} 100%)` }}>
+          <div className={styles.statHeader}>
+            <span className={styles.statLabel}><Shield size={16} color={tier.color}/> Trust Score</span>
+            <span className={styles.tierBadge} style={{ color: tier.color, backgroundColor: tier.bg }}>{tier.label}</span>
+          </div>
+          <div className={styles.statBody}>
+            <span className={styles.statValue} style={{ color: tier.color }}>{reliabilityScore}%</span>
+            <button className={styles.insightBtn} onClick={() => setShowTips(!showTips)}>
+              How to improve <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Level & XP Card */}
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statLabel}><Zap size={16} color="#8b5cf6"/> Current Level</span>
+          </div>
+          <div className={styles.statBody}>
+            <span className={styles.statValue}>Lvl {currentLevel}</span>
+            <span className={styles.statSubtext}>{user?.xp || 0} Total XP</span>
+          </div>
+        </div>
+
+        {/* Study Time Card */}
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statLabel}><Clock size={16} color="#3b82f6"/> Lifetime Focus</span>
+          </div>
+          <div className={styles.statBody}>
+            <span className={styles.statValue}>{currentHours.toFixed(1)}h</span>
+            <span className={styles.statSubtext}>Hours Logged</span>
+          </div>
+        </div>
+
+        {/* Streak Card */}
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statLabel}><Flame size={16} color="#f59e0b"/> Active Streak</span>
+          </div>
+          <div className={styles.statBody}>
+            <span className={styles.statValue}>{currentStreak} <span style={{fontSize:'1rem', color:'var(--text-muted)'}}>Days</span></span>
+            <span className={styles.statSubtext}>Log in daily to grow!</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* 🟢 HOW TO IMPROVE TRUST SCORE (Collapsible or always visible based on logic) */}
+      <AnimatePresence>
+        {showTips && (
+          <motion.div 
+            className={styles.improvementSection}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-            Level {currentLevel}
-
-            <AnimatePresence>
-              {showLevelTooltip && (
-                <motion.div
-                  className={styles.tooltip}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                >
-                  {levelInfo.nextLevel ? (
-                    <span>{levelInfo.remaining}h to Level {currentLevel + 1} 🚀</span>
-                  ) : (
-                    <span>Max Level Reached! 👑</span>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <p className={styles.subtitle}>
-            This week's progress is still in progress. You've got this!
-          </p>
-
-          <div className={styles.progressSection}>
-            <div className={styles.progressBar}>
-              <motion.div
-                className={styles.progressFill}
-                initial={{ width: 0 }}
-                animate={{ width: `${reliabilityScore}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
-                style={{ backgroundColor: getBarColor(reliabilityScore) }}
-              />
+            <div className={styles.improvementHeader}>
+              <h3>Path to Elite Scholar</h3>
+              <p>Your Trust Score determines where you rank in Study Matches. Here is how the algorithm works:</p>
             </div>
-            <span className={styles.progressText}>{reliabilityScore}% Reliability</span>
-          </div>
-        </div>
+            
+            <div className={styles.tipsGrid}>
+              <div className={styles.tipCard}>
+                <div className={styles.tipIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}><TrendingUp size={20}/></div>
+                <div>
+                  <h4>Maintain Streaks</h4>
+                  <p>Hitting a 7-day login streak automatically awards a <strong>+2% Reliability Bonus</strong>.</p>
+                </div>
+              </div>
+              
+              <div className={styles.tipCard}>
+                <div className={styles.tipIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><Users size={20}/></div>
+                <div>
+                  <h4>Connect & Network</h4>
+                  <p>Successfully accepting a study request gives both users a <strong>+0.5% Reliability Boost</strong>.</p>
+                </div>
+              </div>
 
-        <div className={styles.rightContent}>
-          <div className={styles.planCard}>
-            <div className={styles.planIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
+              <div className={styles.tipCard}>
+                <div className={styles.tipIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}><CheckCircle2 size={20}/></div>
+                <div>
+                  <h4>Complete Assessments</h4>
+                  <p>Taking skill quizzes accurately places you in the matchmaking algorithm.</p>
+                </div>
+              </div>
             </div>
-            {/* <div className={styles.planInfo}>
-              <span className={styles.planLabel}>Plan Type</span>
-              <span className={styles.planType}>{user?.plan || 'Pro Trial'}</span>
-              <span className={styles.planExpiry}>Expiry: 1/10/2026 (88 days left)</span>
-            </div> */}
-            <div className={styles.onlineStatus}>
-              <span className={styles.onlineDot}></span>
-              Online
-            </div>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* 🟢 NAVIGATION TABS */}
       <div className={styles.tabs}>
-        <Link className={`${styles.tab} ${styles.active}`} to="/overview">
-          Overview
-        </Link>
-
-        <Link className={styles.tab} to="/study-time">
-          Study Time
-        </Link>
-
-        <Link className={styles.tab} to="/courses">
-          Courses
-        </Link>
-
-        <Link className={styles.tab} to="/social">
-          Social
-        </Link>
-
-        <Link className={styles.tab} to="/analytics">
-          Analytics
-        </Link>
-        <Link className={styles.tab} to="/gamification">
-          Avatar
-        </Link>
+        <Link className={`${styles.tab} ${styles.active}`} to="/dashboard">Overview</Link>
+        <Link className={styles.tab} to="/study-time">Study Time</Link>
+        <Link className={styles.tab} to="/study-matches">Matches</Link>
+        <Link className={styles.tab} to="/analytics">Analytics</Link>
+        <Link className={styles.tab} to="/gamification">Avatar & Rewards</Link>
       </div>
+
     </motion.div>
   );
 };

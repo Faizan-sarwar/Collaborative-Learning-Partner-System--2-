@@ -2,12 +2,13 @@
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 12px 24px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  padding: 12px 32px;
+  background: var(--bg-secondary, #0f172a);
+  border-bottom: 1px solid var(--border-color, #1e293b);
   position: sticky;
   top: 0;
   z-index: 50;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .userInfo {
@@ -17,17 +18,20 @@
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid var(--accent-purple);
+  border: 2px solid #3b82f6; /* Blue ring */
+  padding: 2px;
+  background: var(--bg-tertiary, #1e293b);
 }
 
 .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .greeting {
@@ -36,16 +40,17 @@
 }
 
 .hello {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent-purple);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
 }
 
 .welcomeText {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
 }
 
+/* 🟢 SEARCH BAR */
 .searchBar {
   flex: 1;
   max-width: 400px;
@@ -57,28 +62,28 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
 }
 
 .searchInput {
   width: 100%;
   padding: 10px 12px 10px 40px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 14px;
+  background: var(--bg-primary, #020617);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.95rem;
   transition: all 0.2s ease;
 }
 
 .searchInput::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #64748b);
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--accent-purple);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .actions {
@@ -95,20 +100,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
   border-radius: 10px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .iconBtn:hover {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border-color: var(--accent-purple);
+  background: var(--bg-primary, #020617);
+  color: var(--text-primary, #f8fafc);
+  border-color: #3b82f6;
 }
 
+/* 🟢 NOTIFICATIONS */
 .notificationSection {
   position: relative;
 }
@@ -122,12 +128,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-red);
+  background: #ef4444;
   color: white;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   border-radius: 50%;
   padding: 0 4px;
+  box-shadow: 0 0 0 2px var(--bg-secondary, #0f172a);
 }
 
 .notificationDropdown {
@@ -136,8 +143,8 @@
   right: 0;
   width: 380px;
   max-height: 480px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
@@ -146,30 +153,27 @@
   flex-direction: column;
 }
 
-[data-theme="light"] .notificationDropdown {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
 .notifHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color, #1e293b);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .notifHeader h3 {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #f8fafc);
   margin: 0;
 }
 
 .markAllBtn {
   background: none;
   border: none;
-  color: var(--accent-blue);
-  font-size: 13px;
+  color: #3b82f6;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   padding: 4px 8px;
@@ -187,15 +191,18 @@
   max-height: 360px;
 }
 
+.notifList::-webkit-scrollbar { width: 6px; }
+.notifList::-webkit-scrollbar-thumb { background: var(--border-color, #334155); border-radius: 3px; }
+
 .notifItem {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 20px;
+  gap: 14px;
+  padding: 16px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color, #1e293b);
 }
 
 .notifItem:last-child {
@@ -203,15 +210,11 @@
 }
 
 .notifItem:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary, #1e293b);
 }
 
 .notifItem.unread {
   background: rgba(59, 130, 246, 0.05);
-}
-
-.notifItem.unread:hover {
-  background: rgba(59, 130, 246, 0.1);
 }
 
 .notifIcon {
@@ -222,41 +225,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  overflow: hidden;
+  background: var(--bg-primary, #020617);
+  border: 1px solid var(--border-color, #334155);
 }
 
-.notifIcon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.notifIcon.connection {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--accent-green);
-}
-
-.notifIcon.study {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--accent-blue);
-}
-
-.notifIcon.achievement {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-}
-
-.notifIcon.message {
-  background: rgba(139, 92, 246, 0.15);
-  color: var(--accent-purple);
-}
-
-.notifIcon.reminder {
-  background: rgba(236, 72, 153, 0.15);
-  color: var(--accent-pink);
-}
+/* Notif Icon Colors */
+.iconSuccess { color: #10b981; }
+.iconMessage { color: #8b5cf6; }
+.iconWarning { color: #f59e0b; }
+.iconDefault { color: #3b82f6; }
 
 .notifContent {
   flex: 1;
@@ -265,16 +242,16 @@
 
 .notifTitle {
   display: block;
-  font-size: 14px;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 2px;
+  color: var(--text-primary, #f8fafc);
+  margin-bottom: 4px;
 }
 
 .notifMessage {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 6px 0;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -283,120 +260,81 @@
 }
 
 .notifTime {
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #64748b);
 }
 
 .unreadDot {
   width: 8px;
   height: 8px;
   min-width: 8px;
-  background: var(--accent-blue);
+  background: #3b82f6;
   border-radius: 50%;
   margin-top: 6px;
 }
 
 .emptyNotif {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   padding: 48px 20px;
-  color: var(--text-tertiary);
-  gap: 12px;
-}
-
-.emptyNotif p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.viewAllBtn {
-  display: block;
-  padding: 14px 20px;
   text-align: center;
-  color: var(--accent-blue);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  border-top: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+  color: var(--text-tertiary, #64748b);
+  font-size: 0.9rem;
 }
 
-.viewAllBtn:hover {
-  background: var(--bg-tertiary);
-}
-
+/* 🟢 ACTION BUTTONS */
 .startTimer {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, var(--accent-green), #059669);
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #10b981, #059669);
   border: none;
   border-radius: 10px;
   color: white;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .startTimer:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
-}
-
-.studyRooms {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.studyRooms:hover {
-  background: var(--bg-primary);
-  border-color: var(--accent-purple);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
 }
 
 .referBtn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, var(--accent-pink), #db2777);
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   border: none;
   border-radius: 10px;
   color: white;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 }
 
 .referBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
 }
 
+/* 🟢 PROFILE MENU */
 .profileSection {
   position: relative;
+  margin-left: 8px;
 }
 
 .profileBtn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-color, #334155);
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
@@ -404,7 +342,7 @@
 }
 
 .profileBtn:hover {
-  border-color: var(--accent-purple);
+  border-color: #8b5cf6;
 }
 
 .profileBtn img {
@@ -415,13 +353,13 @@
 
 .profileMenu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 12px);
   right: 0;
-  width: 240px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 260px;
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   z-index: 100;
 }
@@ -429,50 +367,63 @@
 .menuHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 20px;
+  background: rgba(255,255,255,0.02);
 }
 
 .menuHeader img {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
+  border: 2px solid #3b82f6;
+  padding: 2px;
 }
 
-.menuHeader div {
+.menuUserInfo {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .menuName {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menuEmail {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menuDivider {
   height: 1px;
-  background: var(--border-color);
+  background: var(--border-color, #1e293b);
+  margin: 4px 0;
 }
 
 .menuItem {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  color: var(--text-primary);
-  font-size: 14px;
+  padding: 12px 20px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.9rem;
+  font-weight: 500;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 
 .menuItem:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary, #1e293b);
+  color: var(--text-primary, #f8fafc);
 }
 
 .menuItemLogout {
@@ -480,11 +431,12 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 20px;
   background: none;
   border: none;
-  color: var(--accent-red);
-  font-size: 14px;
+  color: #ef4444;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -494,12 +446,7 @@
 }
 
 @media (max-width: 1024px) {
-  .searchBar {
-    display: none;
-  }
-  
-  .studyRooms span,
-  .referBtn span {
+  .searchBar, .startTimer, .referBtn {
     display: none;
   }
 }
@@ -509,14 +456,7 @@
     padding: 12px 16px;
     gap: 12px;
   }
-  
   .greeting {
-    display: none;
-  }
-  
-  .startTimer span,
-  .studyRooms,
-  .referBtn {
     display: none;
   }
 }

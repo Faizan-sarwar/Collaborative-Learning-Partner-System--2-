@@ -1,123 +1,169 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Analytics.module.css';
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes of no mouse/keyboard = Idle
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // Save to DB every 5 minutes
+
 const Analytics = () => {
-  // Current session time in minutes (starts at 0 on refresh)
-  const [studyTime, setStudyTime] = useState(0); 
-  
-  // Total historical time from Database in minutes
-  const [totalDatabaseHours, setTotalDatabaseHours] = useState(0); 
-  
   const [userData, setUserData] = useState(null);
-  const [tasksCompleted, setTasksCompleted] = useState(0); 
+  const [loading, setLoading] = useState(true);
   
-  // 1. LOAD DATA FROM DATABASE ON MOUNT
+  // 🟢 DISPLAY STATES
+  const [dbTotalHours, setDbTotalHours] = useState(0); 
+  const [localSessionSeconds, setLocalSessionSeconds] = useState(0);
+  const [isIdle, setIsIdle] = useState(false);
+
+  // 🟢 HIDDEN TRACKERS (Refs don't trigger re-renders)
+  const lastActiveTime = useRef(Date.now());
+  const unsavedSeconds = useRef(0); // Time accumulated that hasn't been sent to the server yet
+
+  // 1. LOAD INITIAL DATA
   useEffect(() => {
     const fetchStats = async () => {
-        try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-            if(!token) return;
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if(!token) return;
 
-            const res = await fetch('http://localhost:5000/api/auth/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                setUserData(data.user);
-                
-                // DB stores hours (e.g., 5.5). Convert to minutes for local math.
-                const dbMinutes = (data.user.studyHours || 0) * 60;
-                setTotalDatabaseHours(dbMinutes);
-                
-                setTasksCompleted(data.user.tasksCompleted || 0);
-            }
-        } catch(err) { 
-            console.error("Failed to load analytics data", err); 
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            setUserData(data.user);
+            setDbTotalHours(data.user.studyHours || 0);
         }
+      } catch(err) { 
+        console.error("Failed to load analytics data", err); 
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStats();
   }, []);
 
-  // 2. REAL-TIME TRACKING & AUTO-SAVE TO DB
-  useEffect(() => {
-    // Session timer logic
-    const storedStart = sessionStorage.getItem('sessionStartTime');
-    let startTime = storedStart ? parseInt(storedStart) : Date.now();
-    if (!storedStart) sessionStorage.setItem('sessionStartTime', startTime.toString());
+  // 2. THE SYNC FUNCTION: Sends accumulated delta to server
+  const syncTimeToServer = useCallback(async () => {
+    if (unsavedSeconds.current < 60) return; // Don't bother saving less than a minute
 
-    const interval = setInterval(() => {
-        const now = Date.now();
-        const sessionMinutes = Math.floor((now - startTime) / 1000 / 60);
-        setStudyTime(sessionMinutes);
+    const minutesToSave = unsavedSeconds.current / 60;
+    unsavedSeconds.current = 0; // Reset immediately to prevent double-saving
 
-        //  AUTO-SAVE TO DB EVERY 1 MINUTE
-        // We save the Grand Total (DB Previous + Current Session)
-        if (sessionMinutes > 0 && sessionMinutes % 1 === 0) {
-            const currentTotalMinutes = totalDatabaseHours + sessionMinutes;
-            saveToDatabase(currentTotalMinutes);
-        }
-    }, 1000); // Check every second
-
-    return () => clearInterval(interval);
-  }, [totalDatabaseHours]); // Re-run if DB base hours change
-
-  const saveToDatabase = async (totalMinutes) => {
-      try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        const totalHours = (totalMinutes / 60).toFixed(2); // Convert back to hours for DB
-
-        await fetch('http://localhost:5000/api/auth/update-stats', {
-            method: 'PUT',
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ studyHours: totalHours })
-        });
-      } catch(err) { 
-          console.error("Auto-save failed", err); 
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/auth/track-time', {
+          method: 'PUT',
+          headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ minutes: minutesToSave })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+          setDbTotalHours(data.totalHours); // Update UI with true server source of truth
       }
-  };
+    } catch(err) { 
+      // If network fails, add the time back so we can try again later
+      unsavedSeconds.current += (minutesToSave * 60);
+      console.error("Auto-save failed", err); 
+    }
+  }, []);
 
-  // CALCULATE DISPLAY TOTALS (DB + Current Session)
-  const grandTotalMinutes = totalDatabaseHours + studyTime;
-  const hours = Math.floor(grandTotalMinutes / 60);
-  const minutes = Math.floor(grandTotalMinutes % 60);
-  const totalHoursDisplay = `${hours}h ${minutes}m`;
+  // 3. IDLE DETECTION & CORE TIMER
+  useEffect(() => {
+    // Reset activity timer on interaction
+    const updateActivity = () => {
+      lastActiveTime.current = Date.now();
+      if (isIdle) setIsIdle(false);
+    };
 
-  // Logic: Goal is 10 hours/week. 
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('scroll', updateActivity);
+
+    // The Core Tick (Runs every 1 second)
+    const tickInterval = setInterval(() => {
+      const now = Date.now();
+      
+      // Check if user walked away from keyboard
+      if (now - lastActiveTime.current > IDLE_TIMEOUT_MS) {
+        setIsIdle(true);
+        return; // Stop counting time!
+      }
+
+      // If active, increment time
+      setLocalSessionSeconds(prev => prev + 1);
+      unsavedSeconds.current += 1;
+    }, 1000);
+
+    // The Sync Tick (Runs every 5 minutes)
+    const syncInterval = setInterval(syncTimeToServer, SYNC_INTERVAL_MS);
+
+    // 🟢 CRITICAL: Save data if user suddenly closes the tab
+    const handleBeforeUnload = (e) => {
+        if (unsavedSeconds.current >= 60) {
+            // Using navigator.sendBeacon guarantees the request fires even as the tab dies
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const blob = new Blob([JSON.stringify({ minutes: unsavedSeconds.current / 60 })], { type: 'application/json' });
+            navigator.sendBeacon('http://localhost:5000/api/auth/track-time', blob);
+        }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup listeners on unmount
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(tickInterval);
+      clearInterval(syncInterval);
+      syncTimeToServer(); // Final sync when leaving the page component
+    };
+  }, [isIdle, syncTimeToServer]);
+
+  // 🟢 CALCULATE DISPLAY TOTALS
+  // Local session minutes is just for the UI
+  const sessionMinutes = Math.floor(localSessionSeconds / 60);
+  
+  // Grand total combines DB hours + unsaved local minutes
+  const totalDisplayHours = dbTotalHours + (unsavedSeconds.current / 3600);
+  const displayH = Math.floor(totalDisplayHours);
+  const displayM = Math.floor((totalDisplayHours * 60) % 60);
+  const totalHoursString = `${displayH}h ${displayM}m`;
+
   const weeklyGoalMinutes = 600; // 10 hours
-  const goalProgress = Math.min(Math.round((grandTotalMinutes / weeklyGoalMinutes) * 100), 100);
+  const currentTotalMinutes = totalDisplayHours * 60;
+  const goalProgress = Math.min(Math.round((currentTotalMinutes / weeklyGoalMinutes) * 100), 100);
 
-  // Logic: Productivity Score based on session duration
   let productivityScore = 'N/A';
   let productivityColor = '#666';
-  if (studyTime > 60) { productivityScore = 'High ⚡'; productivityColor = '#10b981'; }
-  else if (studyTime > 20) { productivityScore = 'Medium 📈'; productivityColor = '#f59e0b'; }
+  if (sessionMinutes > 60) { productivityScore = 'High ⚡'; productivityColor = '#10b981'; }
+  else if (sessionMinutes > 20) { productivityScore = 'Medium 📈'; productivityColor = '#f59e0b'; }
   else { productivityScore = 'Warming Up ☕'; productivityColor = '#3b82f6'; }
 
-  // MOCK CHART DATA (Dynamic based on total time)
-  // In a real app, you would store daily breakdowns in the DB.
-  // For now, we update 'Sat' (or current day) with the grand total.
+  // MOCK CHART DATA
   const weeklyData = [
     { day: 'Mon', hours: 2 },
     { day: 'Tue', hours: 3.5 },
     { day: 'Wed', hours: 1.5 },
     { day: 'Thu', hours: 4 },
     { day: 'Fri', hours: 3 }, 
-    { day: 'Sat', hours: (grandTotalMinutes / 60).toFixed(1) }, // Showing total as today's activity for demo
+    { day: 'Sat', hours: parseFloat(totalDisplayHours.toFixed(1)) },
     { day: 'Sun', hours: 0 },
   ];
 
-  // Subject Distribution based on WEAK SUBJECTS (subjectsOfDifficulty)
   const subjectData = userData?.subjectsOfDifficulty?.length > 0 
     ? userData.subjectsOfDifficulty.map((subject, index) => ({
         name: subject,
-        value: 10 + (index * 5) // Mock distribution logic
+        value: 10 + (index * 5)
       }))
     : [
         { name: 'Calculus', value: 30 },
@@ -137,19 +183,24 @@ const Analytics = () => {
     visible: { opacity: 1, y: 0 }
   };
 
+  if (loading) return <DashboardLayout title="Analytics"><div style={{padding:'20px'}}>Loading metrics...</div></DashboardLayout>;
+
   return (
     <DashboardLayout title="Analytics">
-      <motion.div
-        className={styles.container}
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div className={styles.header} variants={itemVariants}>
-          <h1 className={styles.title}>Learning Analytics</h1>
-          <p className={styles.subtitle}>
-             Real-time session tracking active. Data saves automatically.
-          </p>
+      <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
+        
+        <motion.div className={styles.header} variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+              <h1 className={styles.title}>Learning Analytics</h1>
+              <p className={styles.subtitle}>
+                Real-time tracking active. 
+                {isIdle && <span style={{color: '#ef4444', marginLeft: '10px', fontWeight: 'bold'}}>⚠️ Paused (Idle Detected)</span>}
+              </p>
+          </div>
+          <div style={{ background: '#1e293b', padding: '8px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase' }}>Current Session</span>
+              <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '1.2rem' }}>{sessionMinutes} min</span>
+          </div>
         </motion.div>
 
         {/* STATS GRID */}
@@ -157,9 +208,7 @@ const Analytics = () => {
           <motion.div className={styles.statCard} variants={itemVariants}>
             <div className={styles.statIcon}>⏱️</div>
             <div className={styles.statInfo}>
-              <span className={styles.statNumber} style={{color: '#6366f1'}}>
-                {totalHoursDisplay}
-              </span>
+              <span className={styles.statNumber} style={{color: '#6366f1'}}>{totalHoursString}</span>
               <span className={styles.statLabel}>Total Study Time</span>
             </div>
           </motion.div>
@@ -167,8 +216,7 @@ const Analytics = () => {
           <motion.div className={styles.statCard} variants={itemVariants}>
             <div className={styles.statIcon}>✅</div>
             <div className={styles.statInfo}>
-              {/* Fetched from DB */}
-              <span className={styles.statNumber}>{tasksCompleted}</span>
+              <span className={styles.statNumber}>{userData?.tasksCompleted || 0}</span>
               <span className={styles.statLabel}>Tasks Completed</span>
             </div>
           </motion.div>
@@ -197,7 +245,6 @@ const Analytics = () => {
 
         {/* CHARTS GRID */}
         <div className={styles.chartsGrid}>
-          {/* Weekly Bar Chart */}
           <motion.div className={styles.chartCard} variants={itemVariants}>
             <h2>Weekly Activity</h2>
             <div className={styles.chartContainer}>
@@ -215,31 +262,19 @@ const Analytics = () => {
             </div>
           </motion.div>
 
-          {/* Subject Pie Chart */}
           <motion.div className={styles.chartCard} variants={itemVariants}>
             <h2>Subject Focus (Weak Areas)</h2>
             <div className={styles.chartContainer}>
                 <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                        <Pie
-                            data={subjectData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
+                        <Pie data={subjectData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                             {subjectData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
-                        <Tooltip 
-                             contentStyle={{ backgroundColor: '#1e1e1e', border: '1px solid #333', borderRadius: '8px' }}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#1e1e1e', border: '1px solid #333', borderRadius: '8px' }} />
                     </PieChart>
                 </ResponsiveContainer>
-                {/* Legend */}
                 <div className={styles.chartLegend}>
                     {subjectData.slice(0, 3).map((entry, index) => (
                         <div key={index} className={styles.legendItem}>
@@ -260,7 +295,7 @@ const Analytics = () => {
               <span className={styles.insightIcon}>💡</span>
               <div>
                 <strong>Great start!</strong>
-                <p>You've logged {totalHoursDisplay} total. Keep pushing!</p>
+                <p>You've logged {totalHoursString} total. Keep pushing!</p>
               </div>
             </div>
             <div className={styles.insight}>

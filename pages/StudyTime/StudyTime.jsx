@@ -1,176 +1,220 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, Square, AlertTriangle, Clock, Calendar, Zap, Flame } from 'lucide-react';
 import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './StudyTime.module.css';
 
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 Minutes of no activity = Auto-Pause
+const MIN_SESSION_SECONDS = 60; // Don't save sessions less than 1 minute
+
 const StudyTime = () => {
+  // 🟢 CORE TIMER STATE
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [autoPaused, setAutoPaused] = useState(false);
   
-  // Database Stats
+  // 🟢 DATABASE STATS
   const [totalStudyHours, setTotalStudyHours] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [totalXP, setTotalXP] = useState(0); //  Track XP
+  const [totalXP, setTotalXP] = useState(0);
+
+  // 🟢 REFS FOR BACKGROUND SAFE TRACKING
+  const startTimeRef = useRef(null);
+  const accumulatedRef = useRef(0);
+  const idleTimerRef = useRef(null);
 
   // 1. LOAD INITIAL DATA
   useEffect(() => {
     const initData = async () => {
-        // A. Fetch DB Stats
-        try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-            if (token) {
-                const res = await fetch('http://localhost:5000/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (data.success && data.user) {
-                    setTotalStudyHours(data.user.studyHours || 0);
-                    setStreak(data.user.streak || 0);
-                    setTotalXP(data.user.xp || 0); //  Load XP
-                }
-            }
-        } catch (err) { console.error("Fetch stats error", err); }
-
-        // B. Restore Timer State from LocalStorage
-        const savedState = localStorage.getItem('studyTimerState');
-        if (savedState) {
-            const { isRunning, startTime, accumulatedTime } = JSON.parse(savedState);
-            
-            if (isRunning) {
-                // Calculate time elapsed while user was away
-                const now = Date.now();
-                const elapsedSinceStart = Math.floor((now - startTime) / 1000);
-                setSeconds(Math.floor(accumulatedTime / 1000) + elapsedSinceStart);
-                setIsActive(true);
-                setIsPaused(false);
-            } else {
-                // Was paused
-                setSeconds(Math.floor(accumulatedTime / 1000));
-                setIsActive(false);
-                setIsPaused(true);
-            }
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (token) {
+          const res = await fetch('http://localhost:5000/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (data.success && data.user) {
+            setTotalStudyHours(data.user.studyHours || 0);
+            setStreak(data.user.streak || 0);
+            setTotalXP(data.user.xp || 0);
+          }
         }
+      } catch (err) { console.error("Fetch stats error", err); }
+
+      // Restore Timer State from LocalStorage
+      const savedState = localStorage.getItem('studyTimerState');
+      if (savedState) {
+        const { isRunning, startTimestamp, accumulated } = JSON.parse(savedState);
+        accumulatedRef.current = accumulated || 0;
+        
+        if (isRunning && startTimestamp) {
+          const now = Date.now();
+          const elapsed = Math.floor((now - startTimestamp) / 1000);
+          
+          // If they were away longer than the AFK timeout, auto-pause it retroactively
+          if (elapsed * 1000 > IDLE_TIMEOUT_MS) {
+            accumulatedRef.current += (IDLE_TIMEOUT_MS / 1000); // Only give them credit up to the idle limit
+            setSeconds(accumulatedRef.current);
+            setIsActive(false);
+            setIsPaused(true);
+            setAutoPaused(true);
+          } else {
+            startTimeRef.current = startTimestamp;
+            setSeconds(accumulatedRef.current + elapsed);
+            setIsActive(true);
+            setIsPaused(false);
+          }
+        } else if (!isRunning && accumulated > 0) {
+          setSeconds(accumulated);
+          setIsActive(false);
+          setIsPaused(true);
+        }
+      }
     };
     initData();
   }, []);
 
-  // 2. THE TIMER ENGINE
+  // 2. BACKGROUND SAFE TIMER ENGINE
   useEffect(() => {
-    let interval = null;
-
+    let animationFrame;
     if (isActive && !isPaused) {
-      interval = setInterval(() => {
-        setSeconds((prevSeconds) => prevSeconds + 1);
-      }, 1000);
-    } else {
-      clearInterval(interval);
+      const updateTimer = () => {
+        if (startTimeRef.current) {
+            const now = Date.now();
+            const elapsed = Math.floor((now - startTimeRef.current) / 1000);
+            setSeconds(accumulatedRef.current + elapsed);
+        }
+        animationFrame = requestAnimationFrame(updateTimer);
+      };
+      animationFrame = requestAnimationFrame(updateTimer);
     }
-
-    return () => clearInterval(interval);
+    return () => cancelAnimationFrame(animationFrame);
   }, [isActive, isPaused]);
 
-  // 3. HELPER: UPDATE STORAGE
-  const updateStorage = (running, start, accumulated) => {
-    const state = {
-        isRunning: running,
-        startTime: start, 
-        accumulatedTime: accumulated 
-    };
-    localStorage.setItem('studyTimerState', JSON.stringify(state));
-  };
-
-  // 4. BUTTON HANDLERS
-  const handleStart = () => {
-    const now = Date.now();
-    const accumulatedMS = seconds * 1000;
-    
-    setIsActive(true);
-    setIsPaused(false);
-    updateStorage(true, now, accumulatedMS);
-  };
-
-  const handlePause = () => {
+  // 3. ENTERPRISE AFK/IDLE DETECTION
+  const handlePause = useCallback(() => {
+    if (!isActive) return;
     setIsActive(false);
     setIsPaused(true);
-    const accumulatedMS = seconds * 1000;
-    updateStorage(false, null, accumulatedMS);
+    
+    const now = Date.now();
+    const elapsed = Math.floor((now - startTimeRef.current) / 1000);
+    accumulatedRef.current += elapsed;
+    startTimeRef.current = null;
+    
+    updateStorage(false, null, accumulatedRef.current);
+  }, [isActive]);
+
+  useEffect(() => {
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimerRef.current);
+      if (isActive && !isPaused) {
+        idleTimerRef.current = setTimeout(() => {
+          handlePause();
+          setAutoPaused(true); // Trigger UI alert
+        }, IDLE_TIMEOUT_MS);
+      }
+    };
+
+    window.addEventListener('mousemove', resetIdleTimer);
+    window.addEventListener('keydown', resetIdleTimer);
+    window.addEventListener('click', resetIdleTimer);
+
+    resetIdleTimer(); // Start the watcher
+
+    return () => {
+      window.removeEventListener('mousemove', resetIdleTimer);
+      window.removeEventListener('keydown', resetIdleTimer);
+      window.removeEventListener('click', resetIdleTimer);
+      clearTimeout(idleTimerRef.current);
+    };
+  }, [isActive, isPaused, handlePause]);
+
+  // 4. STORAGE HELPER
+  const updateStorage = (running, startMs, accumulatedSec) => {
+    localStorage.setItem('studyTimerState', JSON.stringify({
+        isRunning: running,
+        startTimestamp: startMs, 
+        accumulated: accumulatedSec 
+    }));
+  };
+
+  // 5. BUTTON CONTROLS
+  const handleStart = () => {
+    const now = Date.now();
+    startTimeRef.current = now;
+    setIsActive(true);
+    setIsPaused(false);
+    setAutoPaused(false);
+    updateStorage(true, now, accumulatedRef.current);
   };
 
   const handleStop = async () => {
-    // 1. Stop Timer Visuals immediately
+    // 1. Calculate precise final time
+    let finalSeconds = accumulatedRef.current;
+    if (isActive && startTimeRef.current) {
+        const now = Date.now();
+        finalSeconds += Math.floor((now - startTimeRef.current) / 1000);
+    }
+
+    // 2. Reset UI immediately for snappy feeling
     setIsActive(false);
     setIsPaused(false);
+    setAutoPaused(false);
+    setSeconds(0);
+    accumulatedRef.current = 0;
+    startTimeRef.current = null;
     localStorage.removeItem('studyTimerState'); 
 
-    const finalSeconds = seconds;
-    setSeconds(0); 
-
-    // 2. Save to DB if session > 5 seconds
-    if (finalSeconds > 5) {
-        try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-            
-            // Calculate Hours
-            const currentSessionHours = finalSeconds / 3600;
-            const newTotalHours = (totalStudyHours + currentSessionHours).toFixed(2);
-            
-            //  Calculate XP (2 XP per minute)
-            const earnedXP = Math.floor((finalSeconds / 60) * 2);
-            const newTotalXP = totalXP + earnedXP;
-
-            const res = await fetch('http://localhost:5000/api/auth/update-stats', {
-                method: 'PUT',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                // Send Hours AND XP
-                body: JSON.stringify({ 
-                    studyHours: newTotalHours,
-                    xp: newTotalXP 
-                })
-            });
-
-            if (res.ok) {
-                setTotalStudyHours(parseFloat(newTotalHours));
-                setTotalXP(newTotalXP);
-                
-                // Sync Session Storage
-                const storedUser = JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user')) || '{}');
-                storedUser.studyHours = parseFloat(newTotalHours);
-                storedUser.xp = newTotalXP;
-                sessionStorage.setItem('user', JSON.stringify(storedUser));
-                
-                // Notify App
-                window.dispatchEvent(new Event('userUpdated'));
-
-                // Add Notification if XP earned
-                if (earnedXP > 0) {
-                    const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-                    const newNotif = {
-                        id: Date.now(), 
-                        title: "Session Complete! 🍅", 
-                        message: `You earned ${earnedXP} XP for studying.`, 
-                        type: 'success', 
-                        read: false, 
-                        timestamp: new Date()
-                    };
-                    localStorage.setItem('notifications', JSON.stringify([newNotif, ...notifs]));
-                    window.dispatchEvent(new Event('notificationAdded'));
-                }
-            }
-        } catch (err) { console.error("Save failed", err); }
+    // 3. Spam Filter: Don't save tiny sessions
+    if (finalSeconds < MIN_SESSION_SECONDS) {
+        alert("Session too short to save! Minimum 1 minute required.");
+        return;
     }
+
+    // 4. DELTA SAVE LOGIC
+    try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const sessionMinutes = finalSeconds / 60;
+        const earnedXP = Math.floor(sessionMinutes * 2); // 2 XP per minute
+
+        // We use the new /track-time endpoint to safely $inc (increment) values
+        const res = await fetch('http://localhost:5000/api/auth/track-time', {
+            method: 'PUT',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ minutes: sessionMinutes, xp: earnedXP })
+        });
+
+        const data = await res.json();
+        
+        if (data.success) {
+            setTotalStudyHours(data.totalHours);
+            setTotalXP(prev => prev + earnedXP);
+            
+            // Sync Session Storage
+            const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+            const storedUser = JSON.parse(storage.getItem('user') || '{}');
+            storedUser.studyHours = data.totalHours;
+            storedUser.xp = storedUser.xp + earnedXP;
+            storage.setItem('user', JSON.stringify(storedUser));
+            
+            window.dispatchEvent(new Event('userUpdated')); // Update Sidebar
+            alert(`Session Saved! You earned ${earnedXP} XP.`);
+        }
+    } catch (err) { console.error("Save failed", err); }
   };
 
-  // HELPERS
+  // UI HELPERS
   const formatTime = (totalSeconds) => {
-    const getSeconds = `0${(totalSeconds % 60)}`.slice(-2);
-    const minutes = `${Math.floor(totalSeconds / 60)}`;
-    const getMinutes = `0${minutes % 60}`.slice(-2);
-    const getHours = `0${Math.floor(totalSeconds / 3600)}`.slice(-2);
-    return `${getHours}:${getMinutes}:${getSeconds}`;
+    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    if (h === '00') return `${m}:${s}`;
+    return `${h}:${m}:${s}`;
   };
 
   const sessionHours = Math.floor(seconds / 3600);
@@ -182,63 +226,100 @@ const StudyTime = () => {
   return (
     <DashboardLayout title="Study Time">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
+        
         <motion.div className={styles.header} variants={itemVariants}>
-          <h1 className={styles.title}>Study Time Tracker</h1>
-          <p className={styles.subtitle}>Timer runs in the background while you navigate.</p>
+          <div className={styles.headerContent}>
+              <h1 className={styles.title}>Study Session Timer</h1>
+              <p className={styles.subtitle}>Timer securely tracks in the background. Auto-pauses if you are away for 15 mins.</p>
+          </div>
         </motion.div>
 
-        <div className={styles.grid}>
-          <motion.div className={styles.card} variants={itemVariants}>
-            <div className={styles.cardIcon}>⏱️</div>
-            <h3>Current Session</h3>
-            <p className={styles.bigNumber}>{sessionHours}h {sessionMinutes}m</p>
-            <span className={styles.label}>{isActive ? 'Recording...' : isPaused ? 'Paused' : 'Ready'}</span>
-          </motion.div>
-
-          <motion.div className={styles.card} variants={itemVariants}>
-            <div className={styles.cardIcon}>📅</div>
-            <h3>Total Study Time</h3>
-            <p className={styles.bigNumber}>{totalStudyHours}h</p>
-            <span className={styles.label}>Lifetime total</span>
-          </motion.div>
-
-          <motion.div className={styles.card} variants={itemVariants}>
-            <div className={styles.cardIcon}>🎯</div>
-            <h3>Focus Score</h3>
-            <p className={styles.bigNumber}>{seconds > 1800 ? 'High' : seconds > 300 ? 'Medium' : '--'}</p>
-            <span className={styles.label}>Based on session length</span>
-          </motion.div>
-
-          <motion.div className={styles.card} variants={itemVariants}>
-            <div className={styles.cardIcon}>🔥</div>
-            <h3>Current Streak</h3>
-            <p className={styles.bigNumber}>{streak} days</p>
-            <span className={styles.label}>Log in daily to boost streak!</span>
-          </motion.div>
-        </div>
-
-        <motion.div className={styles.timerCard} variants={itemVariants}>
-          <h2>{isActive ? 'Session in Progress' : isPaused ? 'Session Paused' : 'Start a Study Session'}</h2>
-          
-          <div className={styles.timer}>
-            <span className={styles.timerDisplay}>{formatTime(seconds)}</span>
-          </div>
-          
-          <div className={styles.timerActions}>
-            {!isActive && !isPaused ? (
-                <button className={styles.startBtn} onClick={handleStart}>Start Session</button>
-            ) : (
-                <>
-                    {!isPaused ? (
-                        <button className={styles.pauseBtn} onClick={handlePause}>Pause</button>
-                    ) : (
-                        <button className={styles.startBtn} onClick={handleStart}>Resume</button>
-                    )}
-                    <button className={styles.stopBtn} onClick={handleStop}>Stop & Save</button>
-                </>
+        {/* AFK WARNING TOAST */}
+        <AnimatePresence>
+            {autoPaused && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className={styles.alertBanner}
+                >
+                    <AlertTriangle size={20} />
+                    <span>Your session was automatically paused because you were inactive for 15 minutes.</span>
+                </motion.div>
             )}
-          </div>
-        </motion.div>
+        </AnimatePresence>
+
+        <div className={styles.mainLayout}>
+            {/* TIMER CENTERPIECE */}
+            <motion.div className={styles.timerCard} variants={itemVariants}>
+                <div className={styles.statusBadge}>
+                    {isActive ? <span className={styles.pulseActive}>Recording</span> : isPaused ? <span className={styles.statusPaused}>Paused</span> : <span>Ready</span>}
+                </div>
+                
+                <div className={`${styles.timerCircle} ${isActive ? styles.glowActive : ''}`}>
+                    <span className={styles.timerDisplay}>{formatTime(seconds)}</span>
+                </div>
+                
+                <div className={styles.timerControls}>
+                    {!isActive && !isPaused && (
+                        <button className={styles.btnStartLg} onClick={handleStart}>
+                            <Play size={24} fill="currentColor" /> Start Focus
+                        </button>
+                    )}
+                    
+                    {isActive && (
+                        <button className={styles.btnPause} onClick={handlePause}>
+                            <Pause size={24} fill="currentColor" /> Pause
+                        </button>
+                    )}
+
+                    {isPaused && (
+                        <button className={styles.btnResume} onClick={handleStart}>
+                            <Play size={24} fill="currentColor" /> Resume
+                        </button>
+                    )}
+
+                    {(isActive || isPaused) && (
+                        <button className={styles.btnStop} onClick={handleStop}>
+                            <Square size={20} fill="currentColor" /> Finish & Save
+                        </button>
+                    )}
+                </div>
+            </motion.div>
+
+            {/* STATS GRID */}
+            <div className={styles.grid}>
+                <motion.div className={styles.statCard} variants={itemVariants}>
+                    <div className={`${styles.iconWrapper} ${styles.blue}`}> <Clock size={20} /> </div>
+                    <div className={styles.statInfo}>
+                        <h3>{sessionHours}h {sessionMinutes}m</h3>
+                        <p>Current Session</p>
+                    </div>
+                </motion.div>
+
+                <motion.div className={styles.statCard} variants={itemVariants}>
+                    <div className={`${styles.iconWrapper} ${styles.green}`}> <Calendar size={20} /> </div>
+                    <div className={styles.statInfo}>
+                        <h3>{totalStudyHours.toFixed(1)}h</h3>
+                        <p>Lifetime Total</p>
+                    </div>
+                </motion.div>
+
+                <motion.div className={styles.statCard} variants={itemVariants}>
+                    <div className={`${styles.iconWrapper} ${styles.purple}`}> <Zap size={20} /> </div>
+                    <div className={styles.statInfo}>
+                        <h3>{totalXP}</h3>
+                        <p>Total XP Earned</p>
+                    </div>
+                </motion.div>
+
+                <motion.div className={styles.statCard} variants={itemVariants}>
+                    <div className={`${styles.iconWrapper} ${styles.amber}`}> <Flame size={20} /> </div>
+                    <div className={styles.statInfo}>
+                        <h3>{streak} Days</h3>
+                        <p>Current Streak</p>
+                    </div>
+                </motion.div>
+            </div>
+        </div>
       </motion.div>
     </DashboardLayout>
   );

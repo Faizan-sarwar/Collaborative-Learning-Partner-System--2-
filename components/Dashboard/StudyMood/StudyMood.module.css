@@ -1,102 +1,133 @@
 .container {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color, #1e293b);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  padding: 20px;
-  border-bottom: 1px solid var(--border-color);
 }
 
-.icon {
-  font-size: 24px;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.newBadge {
-  margin-left: auto;
-  padding: 4px 10px;
-  background: var(--accent-red);
-  border-radius: 12px;
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.content {
-  padding: 24px;
-  text-align: center;
-}
-
-.moodIcon {
-  width: 64px;
-  height: 64px;
+.iconWrapper {
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  background: var(--bg-tertiary);
+  background: rgba(16, 185, 129, 0.15); /* Emerald tint */
+  border-radius: 10px;
+}
+
+.icon {
+  color: #10b981;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 2px 0;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+}
+
+.content {
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.moodDisplay {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  background: var(--bg-tertiary, #1e293b);
+  border: 2px solid var(--border-color, #334155);
   border-radius: 50%;
-  font-size: 32px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.largeEmoji {
+  font-size: 40px;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
 }
 
 .question {
-  font-size: 15px;
-  color: var(--text-primary);
-  margin: 0 0 20px 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 24px 0;
 }
 
 .moodOptions {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .moodBtn {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: transparent;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+  gap: 8px;
+  padding: 16px 12px;
+  min-width: 70px;
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.moodBtn:hover {
-  background: var(--bg-tertiary);
+.moodBtn:hover:not(:disabled) {
+  border-color: #64748b;
+  background: #334155;
 }
 
-.moodBtn.selected {
-  background: var(--bg-tertiary);
+.moodBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .moodEmoji {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .moodLabel {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.checkMark {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--bg-secondary, #0f172a);
+  border-radius: 50%;
+  padding: 2px;
 }
 
 .analyticsBtn {
@@ -106,15 +137,26 @@
   gap: 8px;
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+  background: var(--bg-tertiary, #1e293b);
   border: none;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
+  border-top: 1px solid var(--border-color, #334155);
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .analyticsBtn:hover {
-  filter: brightness(1.1);
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+@media (max-width: 480px) {
+  .moodOptions {
+    flex-wrap: wrap;
+  }
+  .moodBtn {
+    flex: 1 1 calc(50% - 6px); /* 2x2 grid on mobile */
+  }
 }

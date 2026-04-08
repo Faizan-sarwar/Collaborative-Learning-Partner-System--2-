@@ -1,52 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Smile, BarChart2, CheckCircle2 } from 'lucide-react';
 import styles from './StudyMood.module.css';
 
 const moods = [
-  { id: 'great', emoji: '😊', label: 'Great', color: '#22c55e' },
-  { id: 'good', emoji: '🙂', label: 'Good', color: '#3b82f6' },
-  { id: 'okay', emoji: '😐', label: 'Okay', color: '#eab308' },
-  { id: 'tired', emoji: '😴', label: 'Tired', color: '#ef4444' },
+  { id: 'great', emoji: '😊', label: 'Great', color: '#10b981' }, // Emerald
+  { id: 'good', emoji: '🙂', label: 'Good', color: '#3b82f6' },   // Blue
+  { id: 'okay', emoji: '😐', label: 'Okay', color: '#f59e0b' },   // Amber
+  { id: 'tired', emoji: '😴', label: 'Tired', color: '#ef4444' }, // Red
 ];
 
 const StudyMood = () => {
   const [selectedMood, setSelectedMood] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
+  // 1. LOAD MOOD FROM DATABASE / CACHE
   useEffect(() => {
-    const saved = localStorage.getItem('studyMood');
-    if (saved) {
-      const { mood, date } = JSON.parse(saved);
-      if (date === new Date().toDateString()) {
-        setSelectedMood(mood);
+    const today = new Date().toDateString();
+    const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+    
+    // Check if the database says we already logged a mood today
+    if (storedUser.lastMoodDate === today && storedUser.dailyMood) {
+      setSelectedMood(storedUser.dailyMood);
+    } else {
+      // Fallback to local storage
+      const saved = localStorage.getItem('studyMood');
+      if (saved) {
+        const { mood, date } = JSON.parse(saved);
+        if (date === today) setSelectedMood(mood);
       }
     }
   }, []);
 
-  const selectMood = (moodId) => {
+  // 2. SAVE MOOD TO DATABASE
+  const selectMood = async (moodId) => {
+    if (selectedMood === moodId || isSaving) return;
+    
+    setIsSaving(true);
     setSelectedMood(moodId);
-    localStorage.setItem('studyMood', JSON.stringify({
-      mood: moodId,
-      date: new Date().toDateString()
-    }));
+    
+    const today = new Date().toDateString();
+
+    // Optimistic Local Save
+    localStorage.setItem('studyMood', JSON.stringify({ mood: moodId, date: today }));
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (token) {
+        // Send to your backend stats route
+        await fetch('http://localhost:5000/api/auth/update-stats', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ dailyMood: moodId, lastMoodDate: today })
+        });
+
+        // Update local user object so it persists across navigations
+        const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+        const currentUser = JSON.parse(storage.getItem('user') || '{}');
+        currentUser.dailyMood = moodId;
+        currentUser.lastMoodDate = today;
+        storage.setItem('user', JSON.stringify(currentUser));
+        
+        // Notify other components if needed
+        window.dispatchEvent(new Event('userUpdated'));
+      }
+    } catch (err) {
+      console.error("Failed to sync mood to DB", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const activeMoodObj = moods.find(m => m.id === selectedMood);
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <span className={styles.icon}>😊</span>
-        <div>
-          <h3 className={styles.title}>Study Mood</h3>
-          <p className={styles.subtitle}>Track your study mood and energy levels</p>
+        <div className={styles.titleSection}>
+          <div className={styles.iconWrapper}>
+            <Smile size={20} className={styles.icon} />
+          </div>
+          <div>
+            <h3 className={styles.title}>Study Mood</h3>
+            <p className={styles.subtitle}>Track your energy levels</p>
+          </div>
         </div>
-        <span className={styles.newBadge}>NEW</span>
       </div>
 
       <div className={styles.content}>
-        <div className={styles.moodIcon}>
-          <span>{selectedMood ? moods.find(m => m.id === selectedMood)?.emoji : '😶'}</span>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={selectedMood || 'empty'}
+            className={styles.moodDisplay}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: 'spring', bounce: 0.5 }}
+            style={{ borderColor: activeMoodObj ? activeMoodObj.color : 'var(--border-color)' }}
+          >
+            <span className={styles.largeEmoji}>{activeMoodObj ? activeMoodObj.emoji : '😶'}</span>
+          </motion.div>
+        </AnimatePresence>
         
-        <p className={styles.question}>How are you feeling today?</p>
+        <p className={styles.question}>
+            {selectedMood ? "Mood logged for today!" : "How are you feeling today?"}
+        </p>
         
         <div className={styles.moodOptions}>
           {moods.map((mood) => (
@@ -54,24 +115,27 @@ const StudyMood = () => {
               key={mood.id}
               className={`${styles.moodBtn} ${selectedMood === mood.id ? styles.selected : ''}`}
               onClick={() => selectMood(mood.id)}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
-              style={selectedMood === mood.id ? { borderColor: mood.color } : {}}
+              style={selectedMood === mood.id ? { borderColor: mood.color, backgroundColor: `${mood.color}15` } : {}}
+              disabled={isSaving}
             >
-              <span className={styles.moodEmoji} style={{ color: mood.color }}>{mood.emoji}</span>
-              <span className={styles.moodLabel}>{mood.label}</span>
+              <span className={styles.moodEmoji}>{mood.emoji}</span>
+              <span className={styles.moodLabel} style={selectedMood === mood.id ? { color: mood.color, fontWeight: '700' } : {}}>
+                {mood.label}
+              </span>
+              {selectedMood === mood.id && (
+                  <motion.div className={styles.checkMark} initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                      <CheckCircle2 size={14} color={mood.color} />
+                  </motion.div>
+              )}
             </motion.button>
           ))}
         </div>
       </div>
 
       <button className={styles.analyticsBtn}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="18" y1="20" x2="18" y2="10" />
-          <line x1="12" y1="20" x2="12" y2="4" />
-          <line x1="6" y1="20" x2="6" y2="14" />
-        </svg>
-        View Mood Analytics
+        <BarChart2 size={16} /> View Mood Analytics
       </button>
     </div>
   );

@@ -1,5 +1,5 @@
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -9,43 +9,46 @@
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
   margin-bottom: 8px;
 }
 
 .subtitle {
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
   font-size: 1rem;
 }
 
 .mainGrid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 2.2fr;
   gap: 24px;
 }
 
-/* Avatar Section */
+/* 🟢 AVATAR SECTION */
 .avatarCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 32px;
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
+  border-radius: 20px;
+  padding: 32px 24px;
   text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  height: fit-content;
 }
 
 .avatarCard h3 {
   font-size: 1.25rem;
-  color: var(--text-primary);
-  margin-bottom: 24px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin-bottom: 32px;
 }
 
 .avatarDisplay {
   position: relative;
   width: 180px;
   height: 180px;
-  margin: 0 auto 24px;
+  margin: 0 auto 32px;
 }
 
 .avatarImage {
@@ -53,109 +56,91 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid var(--border-glow);
-  box-shadow: var(--glow-purple);
+  border: 4px solid var(--bg-primary, #020617);
+  box-shadow: 0 0 0 4px #8b5cf6, 0 10px 25px rgba(139, 92, 246, 0.4);
+  background: var(--bg-tertiary, #1e293b);
 }
 
 .levelBadge {
   position: absolute;
   bottom: 0;
   right: 0;
-  background: var(--gradient-primary);
   color: white;
   font-weight: 700;
-  font-size: 0.9rem;
-  padding: 8px 16px;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.avatarToggle {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-bottom: 16px;
-  background: var(--bg-tertiary);
-  padding: 4px;
-  border-radius: var(--radius-md);
-}
-
-.toggleBtn {
-  padding: 8px 20px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
   font-size: 0.85rem;
-  background: transparent;
-  color: var(--text-secondary);
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border: 2px solid var(--bg-secondary, #0f172a);
 }
 
-.toggleBtn:hover {
-  color: var(--text-primary);
-}
-
-.toggleBtn.active {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.genderSelector {
+.controlGroup {
   display: flex;
-  gap: 12px;
   justify-content: center;
   margin-bottom: 24px;
 }
 
-.genderBtn {
-  padding: 10px 24px;
-  border-radius: var(--radius-md);
+.avatarToggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-tertiary, #1e293b);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #334155);
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 0.9rem;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--text-secondary, #94a3b8);
+  border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.genderBtn:hover {
-  background: var(--bg-card-hover);
+.toggleBtn:hover {
+  color: var(--text-primary, #f8fafc);
 }
 
-.genderBtn.active {
-  background: var(--gradient-primary);
-  color: white;
-  border-color: transparent;
+.toggleBtn.active {
+  background: var(--bg-primary, #020617);
+  color: var(--text-primary, #f8fafc);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .xpInfo {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .xpBar {
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary, #1e293b);
   border-radius: 10px;
-  height: 12px;
+  height: 10px;
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color, #334155);
 }
 
 .xpFill {
   height: 100%;
-  background: var(--gradient-primary);
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
   border-radius: 10px;
-  transition: width 0.5s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .xpText {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text-secondary, #94a3b8);
 }
 
-/* Stats & Levels Section */
+/* 🟢 STATS & LEVELS SECTION */
 .rightSection {
   display: flex;
   flex-direction: column;
@@ -169,84 +154,70 @@
 }
 
 .statCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
+  border-radius: 16px;
   padding: 20px;
-  text-align: center;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s ease;
 }
 
 .statCard:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--glow-purple);
-  border-color: var(--border-glow);
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 
-.statIcon {
-  font-size: 2rem;
-  margin-bottom: 8px;
+.iconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statContent {
+  display: flex;
+  flex-direction: column;
 }
 
 .statValue {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  line-height: 1.2;
 }
 
 .statLabel {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 500;
+  text-transform: uppercase;
 }
 
-/* Levels Card */
+/* 🟢 LEVELS LIST */
 .levelsCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
+  border-radius: 16px;
   padding: 24px;
 }
 
 .levelsCard h3 {
   font-size: 1.25rem;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-}
-
-.levelsTableHeader {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 0 8px 10px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.levelsTableHeaderAvatars {
-  width: 118px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.levelsTableHeaderLabel {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
   font-weight: 600;
-  letter-spacing: 0.3px;
-}
-
-.levelsTableHeaderStatus {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin-bottom: 20px;
 }
 
 .levelsList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .levelItem {
@@ -254,70 +225,55 @@
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+  background: var(--bg-primary, #020617);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #334155);
+  transition: all 0.2s ease;
 }
 
-.levelItem.unlocked {
-  border-color: var(--border-glow);
+.levelItem.currentLevel {
+  border-color: #8b5cf6;
   background: rgba(139, 92, 246, 0.05);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
 }
 
-.levelItem.current {
-  border-color: var(--border-glow);
-  background: rgba(139, 92, 246, 0.1);
-  box-shadow: var(--glow-purple);
+.levelItem.lockedLevel {
+  opacity: 0.6;
 }
 
-.avatarPair {
+.levelAvatarContainer {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color, #334155);
+  background: var(--bg-tertiary, #1e293b);
   display: flex;
-  gap: 8px;
   align-items: center;
-  width: 118px;
-  justify-content: space-between;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.avatarWithLabel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+.currentLevel .levelAvatarContainer {
+  border-color: #8b5cf6;
 }
 
 .levelAvatar {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border: 2px solid var(--border-color);
-  transition: all 0.3s ease;
-}
-
-.lockedAvatar {
-  filter: grayscale(100%) blur(2px);
-  opacity: 0.85;
-}
-
-.levelItem.unlocked .levelAvatar,
-.levelItem.current .levelAvatar {
-  border-color: var(--border-glow);
-}
-.levelAvatarContainer > img {
-  width: 52px;
-  height: 52px;
   border-radius: 50%;
-  object-fit: cover;
-}
-.genderLabel {
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  font-weight: 700;
 }
 
-.genderLabelLocked {
-  opacity: 0.5;
+.lockIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-primary, #f8fafc);
+  background: rgba(0,0,0,0.5);
+  padding: 4px;
+  border-radius: 50%;
 }
 
 .levelInfo {
@@ -325,9 +281,10 @@
 }
 
 .levelInfo h4 {
-  font-size: 1rem;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 4px 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -344,179 +301,147 @@
 
 .levelInfo p {
   font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 6px 0;
 }
 
 .levelRequirement {
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #64748b);
+  font-weight: 500;
+}
+
+.levelStatusWrapper {
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
-.levelStatus {
+.statusCurrent {
   padding: 6px 12px;
-  border-radius: 20px;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  white-space: nowrap;
-}
-
-.levelStatus.locked {
-  background: var(--bg-tertiary);
-  color: var(--text-tertiary);
-}
-
-.levelStatus.unlocked {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-}
-
-.levelStatus.current {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
   color: white;
 }
 
-/* Achievements */
+.statusUnlocked {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.statusLocked {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-tertiary, #64748b);
+}
+
+/* 🟢 ACHIEVEMENTS */
 .achievementsCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
+  border-radius: 16px;
   padding: 24px;
 }
 
 .achievementsCard h3 {
   font-size: 1.25rem;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
   margin-bottom: 20px;
 }
 
 .achievementsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 16px;
 }
 
 .achievement {
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  text-align: center;
-  transition: all 0.3s ease;
+  justify-content: center;
+  aspect-ratio: 1;
+  background: var(--bg-primary, #020617);
+  border-radius: 16px;
+  border: 1px solid var(--border-color, #334155);
+  transition: all 0.2s ease;
   cursor: pointer;
 }
 
-.achievement.earned {
-  border-color: var(--border-glow);
-  background: rgba(139, 92, 246, 0.05);
-}
-
-.achievement:hover {
-  transform: translateY(-2px);
-}
-
-.achievementIcon {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  filter: grayscale(100%);
+.achievementIconWrapper {
+  color: #64748b;
   opacity: 0.5;
+  transition: all 0.3s;
 }
 
-.achievement.earned .achievementIcon {
-  filter: grayscale(0%);
+.achievement.earned {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.achievement.earned .achievementIconWrapper {
+  color: #f59e0b;
   opacity: 1;
-}
-
-.achievementName {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.achievement.earned .achievementName {
-  color: var(--text-primary);
 }
 
 .achievementTooltip {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 10px);
   left: 50%;
-  transform: translateX(-50%) translateY(-8px);
-  background: var(--bg-card);
-  border: 1px solid var(--border-glow);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  min-width: 220px;
-  max-width: 280px;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--bg-tertiary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 200px;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   z-index: 100;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
-}
-
-.achievementTooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 8px solid transparent;
-  border-top-color: var(--border-glow);
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
 .achievement:hover .achievementTooltip {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(-12px);
+  transform: translateX(-50%) translateY(0);
 }
 
 .achievementTooltip strong {
   display: block;
   font-size: 0.85rem;
-  color: var(--text-primary);
-  margin-bottom: 6px;
+  color: var(--text-primary, #f8fafc);
+  margin-bottom: 4px;
 }
 
 .achievementTooltip p {
   font-size: 0.75rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  margin: 0;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 6px 0;
+}
+
+.achievementTooltip small {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.7rem;
 }
 
 @media (max-width: 1024px) {
-  .mainGrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .statsGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .achievementsGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  .mainGrid { grid-template-columns: 1fr; }
+  .statsGrid { grid-template-columns: repeat(3, 1fr); }
+  .achievementsGrid { grid-template-columns: repeat(4, 1fr); }
 }
 
 @media (max-width: 600px) {
-  .statsGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .achievementsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .genderSelector {
-    flex-direction: column;
-  }
+  .statsGrid { grid-template-columns: 1fr; }
+  .levelItem { flex-direction: column; text-align: center; gap: 12px; }
+  .achievementsGrid { grid-template-columns: repeat(3, 1fr); }
 }

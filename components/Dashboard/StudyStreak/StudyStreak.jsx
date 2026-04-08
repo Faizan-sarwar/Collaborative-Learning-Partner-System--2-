@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Flame, CheckCircle2, CalendarDays } from 'lucide-react';
 import styles from './StudyStreak.module.css';
 
 const StudyStreak = () => {
@@ -11,77 +12,67 @@ const StudyStreak = () => {
   });
 
   const [isTodayComplete, setIsTodayComplete] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Load Data on Mount (Fetch from DB + LocalStorage Fallback)
+  const fetchStreakData = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success && data.user) {
+        const history = data.user.streakHistory?.length === 14 
+            ? data.user.streakHistory 
+            : Array(14).fill(false);
+            
+        // Calculate weekly progress based on the last 7 days of the history array
+        const last7Days = history.slice(7);
+        const completedDays = last7Days.filter(Boolean).length;
+        const weeklyProgress = Math.round((completedDays / 7) * 100);
+
+        const newStreakData = {
+          current: data.user.streak || 0,
+          longest: data.user.longestStreak || 0,
+          weeklyProgress,
+          last14Days: history
+        };
+
+        setStreakData(newStreakData);
+        
+        // Sync to local storage for quick fallback
+        localStorage.setItem('streakData', JSON.stringify(newStreakData));
+        localStorage.setItem('lastStudyDate', data.user.lastStudyDate || '');
+
+        const todayString = new Date().toDateString();
+        if (data.user.lastStudyDate === todayString) {
+          setIsTodayComplete(true);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch streak from DB", err);
+      // Fallback
+      const saved = localStorage.getItem('streakData');
+      if (saved) setStreakData(JSON.parse(saved));
+      if (localStorage.getItem('lastStudyDate') === new Date().toDateString()) setIsTodayComplete(true);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-        // 1. Try fetching from DB first
-        try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-            if (token) {
-                const res = await fetch('http://localhost:5000/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                
-                if (data.success && data.user) {
-                    const dbStreak = {
-                        current: data.user.streak || 0,
-                        longest: data.user.longestStreak || 0,
-                        weeklyProgress: 0, // Recalculate below
-                        last14Days: data.user.streakHistory && data.user.streakHistory.length === 14 
-                                    ? data.user.streakHistory 
-                                    : Array(14).fill(false)
-                    };
-
-                    // Calculate progress
-                    const last7Days = dbStreak.last14Days.slice(7);
-                    const completedDays = last7Days.filter(Boolean).length;
-                    dbStreak.weeklyProgress = Math.round((completedDays / 7) * 100);
-
-                    setStreakData(dbStreak);
-                    
-                    // Check if today is done based on DB
-                    const todayString = new Date().toDateString();
-                    if (data.user.lastStudyDate === todayString) {
-                        setIsTodayComplete(true);
-                    }
-                    
-                    // Sync local storage as backup
-                    localStorage.setItem('streakData', JSON.stringify(dbStreak));
-                    localStorage.setItem('lastStudyDate', data.user.lastStudyDate || '');
-                    return; // Exit if DB fetch successful
-                }
-            }
-        } catch (err) {
-            console.error("Failed to fetch streak from DB, falling back to local", err);
-        }
-
-        // 2. Fallback to Local Storage if DB fails or no token
-        const saved = localStorage.getItem('streakData');
-        const lastDate = localStorage.getItem('lastStudyDate');
-        const today = new Date().toDateString();
-
-        if (saved) {
-            setStreakData(JSON.parse(saved));
-        }
-
-        if (lastDate === today) {
-            setIsTodayComplete(true);
-        }
-    };
-
-    fetchData();
+    fetchStreakData();
+    window.addEventListener('userUpdated', fetchStreakData);
+    return () => window.removeEventListener('userUpdated', fetchStreakData);
   }, []);
 
-  // Handle Marking Complete
   const markTodayComplete = async () => {
-    if (isTodayComplete) return;
+    if (isTodayComplete || loading) return;
+    setLoading(true);
 
     const today = new Date();
     const todayString = today.toDateString();
-
-    // Calculate Yesterday correctly
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayString = yesterday.toDateString();
@@ -89,8 +80,6 @@ const StudyStreak = () => {
     const lastStudyDate = localStorage.getItem('lastStudyDate');
 
     let newStreak = 1;
-
-    // Logic: If last study date was yesterday, increment. If it was today (redundant check), keep same. Else reset to 1.
     if (lastStudyDate === yesterdayString) {
       newStreak = streakData.current + 1;
     } else if (lastStudyDate === todayString) {
@@ -98,11 +87,8 @@ const StudyStreak = () => {
     }
 
     const newLongest = Math.max(newStreak, streakData.longest);
-
-    // Update the visual grid (Shift left, add true at the end)
     const newLast14Days = [...streakData.last14Days.slice(1), true];
-
-    // Calculate weekly progress based on last 7 entries of the grid
+    
     const last7Days = newLast14Days.slice(7); 
     const completedDays = last7Days.filter(Boolean).length;
     const weeklyProgress = Math.round((completedDays / 7) * 100);
@@ -112,54 +98,56 @@ const StudyStreak = () => {
       longest: newLongest,
       weeklyProgress,
       last14Days: newLast14Days,
-      lastDate: todayString // Include date for DB update
+      lastDate: todayString
     };
 
-    // Optimistic Update
+    // Optimistic UI Update
     setStreakData(updated);
     setIsTodayComplete(true);
     localStorage.setItem('streakData', JSON.stringify(updated));
     localStorage.setItem('lastStudyDate', todayString);
 
-    //  SAVE TO DB
     try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        if (token) {
-            await fetch('http://localhost:5000/api/auth/update-stats', {
-                method: 'PUT',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ streakData: updated })
-            });
-        }
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (token) {
+        await fetch('http://localhost:5000/api/auth/update-stats', {
+          method: 'PUT',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ streakData: updated })
+        });
+
+        // 🟢 Tell the rest of the dashboard that we updated user stats
+        window.dispatchEvent(new Event('userUpdated'));
+      }
     } catch (err) {
-        console.error("Failed to save streak to DB", err);
+      console.error("Failed to save streak to DB", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getLast14DaysDates = () => {
-    const dates = [];
-    for (let i = 13; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      dates.push(date.getDate());
-    }
-    return dates;
-  };
-
-  const dates = getLast14DaysDates();
+  // Generate the dates for the last 14 days grid
+  const dates = Array.from({length: 14}, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (13 - i));
+    return d.getDate();
+  });
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <span className={styles.icon}>🔥</span>
-        <div>
-          <h3 className={styles.title}>Study Streak Tracker</h3>
-          <p className={styles.subtitle}>Track your study consistency</p>
+        <div className={styles.titleSection}>
+          <div className={styles.iconWrapper}>
+            <Flame size={20} className={styles.icon} />
+          </div>
+          <div>
+            <h3 className={styles.title}>Study Streak</h3>
+            <p className={styles.subtitle}>Consistency builds mastery</p>
+          </div>
         </div>
-        <span className={styles.newBadge}>NEW</span>
       </div>
 
       <div className={styles.content}>
@@ -176,27 +164,29 @@ const StudyStreak = () => {
 
         <div className={styles.weeklyProgress}>
           <div className={styles.progressHeader}>
-            <span>Weekly Goal Progress</span>
-            <span>{streakData.weeklyProgress}%</span>
+            <span>7-Day Consistency</span>
+            <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{streakData.weeklyProgress}%</span>
           </div>
           <div className={styles.progressBar}>
             <motion.div 
               className={styles.progressFill}
               initial={{ width: 0 }}
               animate={{ width: `${streakData.weeklyProgress}%` }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
         </div>
 
         <div className={styles.calendar}>
-          <span className={styles.calendarLabel}>Last 14 Days</span>
+          <span className={styles.calendarLabel}>
+            <CalendarDays size={14} /> Last 14 Days
+          </span>
           <div className={styles.daysGrid}>
             {dates.map((date, index) => (
               <motion.div
                 key={index}
                 className={`${styles.dayCell} ${streakData.last14Days[index] ? styles.completed : ''}`}
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: 1.05 }}
                 title={`Day ${date}`}
               >
                 {date}
@@ -208,21 +198,16 @@ const StudyStreak = () => {
         <button 
             className={`${styles.markBtn} ${isTodayComplete ? styles.disabled : ''}`} 
             onClick={markTodayComplete}
-            disabled={isTodayComplete}
+            disabled={isTodayComplete || loading}
         >
           {isTodayComplete ? (
              <>
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
-               </svg>
-               Completed for Today
+               <CheckCircle2 size={18} />
+               Logged for Today
              </>
           ) : (
              <>
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                 <polyline points="20 6 9 17 4 12" />
-               </svg>
+               <Flame size={18} />
                Mark Today Complete
              </>
           )}
