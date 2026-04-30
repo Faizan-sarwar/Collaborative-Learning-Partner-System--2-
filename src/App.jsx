@@ -77,107 +77,103 @@ const AnimatedRoutes = () => {
   const navigate = useNavigate();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
 
-  // Start checking by default so the page waits for settings
   const [isChecking, setIsChecking] = useState(true);
-
-  // Pull the settings from the Global Brain
   const { settings } = useSettings();
 
-  // GUARD LOGIC
+  // Get the base URL from Vite .env, fallback to localhost if it's missing
+  const apiUrl = `http://${window.location.hostname}:5000`;
+
   useEffect(() => {
     const checkStatus = async () => {
-      // If settings are still null, they are likely still loading from context. Wait a beat.
       if (!settings) return;
 
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-      const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user'));
 
-      let user = null;
-      if (storedUserString) {
-        try { user = JSON.parse(storedUserString); } catch (e) { console.error("Failed to parse user", e); }
-      }
-
-      // 1. GLOBAL HARD LOCKDOWN (Maintenance Mode)
-      if (settings?.maintenanceMode) {
-        const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
-
-        // 🟢 CLOSED THE KEYHOLE: No one can access /login.
-        if (!isAdmin && location.pathname !== '/maintenance') {
-          navigate('/maintenance');
-          setIsChecking(false);
-          return;
+        let user = null;
+        if (storedUserString) {
+          try { user = JSON.parse(storedUserString); } catch (e) { console.error("Failed to parse user", e); }
         }
-      } else {
-        if (location.pathname === '/maintenance') {
-          navigate('/');
-        }
-      }
 
-      // 2. GLOBAL REGISTRATION LOCK
-      if (settings?.allowRegistrations === false && location.pathname === '/signup') {
-        alert("New registrations are currently disabled by the administrator.");
-        navigate('/login');
-        setIsChecking(false);
-        return;
-      }
-
-      // If no token or user, stop checking (let public routes handle it)
-      if (!token || !user) {
-        setIsChecking(false);
-        return;
-      }
-
-      const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
-
-      // 3. ADMIN REDIRECT LOGIC
-      if (user.role === 'admin' || user.role === 'super-admin') {
-        if (isPublicPage) navigate('/admin');
-        setIsChecking(false);
-        return;
-      }
-
-      // 4. STUDENT QUIZ LOGIC
-      const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
-
-      if (user.quizCompleted) {
-        if (isPublicPage) navigate('/dashboard');
-        setIsChecking(false);
-        return;
-      }
-
-      if (hasStrengths && !user.quizCompleted) {
-        try {
-          const res = await fetch('http://localhost:5000/api/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await res.json();
-
-          if (data.success && data.user.quizCompleted) {
-            if (localStorage.getItem('token')) {
-              localStorage.setItem('user', JSON.stringify(data.user));
-            } else {
-              sessionStorage.setItem('user', JSON.stringify(data.user));
-            }
-
-            if (isPublicPage) navigate('/dashboard');
-            setIsChecking(false);
+        // 1. GLOBAL HARD LOCKDOWN (Maintenance Mode)
+        if (settings?.maintenanceMode) {
+          const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
+          if (!isAdmin && location.pathname !== '/maintenance') {
+            navigate('/maintenance');
             return;
           }
-        } catch (err) {
-          console.error("Auth check failed", err);
+        } else {
+          if (location.pathname === '/maintenance') {
+            navigate('/');
+          }
         }
 
-        if (location.pathname !== '/quiz' && location.pathname !== '/login') {
-          navigate('/quiz');
+        // 2. GLOBAL REGISTRATION LOCK
+        if (settings?.allowRegistrations === false && location.pathname === '/signup') {
+          alert("New registrations are currently disabled by the administrator.");
+          navigate('/login');
+          return;
         }
+
+        // If no token or user, stop checking (let public routes handle it)
+        if (!token || !user) {
+          return;
+        }
+
+        const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
+
+        // 3. ADMIN REDIRECT LOGIC
+        if (user.role === 'admin' || user.role === 'super-admin') {
+          if (isPublicPage) navigate('/admin');
+          return;
+        }
+
+        // 4. STUDENT QUIZ LOGIC
+        const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
+
+        if (user.quizCompleted) {
+          if (isPublicPage) navigate('/dashboard');
+          return;
+        }
+
+        if (hasStrengths && !user.quizCompleted) {
+          try {
+            // FIXED: Using dynamic apiUrl instead of hardcoded localhost
+            const res = await fetch(`${apiUrl}/api/auth/me`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+
+            if (data.success && data.user.quizCompleted) {
+              if (localStorage.getItem('token')) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+              } else {
+                sessionStorage.setItem('user', JSON.stringify(data.user));
+              }
+
+              if (isPublicPage) navigate('/dashboard');
+              return;
+            }
+          } catch (err) {
+            console.error("Auth check failed (Server might be down):", err);
+          }
+
+          if (location.pathname !== '/quiz' && location.pathname !== '/login') {
+            navigate('/quiz');
+          }
+        }
+      } catch (error) {
+         console.error("Critical error during app initialization:", error);
+      } finally {
+        // FIXED: The spinner will ALWAYS shut off, no matter what happens above
+        setIsChecking(false);
       }
-      setIsChecking(false);
     };
 
     checkStatus();
-  }, [location.pathname, navigate, settings]);
+  }, [location.pathname, navigate, settings, apiUrl]);
 
-  // Prevent the split-second flicker! 
   if (isChecking) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#8b5cf6' }}>

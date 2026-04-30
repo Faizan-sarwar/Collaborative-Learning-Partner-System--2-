@@ -16,7 +16,6 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 1. Updated routes to point to standard URL paths
   const navLinks = [
     { name: 'Home', path: '/', icon: "fa-solid fa-circle-info" },
     { name: 'FAQ', path: '/faq', icon: "fa-solid fa-circle-question" },
@@ -50,15 +49,22 @@ const Navbar = () => {
               <Link 
                 to={link.path} 
                 className={styles.navLink}
-                onClick={() => setMobileMenuOpen(false)} // Close menu on click (mobile)
+                onClick={() => setMobileMenuOpen(false)} 
               >
                 <i className={link.icon} style={{ marginRight: '8px' }}></i>
                 {link.name}
               </Link>
             </li>
           ))}
+          
+          {/* 🟢 NEW: Mobile Only Actions injected inside the dropdown menu */}
+          <li className={styles.mobileOnlyActions}>
+            <Link to="/login" className={styles.loginBtn} onClick={() => setMobileMenuOpen(false)}>Login</Link>
+            <Link to="/signup" className={styles.getStartedBtn} onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
+          </li>
         </ul>
 
+        {/* Desktop actions (Hidden on mobile via CSS) */}
         <div className={styles.navActions}>
           <Link to="/login" className={styles.loginBtn}>Login</Link>
           <Link to="/signup" className={styles.getStartedBtn}>Sign Up</Link>

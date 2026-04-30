@@ -92,7 +92,7 @@
 }
 
 .navIcon {
-  position: relative; 
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,16 +107,25 @@
   right: -4px;
   width: 8px;
   height: 8px;
-  background-color: #ef4444; 
+  background-color: #ef4444;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--bg-secondary, #0f172a); 
+  box-shadow: 0 0 0 2px var(--bg-secondary, #0f172a);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 .navLabel {
@@ -142,8 +151,13 @@
   overflow-x: hidden;
 }
 
-.widgets::-webkit-scrollbar { width: 4px; }
-.widgets::-webkit-scrollbar-thumb { background: var(--border-color, #1e293b); border-radius: 2px; }
+.widgets::-webkit-scrollbar {
+  width: 4px;
+}
+.widgets::-webkit-scrollbar-thumb {
+  background: var(--border-color, #1e293b);
+  border-radius: 2px;
+}
 
 .widget {
   display: flex;
@@ -157,13 +171,34 @@
   overflow: hidden;
 }
 
-.widget.purple { background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); color: #a855f7; }
-.widget.green { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); color: #10b981; }
-.widget.yellow { background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); color: #f59e0b; }
-.widget.red { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.15); color: #ef4444; }
+.widget.purple {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  color: #a855f7;
+}
+.widget.green {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+.widget.yellow {
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+.widget.red {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
 
-.widget:hover { transform: translateX(4px); filter: brightness(1.2); }
-.widget.activeWidget { box-shadow: inset 0 0 10px rgba(255,255,255,0.05); }
+.widget:hover {
+  transform: translateX(4px);
+  filter: brightness(1.2);
+}
+.widget.activeWidget {
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+}
 
 .widgetIconWrapper {
   display: flex;
@@ -220,5 +255,66 @@
 }
 
 @media (max-width: 768px) {
-  .sidebar { display: none; }
+  .sidebar {
+    display: none;
+  }
+}
+.mobileCloseBtn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: flex; /* Ensure it is not set to display: none */
+    width: 250px;
+    left: -250px; /* Hide off-screen initially */
+  }
+  .sidebar.open {
+    left: 0; /* Slide in when open */
+  }
+  .mobileCloseBtn {
+    display: block;
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    z-index: 101;
+  }
+}
+/* 🟢 MOBILE RESPONSIVE SIDEBAR */
+@media (max-width: 768px) {
+  .sidebar {
+    display: flex; /* Overrides the display:none from earlier */
+    width: 260px;
+    left: -260px; /* Hides off-screen initially */
+    height: 100vh;
+    height: 100dvh; /* Better full-height support for mobile browsers */
+  }
+  
+  .sidebar.open {
+    left: 0; /* Slides in when opened */
+  }
+  
+  .mobileCloseBtn {
+    display: block;
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-primary, #f8fafc);
+    cursor: pointer;
+    z-index: 101;
+  }
+
+  /* 🟢 CRITICAL: Force text to be visible on mobile since there is no hover! */
+  .logoText,
+  .navLabel,
+  .widgetInfo,
+  .versionText {
+    opacity: 1 !important;
+  }
 }

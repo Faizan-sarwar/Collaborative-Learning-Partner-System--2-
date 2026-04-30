@@ -1,56 +1,86 @@
 .card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
+.card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  border-color: #334155;
+}
+
+/* 🟢 HEADER */
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .header h3 {
   font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 4px 0;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
 }
 
 .viewAllBtn {
-  background: transparent;
-  border: none;
-  color: var(--accent-blue);
-  font-size: 0.9rem;
-  font-weight: 500;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .viewAllBtn:hover {
-  opacity: 0.8;
+  background: #3b82f6;
+  color: white;
 }
 
+/* 🟢 TIMELINE LIST */
 .activityList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0; /* Gap managed by padding to allow continuous timeline line */
+  flex: 1;
 }
 
 .activityItem {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 10px;
-  transition: background var(--transition-fast);
+  gap: 16px;
+  padding-bottom: 20px;
+  position: relative;
 }
 
-.activityItem:hover {
-  background: var(--bg-tertiary);
+/* 🟢 THE TIMELINE CONNECTOR */
+.timelineLine {
+  position: absolute;
+  top: 36px; /* Starts below the icon */
+  left: 17px; /* Centers exactly under the 36px icon */
+  width: 2px;
+  height: calc(100% - 36px);
+  background: var(--border-color, #1e293b);
+  border-radius: 2px;
 }
 
+/* 🟢 ICONS */
 .activityIcon {
   width: 36px;
   height: 36px;
@@ -59,48 +89,30 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  z-index: 2; /* Keeps icon above the timeline line */
+  background: var(--bg-secondary, #0f172a); /* Base to block line passing through */
+  border: 1px solid transparent;
 }
 
-.activityIcon.green {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--accent-green);
-}
+.green { background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3); }
+.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+.red { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+.purple { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3); }
+.teal { background: rgba(20, 184, 166, 0.15); color: #14b8a6; border-color: rgba(20, 184, 166, 0.3); }
 
-.activityIcon.blue {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--accent-blue);
-}
-
-.activityIcon.red {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--accent-red);
-}
-
-.activityIcon.purple {
-  background: rgba(139, 92, 246, 0.15);
-  color: var(--accent-purple);
-}
-
-.activityIcon.orange {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--accent-orange);
-}
-
-.activityIcon.teal {
-  background: rgba(20, 184, 166, 0.15);
-  color: var(--accent-teal);
-}
-
+/* 🟢 CONTENT */
 .activityContent {
   flex: 1;
   min-width: 0;
+  padding-top: 6px;
 }
 
 .activityAction {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 6px 0;
+  line-height: 1.4;
 }
 
 .activityMeta {
@@ -111,14 +123,63 @@
 }
 
 .activityUser {
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
 }
 
 .activityTime {
-  color: var(--text-muted);
+  color: var(--text-muted, #64748b);
+  display: flex;
+  align-items: center;
 }
 
 .activityTime::before {
-  content: '•';
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted, #64748b);
   margin-right: 8px;
+}
+
+/* 🟢 LOADING & EMPTY STATES */
+.centerState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: var(--text-secondary, #94a3b8);
+  height: 100%;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: #3b82f6;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.errorText {
+  color: #ef4444;
+  margin-top: 12px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 0;
+  color: var(--text-muted, #64748b);
+  opacity: 0.7;
+}
+
+.emptyState p {
+  margin-top: 12px;
+  font-size: 0.95rem;
 }

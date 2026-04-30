@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { 
+  Users, UserCheck, UserX, UserPlus, BookOpen, Shield, 
+  Loader2, AlertCircle, TrendingUp, TrendingDown, Minus 
+} from 'lucide-react';
 import styles from './StatsCards.module.css';
 
 const StatsCards = () => {
@@ -6,15 +10,14 @@ const StatsCards = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ================= FETCH ADMIN STATS =================
+  // ================= SECURE FETCH =================
   const fetchStats = async () => {
     try {
-      setLoading(true);
-      const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/auth/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) throw new Error("Authentication token missing.");
+
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
 
@@ -26,7 +29,8 @@ const StatsCards = () => {
       setError(null);
     } catch (err) {
       console.error('Stats fetch error:', err);
-      setError('Unable to load statistics');
+      // Prevent wiping existing data on a failed background poll
+      if (!stats) setError('Unable to load statistics');
     } finally {
       setLoading(false);
     }
@@ -34,148 +38,116 @@ const StatsCards = () => {
 
   useEffect(() => {
     fetchStats();
-
-    // Auto refresh every 30 seconds (real-time feel)
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // ================= ICON RENDERER =================
-  const renderIcon = (iconName) => {
-    const icons = {
-      students: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
-      active: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-      ),
-      blocked: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-        </svg>
-      ),
-      new: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="8.5" cy="7" r="4" />
-          <line x1="20" y1="8" x2="20" y2="14" />
-          <line x1="23" y1="11" x2="17" y2="11" />
-        </svg>
-      ),
-      courses: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
-      ),
-      admins: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-      ),
-    };
-
-    return icons[iconName] || null;
-  };
-
   // ================= LOADING / ERROR STATES =================
-  if (loading) {
-    return <div className={styles.statsGrid}>Loading statistics...</div>;
+  if (loading && !stats) {
+    return (
+      <div className={styles.centerStateCard}>
+        <Loader2 className={styles.spinner} size={28} />
+        <p>Loading platform metrics...</p>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className={styles.statsGrid}>{error}</div>;
+  if (error && !stats) {
+    return (
+      <div className={styles.centerStateCard}>
+        <AlertCircle size={28} color="#ef4444" />
+        <p className={styles.errorText}>{error}</p>
+      </div>
+    );
   }
 
-  // ================= MAP DATABASE DATA TO CARDS =================
+  // ================= MAP DATA TO CARDS =================
   const cards = [
     {
       id: 'total-students',
       label: 'Total Students',
-      value: stats.totalStudents,
+      value: stats?.totalStudents || 0,
       change: 'Live',
       isPositive: true,
-      icon: 'students',
+      icon: Users,
       color: 'blue',
     },
     {
       id: 'active-students',
       label: 'Active Students',
-      value: stats.activeStudents,
+      value: stats?.activeStudents || 0,
       change: 'Live',
       isPositive: true,
-      icon: 'active',
+      icon: UserCheck,
       color: 'green',
     },
     {
       id: 'blocked-students',
       label: 'Blocked Students',
-      value: stats.blockedStudents,
+      value: stats?.blockedStudents || 0,
       change: 'Live',
       isPositive: false,
-      icon: 'blocked',
+      icon: UserX,
       color: 'red',
     },
     {
       id: 'new-today',
       label: 'New Today',
-      value: stats.newToday,
+      value: stats?.newToday || 0,
       change: 'Today',
       isPositive: true,
-      icon: 'new',
+      icon: UserPlus,
       color: 'purple',
     },
     {
       id: 'total-courses',
       label: 'Total Courses',
-      value: stats.totalCourses,
+      value: stats?.totalCourses || 0,
       change: 'Live',
       isPositive: true,
-      icon: 'courses',
+      icon: BookOpen,
       color: 'teal',
     },
     {
       id: 'total-admins',
       label: 'Total Admins',
-      value: stats.totalAdmins,
-      change: 'No change',
+      value: stats?.totalAdmins || 0,
+      change: 'Stable',
       isPositive: null,
-      icon: 'admins',
+      icon: Shield,
       color: 'orange',
     },
   ];
 
-  // ================= RENDER =================
   return (
     <div className={styles.statsGrid}>
-      {cards.map((stat) => (
-        <div key={stat.id} className={`${styles.statCard} ${styles[stat.color]}`}>
-          <div className={styles.statIcon}>{renderIcon(stat.icon)}</div>
-          <div className={styles.statInfo}>
-            <span className={styles.statLabel}>{stat.label}</span>
-            <span className={styles.statValue}>{stat.value}</span>
-            <span
-              className={`${styles.statChange} ${stat.isPositive === true
-                  ? styles.positive
-                  : stat.isPositive === false
-                    ? styles.negative
-                    : ''
-                }`}
-            >
-              {stat.change}
-            </span>
+      {cards.map((stat) => {
+        const IconComponent = stat.icon;
+        return (
+          <div key={stat.id} className={`${styles.statCard} ${styles[stat.color]}`}>
+            <div className={styles.statIcon}>
+              <IconComponent size={24} />
+            </div>
+            <div className={styles.statInfo}>
+              <span className={styles.statLabel}>{stat.label}</span>
+              <span className={styles.statValue}>
+                {stat.value.toLocaleString()}
+              </span>
+              
+              {/* 🟢 Enterprise Trend Indicators */}
+              <div className={`${styles.statChangeWrapper} ${
+                stat.isPositive === true ? styles.positive : 
+                stat.isPositive === false ? styles.negative : styles.neutral
+              }`}>
+                {stat.isPositive === true && <TrendingUp size={14} />}
+                {stat.isPositive === false && <TrendingDown size={14} />}
+                {stat.isPositive === null && <Minus size={14} />}
+                <span className={styles.statChangeText}>{stat.change}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

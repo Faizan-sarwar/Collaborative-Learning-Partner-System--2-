@@ -30,7 +30,7 @@ const StudyTime = () => {
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
-          const res = await fetch('http://localhost:5000/api/auth/me', {
+          const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
@@ -180,7 +180,7 @@ const StudyTime = () => {
         const earnedXP = Math.floor(sessionMinutes * 2); // 2 XP per minute
 
         // We use the new /track-time endpoint to safely $inc (increment) values
-        const res = await fetch('http://localhost:5000/api/auth/track-time', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/track-time`, {
             method: 'PUT',
             headers: { 
                 'Authorization': `Bearer ${token}`,

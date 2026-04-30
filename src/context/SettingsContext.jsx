@@ -8,7 +8,8 @@ export const SettingsProvider = ({ children }) => {
   // 1. FETCH SETTINGS
   const fetchSettings = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/auth/admin/settings');
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+const res = await fetch(`${apiUrl}/api/auth/admin/settings`);
       const data = await res.json();
       
       if (data.success && data.settings) {
@@ -53,7 +54,7 @@ export const SettingsProvider = ({ children }) => {
                 sessionStorage.removeItem('user');
                 
                 // Alert the backend they went offline
-                fetch('http://localhost:5000/api/auth/logout', { method: 'POST' }).catch(()=>console.log("Logout signal failed"));
+                fetch(`http://${window.location.hostname}:5000/api/auth/logout`, { method: 'POST' }).catch(()=>console.log("Logout signal failed"));
                 
                 // Kick them back to login page
                 window.location.href = '/login?timeout=true';

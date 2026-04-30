@@ -38,7 +38,7 @@ const AdminProfile = () => {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         // 1. Fetch Profile
-        const userRes = await fetch('http://localhost:5000/api/auth/me', { headers });
+        const userRes = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, { headers });
         const userData = await userRes.json();
 
         if (userData.success) {
@@ -57,7 +57,7 @@ const AdminProfile = () => {
         }
 
         // 2. Fetch Activities
-        const activityRes = await fetch('http://localhost:5000/api/activity-logs/latest');
+        const activityRes = await fetch(`http://${window.location.hostname}:5000/api/activity-logs/latest`);
         const activityData = await activityRes.json();
         
         const mappedActivities = activityData.map(log => ({
@@ -143,7 +143,7 @@ const AdminProfile = () => {
         formData.append('profilePicture', selectedFile);
       }
 
-      const res = await fetch('http://localhost:5000/api/auth/profile', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

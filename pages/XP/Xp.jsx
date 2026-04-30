@@ -52,7 +52,7 @@ const XP = () => {
             const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if(!token) return;
 
-            const res = await fetch('http://localhost:5000/api/auth/me', {
+            const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -65,7 +65,7 @@ const XP = () => {
             }
 
             // Load History from Notifications
-            const notifRes = await fetch('http://localhost:5000/api/notifications', {
+            const notifRes = await fetch(`http://${window.location.hostname}:5000/api/notifications`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const notifData = await notifRes.json();

@@ -48,27 +48,33 @@ const achievements = [
 const Gamification = () => {
   const [loading, setLoading] = useState(true);
   const [gender, setGender] = useState('male');
-  const [useAvatar, setUseAvatar] = useState(true);
   const [profilePicture, setProfilePicture] = useState(null);
   const [userName, setUserName] = useState('Student');
-  
+
+  // 🟢 UX FIX: Immediately load the preference from memory on the first millisecond so it never flickers!
+  const [useAvatar, setUseAvatar] = useState(() => {
+    const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+    const storedUser = JSON.parse(storage.getItem('user') || '{}');
+    return storedUser?.settings?.showAvatar !== false;
+  });
+
   const [userStats, setUserStats] = useState({
     studyHours: 0,
     xp: 0,
     currentLevel: 1,
     streak: 0,
   });
-  
+
   const [earnedAchievements, setEarnedAchievements] = useState([]);
 
   const sendNotification = (title, message, type = 'success') => {
     const existing = JSON.parse(localStorage.getItem('notifications') || '[]');
-    if (existing.some(n => n.title === title)) return; 
+    if (existing.some(n => n.title === title)) return;
 
     const newNotif = {
       id: Date.now(), title, message, type, read: false, timestamp: new Date().toISOString()
     };
-    
+
     const updated = [newNotif, ...existing];
     localStorage.setItem('notifications', JSON.stringify(updated));
     window.dispatchEvent(new Event('notificationAdded'));
@@ -80,7 +86,7 @@ const Gamification = () => {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
         if (!token) return;
 
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -88,7 +94,7 @@ const Gamification = () => {
         if (data.success) {
           const user = data.user;
           setUserName(user.fullName || 'Student');
-          
+
           let currentXp = user.xp || 0;
           let currentLevel = user.level || 1;
           const currentStudyHours = user.studyHours || 0;
@@ -100,10 +106,10 @@ const Gamification = () => {
           let updates = {};
 
           const productivityXP = Math.floor((currentStudyHours * 120) + (currentTasks * 30));
-          
+
           if (currentXp < productivityXP) {
-              currentXp = productivityXP;
-              needsUpdate = true;
+            currentXp = productivityXP;
+            needsUpdate = true;
           }
 
           if (currentXp === 0 && currentStudyHours === 0) {
@@ -124,22 +130,22 @@ const Gamification = () => {
           let newXp = currentXp;
 
           achievements.forEach(ach => {
-             if (ach.condition(stats) && !currentAchievements.includes(ach.id)) {
-                newAchievements.push(ach.id);
-                newXp += ach.xpReward;
-                needsUpdate = true;
-                sendNotification("Achievement Unlocked! 🏆", `You earned '${ach.name}' and ${ach.xpReward} XP!`);
-             }
+            if (ach.condition(stats) && !currentAchievements.includes(ach.id)) {
+              newAchievements.push(ach.id);
+              newXp += ach.xpReward;
+              needsUpdate = true;
+              sendNotification("Achievement Unlocked! 🏆", `You earned '${ach.name}' and ${ach.xpReward} XP!`);
+            }
           });
 
           const qualifiedLevelObj = [...levels].reverse().find(l => newXp >= l.xpRequired && currentStudyHours >= l.hoursRequired);
           const qualifiedLevel = qualifiedLevelObj ? qualifiedLevelObj.level : 1;
 
           if (qualifiedLevel > currentLevel) {
-             currentLevel = qualifiedLevel;
-             updates.level = qualifiedLevel;
-             needsUpdate = true;
-             sendNotification("Level Up! 🚀", `Congratulations! You are now Level ${qualifiedLevel}: ${qualifiedLevelObj.name}`);
+            currentLevel = qualifiedLevel;
+            updates.level = qualifiedLevel;
+            needsUpdate = true;
+            sendNotification("Level Up! 🚀", `Congratulations! You are now Level ${qualifiedLevel}: ${qualifiedLevelObj.name}`);
           }
 
           setUserStats({
@@ -149,36 +155,33 @@ const Gamification = () => {
             streak: currentStreak,
           });
           setEarnedAchievements(newAchievements);
-          
-          // 🟢 LOAD AVATAR PREFERENCES
+
           if (user.gender) setGender(user.gender.toLowerCase());
-          // Append timestamp to bypass browser caching if user changed their photo recently
-          if (user._id) setProfilePicture(`http://localhost:5000/api/auth/student/${user._id}/picture?t=${Date.now()}`);
-          
-          // Explicitly check for false, default to true
+
+          if (user._id) setProfilePicture(`http://${window.location.hostname}:5000/api/auth/student/${user._id}/picture?t=${Date.now()}`);
+
           if (user.settings && typeof user.settings.showAvatar === 'boolean') {
-              setUseAvatar(user.settings.showAvatar);
+            setUseAvatar(user.settings.showAvatar);
           }
 
           if (needsUpdate) {
-             updates.xp = newXp;
-             updates.achievements = newAchievements;
-             
-             await fetch('http://localhost:5000/api/auth/profile', {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(updates)
-             });
+            updates.xp = newXp;
+            updates.achievements = newAchievements;
 
-             const updatedUser = { ...user, ...updates };
-             const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
-             storage.setItem('user', JSON.stringify(updatedUser));
-             window.dispatchEvent(new Event('userUpdated')); 
+            await fetch(`http://${window.location.hostname}:5000/api/auth/profile`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(updates)
+            });
+
+            const updatedUser = { ...user, ...updates };
+            const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+            storage.setItem('user', JSON.stringify(updatedUser));
+            window.dispatchEvent(new Event('userUpdated'));
           }
-
         }
       } catch (err) {
         console.error("Failed to fetch gamification data", err);
@@ -190,39 +193,72 @@ const Gamification = () => {
     fetchUserData();
   }, []);
 
-  // 🟢 PERSIST AVATAR TOGGLE ACROSS DB AND LOCAL STORAGE
-  const handleToggleAvatar = async (showAvatarValue) => {
-    // 1. Optimistic UI update for snappy feel
-    setUseAvatar(showAvatarValue); 
-    
-    try {
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+  useEffect(() => {
+    const handleUserUpdated = () => {
       const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
-      const storedUser = JSON.parse(storage.getItem('user') || '{}');
-      
-      // 2. Prepare the full settings object so we don't accidentally wipe out other settings
-      const newSettings = { 
-          ...(storedUser.settings || {}), 
-          showAvatar: showAvatarValue 
-      };
+      const u = JSON.parse(storage.getItem('user') || '{}');
+      if (u.gender) setGender(u.gender.toLowerCase());
+      if (u._id) setProfilePicture(`http://${window.location.hostname}:5000/api/auth/student/${u._id}/picture?t=${Date.now()}`);
+      if (u.settings && typeof u.settings.showAvatar === 'boolean') {
+        setUseAvatar(u.settings.showAvatar);
+      }
+    };
+    window.addEventListener('userUpdated', handleUserUpdated);
+    return () => window.removeEventListener('userUpdated', handleUserUpdated);
+  }, []);
 
-      // 3. Save to LocalStorage so Header and Sidebar update instantly
-      storedUser.settings = newSettings;
-      storage.setItem('user', JSON.stringify(storedUser));
-      window.dispatchEvent(new Event('userUpdated')); // Triggers re-render in Header
-      
-      // 4. Save to Database
-      await fetch('http://localhost:5000/api/auth/profile', {
+  // 🟢 DATABASE BUG FIX: Removed FormData wrappers and sent pure JSON so the backend never drops the request!
+  const handleToggleAvatar = async (showAvatarValue) => {
+    // 1. Optimistically update the UI immediately
+    setUseAvatar(showAvatarValue);
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+    const storedUser = JSON.parse(storage.getItem('user') || '{}');
+
+    const newSettings = {
+      ...(storedUser.settings || {}),
+      showAvatar: showAvatarValue,
+    };
+
+    // 2. Optimistically update localStorage so a refresh reads the correct value
+    storedUser.settings = newSettings;
+    storage.setItem('user', JSON.stringify(storedUser));
+    window.dispatchEvent(new Event('userUpdated'));
+
+    try {
+      // 3. Persist to the database
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ settings: newSettings })
+        body: JSON.stringify({ settings: newSettings }),
       });
 
+      const data = await res.json();
+
+      if (data.success && data.user) {
+        // 4. Sync localStorage with the exact value the server confirmed
+        const confirmedSettings = data.user.settings || newSettings;
+        storage.setItem('user', JSON.stringify({ ...storedUser, ...data.user, settings: confirmedSettings }));
+        if (typeof confirmedSettings.showAvatar === 'boolean') {
+          setUseAvatar(confirmedSettings.showAvatar);
+        }
+      } else {
+        // 5. Server rejected — rollback UI and localStorage
+        console.error('Failed to save avatar preference:', data.message);
+        setUseAvatar(!showAvatarValue);
+        storedUser.settings = { ...(storedUser.settings || {}), showAvatar: !showAvatarValue };
+        storage.setItem('user', JSON.stringify(storedUser));
+      }
     } catch (err) {
-      console.error("Failed to update avatar preference in database", err);
+      // 6. Network error — rollback
+      console.error('Network error saving avatar preference:', err);
+      setUseAvatar(!showAvatarValue);
+      storedUser.settings = { ...(storedUser.settings || {}), showAvatar: !showAvatarValue };
+      storage.setItem('user', JSON.stringify(storedUser));
     }
   };
 
@@ -249,22 +285,22 @@ const Gamification = () => {
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
-  if (loading) return <DashboardLayout title="Gamification"><div style={{color:'var(--text-secondary)', padding:'20px'}}>Loading progress...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout title="Gamification"><div style={{ color: 'var(--text-secondary)', padding: '20px' }}>Loading progress...</div></DashboardLayout>;
 
   return (
     <DashboardLayout title="Gamification">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
-        
+
         <motion.div className={styles.header} variants={itemVariants}>
           <h1 className={styles.title}>Your Learning Journey</h1>
           <p className={styles.subtitle}>Level up to unlock new avatars!</p>
         </motion.div>
 
         <div className={styles.mainGrid}>
-          
+
           <motion.div className={styles.avatarCard} variants={itemVariants}>
             <h3>Your Appearance</h3>
-            
+
             <div className={styles.avatarDisplay}>
               <motion.img
                 key={`${useAvatar ? 'avatar' : 'profile'}-${gender}-${userStats.currentLevel}`}
@@ -274,7 +310,6 @@ const Gamification = () => {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                // Enterprise fallback: Use generated initials instead of a broken image
                 onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`; }}
               />
               <span className={styles.levelBadge} style={{ background: getTierColor(getCurrentLevelData()?.tier) }}>
@@ -285,20 +320,20 @@ const Gamification = () => {
             <div className={styles.controlGroup}>
               <div className={styles.avatarToggle}>
                 <button className={`${styles.toggleBtn} ${useAvatar ? styles.active : ''}`} onClick={() => handleToggleAvatar(true)}>
-                    <UserIcon size={16} /> Avatar
+                  <UserIcon size={16} /> Avatar
                 </button>
                 <button className={`${styles.toggleBtn} ${!useAvatar ? styles.active : ''}`} onClick={() => handleToggleAvatar(false)}>
-                    <Camera size={16} /> Photo
+                  <Camera size={16} /> Photo
                 </button>
               </div>
             </div>
 
             <div className={styles.xpInfo}>
               <div className={styles.xpBar}>
-                <motion.div 
-                  className={styles.xpFill} 
-                  initial={{ width: 0 }} 
-                  animate={{ width: `${calculateXpProgress()}%` }} 
+                <motion.div
+                  className={styles.xpFill}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${calculateXpProgress()}%` }}
                   transition={{ duration: 0.8 }}
                 />
               </div>
@@ -309,30 +344,30 @@ const Gamification = () => {
           <div className={styles.rightSection}>
             <motion.div className={styles.statsGrid} variants={itemVariants}>
               <div className={styles.statCard}>
-                <div className={styles.iconWrapper} style={{color: '#3b82f6', background: 'rgba(59,130,246,0.1)'}}>
-                    <Clock size={24} />
+                <div className={styles.iconWrapper} style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)' }}>
+                  <Clock size={24} />
                 </div>
                 <div className={styles.statContent}>
-                    <div className={styles.statValue}>{Number(userStats.studyHours || 0).toFixed(1)}h</div>
-                    <div className={styles.statLabel}>Study Hours</div>
+                  <div className={styles.statValue}>{Number(userStats.studyHours || 0).toFixed(1)}h</div>
+                  <div className={styles.statLabel}>Study Hours</div>
                 </div>
               </div>
               <div className={styles.statCard}>
-                <div className={styles.iconWrapper} style={{color: '#f59e0b', background: 'rgba(245,158,11,0.1)'}}>
-                    <Zap size={24} />
+                <div className={styles.iconWrapper} style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.1)' }}>
+                  <Zap size={24} />
                 </div>
                 <div className={styles.statContent}>
-                    <div className={styles.statValue}>{userStats.xp}</div>
-                    <div className={styles.statLabel}>Total XP</div>
+                  <div className={styles.statValue}>{userStats.xp}</div>
+                  <div className={styles.statLabel}>Total XP</div>
                 </div>
               </div>
               <div className={styles.statCard}>
-                <div className={styles.iconWrapper} style={{color: '#ef4444', background: 'rgba(239,68,68,0.1)'}}>
-                    <Flame size={24} />
+                <div className={styles.iconWrapper} style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)' }}>
+                  <Flame size={24} />
                 </div>
                 <div className={styles.statContent}>
-                    <div className={styles.statValue}>{userStats.streak}</div>
-                    <div className={styles.statLabel}>Day Streak</div>
+                  <div className={styles.statValue}>{userStats.streak}</div>
+                  <div className={styles.statLabel}>Day Streak</div>
                 </div>
               </div>
             </motion.div>
@@ -344,19 +379,19 @@ const Gamification = () => {
                   const isUnlocked = level.level <= userStats.currentLevel;
                   const isCurrent = level.level === userStats.currentLevel;
                   return (
-                    <motion.div 
-                      key={level.level} 
+                    <motion.div
+                      key={level.level}
                       className={`${styles.levelItem} ${isCurrent ? styles.currentLevel : ''} ${!isUnlocked ? styles.lockedLevel : ''}`}
                       whileHover={{ scale: 1.01 }}
                     >
                       <div className={styles.levelAvatarContainer}>
-                        <img 
-                          src={avatars[gender]?.[level.level] || avatars['male'][1]} 
-                          alt={`Level ${level.level}`} 
-                          className={styles.levelAvatar} 
+                        <img
+                          src={avatars[gender]?.[level.level] || avatars['male'][1]}
+                          alt={`Level ${level.level}`}
+                          className={styles.levelAvatar}
                           style={{ filter: isUnlocked ? 'none' : 'grayscale(100%) blur(2px)', opacity: isUnlocked ? 1 : 0.6 }}
                         />
-                        {!isUnlocked && <span className={styles.lockIcon}><Lock size={16}/></span>}
+                        {!isUnlocked && <span className={styles.lockIcon}><Lock size={16} /></span>}
                       </div>
                       <div className={styles.levelInfo}>
                         <h4>{level.name} <span className={styles.tierBadge} style={{ backgroundColor: `${getTierColor(level.tier)}20`, color: getTierColor(level.tier) }}>{level.tier}</span></h4>
@@ -364,9 +399,9 @@ const Gamification = () => {
                         <span className={styles.levelRequirement}>📚 {level.hoursRequired}h • ⚡ {level.xpRequired} XP</span>
                       </div>
                       <div className={styles.levelStatusWrapper}>
-                        {isCurrent ? <span className={styles.statusCurrent}>Current</span> : 
-                         isUnlocked ? <span className={styles.statusUnlocked}>✓ Unlocked</span> : 
-                         <span className={styles.statusLocked}>Locked</span>}
+                        {isCurrent ? <span className={styles.statusCurrent}>Current</span> :
+                          isUnlocked ? <span className={styles.statusUnlocked}>✓ Unlocked</span> :
+                            <span className={styles.statusLocked}>Locked</span>}
                       </div>
                     </motion.div>
                   );

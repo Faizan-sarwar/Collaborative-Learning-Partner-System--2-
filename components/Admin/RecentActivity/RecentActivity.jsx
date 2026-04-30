@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 🟢 Added for View All button
+import { useNavigate } from 'react-router-dom';
+import { UserPlus, BookOpen, ShieldAlert, Settings, LogIn, Loader2, Activity } from 'lucide-react';
 import styles from './RecentActivity.module.css';
 
 const RecentActivity = () => {
@@ -8,16 +9,14 @@ const RecentActivity = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // ================= FETCH ACTIVITY =================
+  // ================= FETCH ACTIVITY SECURELY =================
   const fetchRecentActivity = async () => {
     try {
-      setLoading(true);
-      const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) throw new Error('Authentication token missing.');
 
-      const res = await fetch('http://localhost:5000/api/auth/admin/recent-activity', {
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/recent-activity`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
 
@@ -25,11 +24,12 @@ const RecentActivity = () => {
         throw new Error(data.message || 'Failed to fetch activity');
       }
 
-      setActivities(data.activities);
+      setActivities(data.activities || []);
       setError(null);
     } catch (err) {
       console.error('Activity fetch error:', err);
-      setError('Unable to load recent activity');
+      // Only set error if we don't already have data, to prevent wiping out the UI on a failed background poll
+      if (activities.length === 0) setError('Unable to load recent activity');
     } finally {
       setLoading(false);
     }
@@ -37,19 +37,16 @@ const RecentActivity = () => {
 
   useEffect(() => {
     fetchRecentActivity();
-
-    // Auto refresh every 30 seconds
-    const interval = setInterval(fetchRecentActivity, 30000);
+    const interval = setInterval(fetchRecentActivity, 30000); // 30s background poll
     return () => clearInterval(interval);
   }, []);
 
-  // ================= TIME FORMAT (🟢 Updated to include Days) =================
+  // ================= ENTERPRISE TIME FORMAT =================
   const timeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-
     const intervals = [
       { label: 'day', seconds: 86400 },
-      { label: 'hour', seconds: 3600 },
+      { label: 'hr', seconds: 3600 },
       { label: 'min', seconds: 60 },
     ];
 
@@ -62,64 +59,56 @@ const RecentActivity = () => {
     return 'Just now';
   };
 
-  // ================= 7-DAY FILTER =================
-  // 🟢 Completely hides any activity older than 7 days
+  // ================= SMART FILTERING =================
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-  const filteredActivities = activities.filter(activity => {
-    return (new Date() - new Date(activity.createdAt)) <= SEVEN_DAYS_MS;
-  });
+  
+  // Filter for 7 days AND slice to top 8 so it doesn't break the dashboard layout
+  const filteredActivities = activities
+    .filter(activity => (new Date() - new Date(activity.createdAt)) <= SEVEN_DAYS_MS)
+    .slice(0, 8); 
 
-  // ================= ICONS =================
-  const getTypeIcon = (type) => {
-    const icons = {
-      registration: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="8.5" cy="7" r="4" />
-          <line x1="20" y1="8" x2="20" y2="14" />
-          <line x1="23" y1="11" x2="17" y2="11" />
-        </svg>
-      ),
-      course: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
-      ),
-      moderation: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-        </svg>
-      ),
+  // ================= ICONOGRAPHY =================
+  const getTypeConfig = (type) => {
+    const configs = {
+      registration: { icon: UserPlus, colorClass: 'green' },
+      course: { icon: BookOpen, colorClass: 'blue' },
+      moderation: { icon: ShieldAlert, colorClass: 'red' },
+      settings: { icon: Settings, colorClass: 'purple' },
+      login: { icon: LogIn, colorClass: 'teal' }
     };
-    return icons[type] || icons.registration;
+    return configs[type] || { icon: Activity, colorClass: 'blue' };
   };
 
-  const getTypeColor = (type) => {
-    const colors = {
-      registration: 'green',
-      course: 'blue',
-      moderation: 'red',
-    };
-    return colors[type] || 'blue';
-  };
-
-  // ================= LOADING / ERROR =================
-  if (loading) {
-    return <div className={styles.card}>Loading recent activity...</div>;
+  // ================= LOADING / ERROR STATES =================
+  if (loading && activities.length === 0) {
+    return (
+      <div className={styles.card}>
+        <div className={styles.centerState}>
+           <Loader2 size={28} className={styles.spinner} />
+           <p>Syncing activity feed...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className={styles.card}>{error}</div>;
+  if (error && activities.length === 0) {
+    return (
+      <div className={styles.card}>
+        <div className={styles.centerState}>
+           <ShieldAlert size={28} color="#ef4444" />
+           <p className={styles.errorText}>{error}</p>
+        </div>
+      </div>
+    );
   }
 
-  // ================= RENDER =================
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <h3>Recent Activity</h3>
-        {/* 🟢 Wired up the View All Button */}
+        <div>
+          <h3>Recent Activity</h3>
+          <span className={styles.subtitle}>Platform events from the last 7 days</span>
+        </div>
         <button className={styles.viewAllBtn} onClick={() => navigate('/admin/logs')}>
           View All
         </button>
@@ -127,24 +116,34 @@ const RecentActivity = () => {
 
       <div className={styles.activityList}>
         {filteredActivities.length === 0 ? (
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No activity in the last 7 days</p>
+          <div className={styles.emptyState}>
+             <Activity size={32} />
+             <p>No recent activity detected.</p>
+          </div>
         ) : (
-          filteredActivities.map((activity, index) => (
-            <div key={index} className={styles.activityItem}>
-              <div className={`${styles.activityIcon} ${styles[getTypeColor(activity.type)]}`}>
-                {getTypeIcon(activity.type)}
-              </div>
-              <div className={styles.activityContent}>
-                <p className={styles.activityAction}>{activity.action}</p>
-                <div className={styles.activityMeta}>
-                  <span className={styles.activityUser}>{activity.user}</span>
-                  <span className={styles.activityTime}>
-                    {timeAgo(activity.createdAt)}
-                  </span>
+          filteredActivities.map((activity, index) => {
+            const { icon: Icon, colorClass } = getTypeConfig(activity.type);
+            const isLast = index === filteredActivities.length - 1;
+            
+            return (
+              <div key={index} className={styles.activityItem}>
+                {/* 🟢 Vertical Timeline Line */}
+                {!isLast && <div className={styles.timelineLine}></div>}
+                
+                <div className={`${styles.activityIcon} ${styles[colorClass]}`}>
+                  <Icon size={16} />
+                </div>
+                
+                <div className={styles.activityContent}>
+                  <p className={styles.activityAction}>{activity.action}</p>
+                  <div className={styles.activityMeta}>
+                    <span className={styles.activityUser}>{activity.user}</span>
+                    <span className={styles.activityTime}>{timeAgo(activity.createdAt)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

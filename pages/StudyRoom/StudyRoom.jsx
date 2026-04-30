@@ -46,7 +46,7 @@ const StudyRoom = () => {
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       // API Call to create room
-      /* const res = await fetch('http://localhost:5000/api/study-rooms/create', {
+      /* const res = await fetch(`http://${window.location.hostname}:5000/api/study-rooms/create`, {
          method: 'POST',
          headers: { 'Authorization': `Bearer ${token}` },
          body: JSON.stringify({ ...formData, hostId: user._id })

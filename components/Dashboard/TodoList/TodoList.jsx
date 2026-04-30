@@ -28,7 +28,7 @@ const TodoList = () => {
 
     if (isCompletion) {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/track-time', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/track-time`, {
             method: 'PUT',
             headers: { 
                 'Authorization': `Bearer ${token}`,

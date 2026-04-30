@@ -508,6 +508,12 @@
 }
 
 @media (max-width: 768px) {
+  /* 🟢 1. Reduce overall screen padding so cards have room */
+  .container {
+    padding: 1rem; 
+  }
+
+  /* 🟢 2. Fix Search Bar Overflow */
   .searchBarWrapper {
     flex-wrap: wrap;
   }
@@ -515,11 +521,40 @@
     border-left: none;
     padding-left: 0;
     width: 100%;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color, #334155);
     padding-top: 12px;
     margin-top: 4px;
   }
+
+  /* 🟢 3. Force Grid to 1 Column with tighter gaps */
   .usersGrid {
     grid-template-columns: 1fr;
+    gap: 1rem; 
+  }
+
+  /* 🟢 4. Shrink internal card padding to fit mobile screens */
+  .cardHeader {
+    padding: 16px 16px 12px;
+    gap: 12px;
+  }
+  .cardBody {
+    padding: 0 16px 16px;
+  }
+  .cardFooter {
+    padding: 12px 16px;
+  }
+
+  /* 🟢 5. CRITICAL: Stop long names from pushing the screen out */
+  .userName {
+    white-space: normal; 
+    flex-wrap: wrap;
+    line-height: 1.3;
+  }
+
+  /* 🟢 6. Stop the blue info banner from breaking the layout */
+  .noExactMatchBanner {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
   }
 }

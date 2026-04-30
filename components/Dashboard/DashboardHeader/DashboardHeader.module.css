@@ -460,3 +460,18 @@
     display: none;
   }
 }
+/* 🟢 MOBILE MENU BUTTON - Hides on Desktop, Shows on Mobile */
+.mobileMenuBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary, #f8fafc);
+  cursor: pointer;
+  padding: 0 10px 0 0;
+}
+
+@media (max-width: 768px) {
+  .mobileMenuBtn {
+    display: block;
+  }
+}

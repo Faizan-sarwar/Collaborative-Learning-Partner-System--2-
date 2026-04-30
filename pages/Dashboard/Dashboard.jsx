@@ -18,11 +18,14 @@ import QuickLinks from '../../components/Dashboard/QuickLinks/QuickLinks';
 
 const Dashboard = () => {
   const [username, setUsername] = useState('Student');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // 🟢 NEW: Mobile sidebar state
 
   useEffect(() => {
     const savedName = localStorage.getItem('userName');
     if (savedName) setUsername(savedName);
   }, []);
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -42,10 +45,15 @@ const Dashboard = () => {
   return (
     <PageTransition>
       <div className={styles.dashboard}>
-        <DashboardSidebar />
+        {/* 🟢 NEW: Pass state to Sidebar */}
+        <DashboardSidebar isOpen={isSidebarOpen} closeSidebar={() => setIsSidebarOpen(false)} />
         
+        {/* 🟢 NEW: Dark overlay for mobile when sidebar is open */}
+        {isSidebarOpen && <div className={styles.overlay} onClick={() => setIsSidebarOpen(false)}></div>}
+
         <div className={styles.mainArea}>
-          <DashboardHeader username={username} />
+          {/* 🟢 NEW: Pass toggle function to Header */}
+          <DashboardHeader username={username} toggleSidebar={toggleSidebar} />
           
           <motion.main 
             className={styles.content}

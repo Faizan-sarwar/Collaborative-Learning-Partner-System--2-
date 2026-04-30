@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Settings2, ShieldCheck, Database, Save, 
+  Download, Trash2, Loader2, AlertCircle, CheckCircle2, X 
+} from 'lucide-react';
 import styles from './SettingsPage.module.css';
 
 import { useSettings } from '../../../src/context/SettingsContext';
 
 const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(null); // { type: 'success' | 'error', text: '' }
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Pull the refresh function from your global context
   const { refreshSettings } = useSettings();
   
-  // State for all settings
   const [formData, setFormData] = useState({
     platformName: 'Collaborative Learning Partner System',
     logoUrl: '',
@@ -24,20 +30,28 @@ const SettingsPage = () => {
     dataRetention: 30
   });
 
-  // Token helper
-  const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  // Fetch Settings on Load
+  // 🟢 SECURE FETCH SETTINGS
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/admin/settings');
+        const token = getToken();
+        if (!token) throw new Error("Authentication token missing.");
+
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await res.json();
+
         if (data.success && data.settings) {
           setFormData(prev => ({ ...prev, ...data.settings }));
+        } else {
+          throw new Error(data.message || "Failed to load settings");
         }
       } catch (err) {
         console.error('Failed to load settings', err);
+        showStatus('error', 'Unable to load platform settings.');
       } finally {
         setLoading(false);
       }
@@ -45,15 +59,22 @@ const SettingsPage = () => {
     fetchSettings();
   }, []);
 
-  // Handle Change Helper
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // SAVE SETTINGS
+  const showStatus = (type, text) => {
+    setStatusMessage({ type, text });
+    setTimeout(() => setStatusMessage(null), 5000);
+  };
+
+  // 🟢 SECURE SAVE
   const handleSave = async () => {
+    setIsSubmitting(true);
+    setStatusMessage(null);
+
     try {
-      const res = await fetch('http://localhost:5000/api/auth/admin/settings', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -64,28 +85,29 @@ const SettingsPage = () => {
       
       const data = await res.json();
       if (data.success) {
-        alert('Settings saved successfully!');
-        // Force the whole app to download the new settings instantly!
+        showStatus('success', 'Settings saved successfully!');
         await refreshSettings(); 
       } else {
-        alert('Failed to save settings');
+        throw new Error(data.message || "Failed to save settings");
       }
     } catch (err) {
       console.error(err);
-      alert('Server error occurred');
+      showStatus('error', err.message || 'Server error occurred while saving.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // 🟢 DATA EXPORT HANDLER
+  // 🟢 DATA EXPORT
   const handleExportData = async () => {
+    setIsSubmitting(true);
     try {
-      const res = await fetch('http://localhost:5000/api/auth/admin/export-data', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/export-data`, {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
       
       if (!res.ok) throw new Error('Export failed');
       
-      // Magically trigger a file download in the browser
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -94,34 +116,67 @@ const SettingsPage = () => {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      
+      showStatus('success', 'Data exported successfully.');
     } catch (err) {
-      alert("Failed to export data. Ensure the backend route is configured.");
+      showStatus('error', 'Failed to export data. Ensure backend route is configured.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // 🟢 CLEAR CACHE HANDLER
+  // 🟢 SECURE CLEAR CACHE
   const handleClearCache = async () => {
-    if(!window.confirm("Are you sure you want to clear the server cache? This will reset all pending password reset requests.")) return;
+    setShowConfirmModal(false);
+    setIsSubmitting(true);
     
     try {
-      const res = await fetch('http://localhost:5000/api/auth/admin/clear-cache', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/clear-cache`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
       const data = await res.json();
-      alert(data.message);
+      
+      if (res.ok) {
+          showStatus('success', data.message || 'Server cache cleared successfully.');
+      } else {
+          throw new Error(data.message || 'Failed to clear cache');
+      }
     } catch (err) {
-      alert("Failed to clear cache. Ensure the backend route is configured.");
+      showStatus('error', err.message || 'Failed to clear cache.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading) return <div className={styles.container}>Loading settings...</div>;
+  if (loading) {
+    return (
+        <div className={styles.centerState}>
+            <Loader2 size={32} className={styles.spinner} />
+            <p>Loading platform configuration...</p>
+        </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>Settings</h2>
-        <p>Configure your platform settings</p>
+        <div>
+          <h2>Platform Settings</h2>
+          <p className={styles.subtitle}>Manage global configurations and security parameters.</p>
+        </div>
+        {/* 🟢 STATUS BANNER */}
+        <AnimatePresence>
+            {statusMessage && (
+                <motion.div 
+                    className={`${styles.statusBanner} ${styles[statusMessage.type]}`}
+                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                >
+                    {statusMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                    {statusMessage.text}
+                </motion.div>
+            )}
+        </AnimatePresence>
       </div>
 
       <div className={styles.settingsGrid}>
@@ -129,12 +184,7 @@ const SettingsPage = () => {
         {/* === GENERAL SETTINGS === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </div>
+            <div className={`${styles.cardIcon} ${styles.blueIcon}`}><Settings2 size={20} /></div>
             <h3>General Settings</h3>
           </div>
 
@@ -144,12 +194,7 @@ const SettingsPage = () => {
                 <label>Platform Name</label>
                 <span>The name displayed across your platform</span>
               </div>
-              <input 
-                type="text" 
-                value={formData.platformName}
-                onChange={(e) => handleChange('platformName', e.target.value)}
-                className={styles.textInput}
-              />
+              <input type="text" value={formData.platformName} onChange={(e) => handleChange('platformName', e.target.value)} className={styles.textInput} />
             </div>
 
             <div className={styles.settingItem}>
@@ -157,13 +202,7 @@ const SettingsPage = () => {
                 <label>Logo URL</label>
                 <span>URL to your platform logo</span>
               </div>
-              <input 
-                type="text" 
-                value={formData.logoUrl}
-                onChange={(e) => handleChange('logoUrl', e.target.value)}
-                placeholder="https://example.com/logo.png"
-                className={styles.textInput}
-              />
+              <input type="text" value={formData.logoUrl} onChange={(e) => handleChange('logoUrl', e.target.value)} placeholder="https://example.com/logo.png" className={styles.textInput} />
             </div>
 
             <div className={styles.settingItem}>
@@ -171,13 +210,7 @@ const SettingsPage = () => {
                 <label>Support Email</label>
                 <span>Email for user support inquiries</span>
               </div>
-              <input 
-                type="email" 
-                value={formData.supportEmail}
-                onChange={(e) => handleChange('supportEmail', e.target.value)}
-                placeholder="support@studypal.com"
-                className={styles.textInput}
-              />
+              <input type="email" value={formData.supportEmail} onChange={(e) => handleChange('supportEmail', e.target.value)} placeholder="support@domain.com" className={styles.textInput} />
             </div>
           </div>
         </div>
@@ -185,11 +218,7 @@ const SettingsPage = () => {
         {/* === SECURITY SETTINGS === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-            </div>
+            <div className={`${styles.cardIcon} ${styles.redIcon}`}><ShieldCheck size={20} /></div>
             <h3>Security Settings</h3>
           </div>
 
@@ -197,43 +226,31 @@ const SettingsPage = () => {
             <div className={styles.settingItem}>
               <div className={styles.settingInfo}>
                 <label>Allow New Registrations</label>
-                <span>Enable or disable user registrations</span>
+                <span>Enable or disable student signups</span>
               </div>
               <label className={styles.toggle}>
-                <input 
-                  type="checkbox" 
-                  checked={formData.allowRegistrations}
-                  onChange={(e) => handleChange('allowRegistrations', e.target.checked)}
-                />
+                <input type="checkbox" checked={formData.allowRegistrations} onChange={(e) => handleChange('allowRegistrations', e.target.checked)} />
                 <span className={styles.slider}></span>
               </label>
             </div>
 
             <div className={styles.settingItem}>
               <div className={styles.settingInfo}>
-                <label>Maintenance Mode</label>
-                <span>Put the platform in maintenance mode</span>
+                <label className={formData.maintenanceMode ? styles.warningText : ''}>Maintenance Mode</label>
+                <span>Lock out non-admin users</span>
               </div>
               <label className={styles.toggle}>
-                <input 
-                  type="checkbox" 
-                  checked={formData.maintenanceMode}
-                  onChange={(e) => handleChange('maintenanceMode', e.target.checked)}
-                />
-                <span className={styles.slider}></span>
+                <input type="checkbox" checked={formData.maintenanceMode} onChange={(e) => handleChange('maintenanceMode', e.target.checked)} />
+                <span className={`${styles.slider} ${formData.maintenanceMode ? styles.sliderDanger : ''}`}></span>
               </label>
             </div>
 
             <div className={styles.settingItem}>
               <div className={styles.settingInfo}>
-                <label>Session Timeout (minutes)</label>
+                <label>Session Timeout</label>
                 <span>Auto logout after inactivity</span>
               </div>
-              <select 
-                className={styles.selectInput}
-                value={formData.sessionTimeout}
-                onChange={(e) => handleChange('sessionTimeout', Number(e.target.value))}
-              >
+              <select className={styles.selectInput} value={formData.sessionTimeout} onChange={(e) => handleChange('sessionTimeout', Number(e.target.value))}>
                 <option value="30">30 minutes</option>
                 <option value="60">1 hour</option>
                 <option value="120">2 hours</option>
@@ -246,12 +263,7 @@ const SettingsPage = () => {
         {/* === NOTIFICATION SETTINGS === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-            </div>
+            <div className={`${styles.cardIcon} ${styles.greenIcon}`}><CheckCircle2 size={20} /></div>
             <h3>Notification Settings</h3>
           </div>
 
@@ -259,14 +271,10 @@ const SettingsPage = () => {
             <div className={styles.settingItem}>
               <div className={styles.settingInfo}>
                 <label>Email Notifications</label>
-                <span>Send email notifications to users</span>
+                <span>Send email alerts to users</span>
               </div>
               <label className={styles.toggle}>
-                <input 
-                    type="checkbox" 
-                    checked={formData.emailNotifications}
-                    onChange={(e) => handleChange('emailNotifications', e.target.checked)}
-                />
+                <input type="checkbox" checked={formData.emailNotifications} onChange={(e) => handleChange('emailNotifications', e.target.checked)} />
                 <span className={styles.slider}></span>
               </label>
             </div>
@@ -277,11 +285,7 @@ const SettingsPage = () => {
                 <span>Send welcome email to new users</span>
               </div>
               <label className={styles.toggle}>
-                <input 
-                    type="checkbox" 
-                    checked={formData.welcomeEmail}
-                    onChange={(e) => handleChange('welcomeEmail', e.target.checked)}
-                />
+                <input type="checkbox" checked={formData.welcomeEmail} onChange={(e) => handleChange('welcomeEmail', e.target.checked)} />
                 <span className={styles.slider}></span>
               </label>
             </div>
@@ -292,11 +296,7 @@ const SettingsPage = () => {
                 <span>Get alerts for admin actions</span>
               </div>
               <label className={styles.toggle}>
-                <input 
-                    type="checkbox" 
-                    checked={formData.adminAlerts}
-                    onChange={(e) => handleChange('adminAlerts', e.target.checked)}
-                />
+                <input type="checkbox" checked={formData.adminAlerts} onChange={(e) => handleChange('adminAlerts', e.target.checked)} />
                 <span className={styles.slider}></span>
               </label>
             </div>
@@ -306,13 +306,7 @@ const SettingsPage = () => {
         {/* === DATA MANAGEMENT === */}
         <div className={styles.settingsCard}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <ellipse cx="12" cy="5" rx="9" ry="3" />
-                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-              </svg>
-            </div>
+            <div className={`${styles.cardIcon} ${styles.purpleIcon}`}><Database size={20} /></div>
             <h3>Data Management</h3>
           </div>
 
@@ -322,11 +316,7 @@ const SettingsPage = () => {
                 <label>Auto Backup</label>
                 <span>Automatically backup database</span>
               </div>
-              <select 
-                className={styles.selectInput}
-                value={formData.autoBackup}
-                onChange={(e) => handleChange('autoBackup', e.target.value)}
-              >
+              <select className={styles.selectInput} value={formData.autoBackup} onChange={(e) => handleChange('autoBackup', e.target.value)}>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
@@ -335,14 +325,10 @@ const SettingsPage = () => {
 
             <div className={styles.settingItem}>
               <div className={styles.settingInfo}>
-                <label>Data Retention (days)</label>
+                <label>Data Retention</label>
                 <span>Keep deleted user data for</span>
               </div>
-              <select 
-                className={styles.selectInput}
-                value={formData.dataRetention}
-                onChange={(e) => handleChange('dataRetention', Number(e.target.value))}
-              >
+              <select className={styles.selectInput} value={formData.dataRetention} onChange={(e) => handleChange('dataRetention', Number(e.target.value))}>
                 <option value="30">30 days</option>
                 <option value="60">60 days</option>
                 <option value="90">90 days</option>
@@ -350,20 +336,11 @@ const SettingsPage = () => {
             </div>
 
             <div className={styles.actionButtons}>
-              <button className={styles.actionBtn} onClick={handleExportData}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export All Data
+              <button className={styles.actionBtn} onClick={handleExportData} disabled={isSubmitting}>
+                <Download size={16} /> Export All Data
               </button>
-              <button className={`${styles.actionBtn} ${styles.danger}`} onClick={handleClearCache}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-                Clear Cache
+              <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setShowConfirmModal(true)} disabled={isSubmitting}>
+                <Trash2 size={16} /> Clear Cache
               </button>
             </div>
           </div>
@@ -371,15 +348,31 @@ const SettingsPage = () => {
       </div>
 
       <div className={styles.saveSection}>
-        <button className={styles.saveBtn} onClick={handleSave}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
-          </svg>
+        <button className={styles.saveBtn} onClick={handleSave} disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 size={18} className={styles.spinnerIcon} /> : <Save size={18} />}
           Save All Changes
         </button>
       </div>
+
+      {/* 🟢 CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className={styles.confirmModal} initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
+              <div className={styles.confirmIcon}><AlertCircle size={40} color="#ef4444" /></div>
+              <h3>Clear Server Cache?</h3>
+              <p>This will permanently delete all temporary files and active password reset tokens. Proceed with caution.</p>
+              <div className={styles.confirmActions}>
+                <button className={styles.cancelBtn} onClick={() => setShowConfirmModal(false)}>Cancel</button>
+                <button className={styles.confirmDangerBtn} onClick={handleClearCache} disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 size={16} className={styles.spinnerIcon} /> : 'Clear Cache'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

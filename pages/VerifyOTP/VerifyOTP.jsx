@@ -83,7 +83,7 @@ const VerifyOTP = () => {
     setIsVerifying(true);
     
     try {
-      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: code })
@@ -120,7 +120,7 @@ const VerifyOTP = () => {
     inputRefs.current[0]?.focus();
     
     try {
-      await fetch('http://localhost:5000/api/auth/forgot-password', {
+      await fetch(`http://${window.location.hostname}:5000/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

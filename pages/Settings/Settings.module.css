@@ -91,7 +91,9 @@
   border: 1px solid var(--border-color, #1e293b);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .sectionHeader {
@@ -128,7 +130,7 @@
   cursor: pointer;
   overflow: hidden;
   border: 2px solid var(--border-color, #334155);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .avatarWrapper img {
@@ -140,7 +142,10 @@
 
 .avatarOverlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
@@ -232,7 +237,7 @@
 }
 
 .formGroup input:disabled {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   color: #64748b;
   cursor: not-allowed;
 }
@@ -325,10 +330,13 @@
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #334155;
   border-radius: 24px;
-  transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slider:before {
@@ -340,8 +348,8 @@
   bottom: 3px;
   background-color: white;
   border-radius: 50%;
-  transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .toggle input:checked + .slider {
@@ -432,9 +440,36 @@
   }
 }
 
+/* 🟢 Add this right above your media queries */
+.overlay {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .mainArea { margin-left: 0; }
-  .content { padding: 24px 16px; }
-  .formGrid { grid-template-columns: 1fr; }
-  .dangerContent { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .mainArea {
+    margin-left: 0;
+  }
+  .content {
+    padding: 24px 16px;
+  }
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+  .dangerContent {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  /* 🟢 ADD THE MOBILE OVERLAY STYLES */
+  .overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 40;
+  }
 }

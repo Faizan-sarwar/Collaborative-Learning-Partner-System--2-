@@ -27,7 +27,7 @@ const Analytics = () => {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if(!token) return;
 
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -54,7 +54,7 @@ const Analytics = () => {
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/auth/track-time', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/track-time`, {
           method: 'PUT',
           headers: { 
               'Authorization': `Bearer ${token}`,
@@ -111,7 +111,7 @@ const Analytics = () => {
             // Using navigator.sendBeacon guarantees the request fires even as the tab dies
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const blob = new Blob([JSON.stringify({ minutes: unsavedSeconds.current / 60 })], { type: 'application/json' });
-            navigator.sendBeacon('http://localhost:5000/api/auth/track-time', blob);
+            navigator.sendBeacon(`http://${window.location.hostname}:5000/api/auth/track-time`, blob);
         }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);

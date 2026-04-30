@@ -1,11 +1,24 @@
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, #0f172a);
+  border: 1px solid var(--border-color, #1e293b);
   border-radius: 24px;
   padding: 2.5rem;
   width: 100%;
-  max-width: 420px;
-  box-shadow: var(--card-shadow);
+  max-width: 440px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Optional: Adds a subtle top glow to the card */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
 }
 
 .header {
@@ -17,43 +30,33 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.875rem;
+  padding: 0.4rem 1rem;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 20px;
   font-size: 0.75rem;
+  font-weight: 600;
   color: #10b981;
   margin-bottom: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.greenDot {
-  width: 6px;
-  height: 6px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+.shieldIcon {
+  color: #10b981;
 }
 
 .title {
   font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 0.5rem 0;
 }
 
 .subtitle {
   font-size: 0.95rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
 }
 
 .form {
@@ -62,21 +65,94 @@
   gap: 1.25rem;
 }
 
+/* 🟢 CUSTOM ENTERPRISE INPUTS */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-muted, #64748b);
+  pointer-events: none;
+}
+
+.inputField {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 2.75rem;
+  background: var(--bg-primary, #020617);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.inputField::placeholder {
+  color: var(--text-muted, #64748b);
+}
+
+.inputField:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.inputField:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.eyeBtn:hover {
+  color: var(--text-primary, #f8fafc);
+}
+
+/* 🟢 REMEMBER ME & FORGOT PASSWORD */
 .options {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 0.25rem;
 }
 
-.checkbox {
+.checkboxContainer {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
   position: relative;
+  user-select: none;
 }
 
-.checkbox input {
+.checkboxContainer input {
   position: absolute;
   opacity: 0;
   cursor: pointer;
@@ -84,11 +160,11 @@
   width: 0;
 }
 
-.checkmark {
+.customCheckmark {
   width: 18px;
   height: 18px;
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  background: var(--bg-primary, #020617);
+  border: 1px solid var(--border-color, #334155);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -96,15 +172,15 @@
   transition: all 0.2s ease;
 }
 
-.checkbox input:checked ~ .checkmark {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-color: transparent;
+.checkboxContainer input:checked ~ .customCheckmark {
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
-.checkbox input:checked ~ .checkmark::after {
+.checkboxContainer input:checked ~ .customCheckmark::after {
   content: "";
-  width: 5px;
-  height: 9px;
+  width: 4px;
+  height: 8px;
   border: solid white;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
@@ -113,24 +189,31 @@
 
 .checkboxLabel {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
 }
 
 .forgotLink {
   font-size: 0.85rem;
-  color: var(--accent-blue);
+  color: #3b82f6;
   text-decoration: none;
+  font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .forgotLink:hover {
-  color: var(--accent-purple);
+  color: #60a5fa;
+  text-decoration: underline;
 }
 
+/* 🟢 SUBMIT BUTTON */
 .signInButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
   border: none;
   border-radius: 12px;
   color: #ffffff;
@@ -139,33 +222,47 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 0.5rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.signInButton:hover {
+.signInButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
 }
 
-.signInButton:active {
-  transform: translateY(0);
+.signInButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .signupText {
   text-align: center;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
   margin-top: 0.5rem;
 }
 
 .signupLink {
-  color: var(--accent-blue);
+  color: #3b82f6;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .signupLink:hover {
-  color: var(--accent-purple);
+  color: #60a5fa;
+  text-decoration: underline;
 }
 
 @media (max-width: 480px) {
@@ -173,14 +270,7 @@
     padding: 1.75rem;
     border-radius: 20px;
   }
-
   .title {
     font-size: 1.5rem;
-  }
-
-  .options {
-    flex-direction: column;
-    gap: 0.75rem;
-    align-items: flex-start;
   }
 }

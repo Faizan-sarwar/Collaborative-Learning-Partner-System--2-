@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Menu, Search, Bell, ChevronDown, User as UserIcon, 
+  Settings, LogOut, ShieldCheck, Lock 
+} from 'lucide-react';
 import styles from './AdminNavbar.module.css';
 import ThemeToggle from '../../ThemeToggle/ThemeToggle';
-// 🟢 IMPORT GLOBAL SETTINGS
 import { useSettings } from '../../../src/context/SettingsContext'; 
 
 const NOTIFICATION_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
@@ -10,8 +14,6 @@ const NOTIFICATION_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2869/286
 const AdminNavbar = ({ onMenuClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // 🟢 PULL SETTINGS FOR MAINTENANCE CHECK
   const { settings } = useSettings();
   
   const [user, setUser] = useState(null);
@@ -22,29 +24,29 @@ const AdminNavbar = ({ onMenuClick }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
-  const audioRef = useRef(new Audio(NOTIFICATION_SOUND));
+  const audioRef = useRef(typeof Audio !== "undefined" ? new Audio(NOTIFICATION_SOUND) : null);
   const lastNotificationId = useRef(null); 
   const menuRef = useRef(null);
   const notifRef = useRef(null);
 
   useEffect(() => {
-    const storedUser = (localStorage.getItem('user') || sessionStorage.getItem('user')) || localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+    if (storedUser && storedUser._id) {
+      setUser(storedUser);
     }
   }, []);
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/admin') return 'Dashboard';
+    if (path === '/admin') return 'Dashboard Overview';
     if (path.includes('students')) return 'Student Management';
     if (path.includes('admins')) return 'Admin Management';
     if (path.includes('courses')) return 'Course Management';
-    if (path.includes('notifications')) return 'Notifications';
+    if (path.includes('notifications')) return 'System Notifications';
     if (path.includes('logs')) return 'Activity Logs';
-    if (path.includes('settings')) return 'Settings';
-    if (path.includes('profile')) return 'Profile';
-    return 'Admin Panel';
+    if (path.includes('settings')) return 'Platform Settings';
+    if (path.includes('profile')) return 'Admin Profile';
+    return 'Admin Control Panel';
   };
 
   const handleNavigation = (path) => {
@@ -54,18 +56,16 @@ const AdminNavbar = ({ onMenuClick }) => {
 
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
+    const diffInSeconds = Math.floor((new Date() - date) / 1000);
     if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return date.toLocaleDateString();
   };
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/auth/admin/notifications');
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/notifications`);
       const data = await res.json();
 
       if (data.success && Array.isArray(data.notifications)) {
@@ -74,8 +74,11 @@ const AdminNavbar = ({ onMenuClick }) => {
         if (data.notifications.length > 0) {
             const latestNotif = data.notifications[0];
             if (lastNotificationId.current && lastNotificationId.current !== latestNotif._id) {
-                audioRef.current.currentTime = 0;
-                audioRef.current.play().catch(() => console.log("Audio blocked"));
+                // Safe audio play handling to prevent browser autoplay blocks
+                if (audioRef.current) {
+                  audioRef.current.currentTime = 0;
+                  audioRef.current.play().catch(() => console.log("Audio blocked by browser"));
+                }
                 setUnreadCount(prev => prev + 1);
             }
             lastNotificationId.current = latestNotif._id;
@@ -88,11 +91,10 @@ const AdminNavbar = ({ onMenuClick }) => {
 
   useEffect(() => {
     fetchNotifications(); 
-    const interval = setInterval(fetchNotifications, 5000); 
+    const interval = setInterval(fetchNotifications, 10000); // Polling every 10s for admin
     return () => clearInterval(interval);
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setShowProfile(false);
@@ -112,124 +114,135 @@ const AdminNavbar = ({ onMenuClick }) => {
     setNotifications([]); 
   };
 
+  const handleLogout = () => {
+    if (settings?.maintenanceMode) return; // Silent block if in maintenance mode
+    sessionStorage.clear();
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
+
   const renderProfileImage = () => {
     if (user && user._id && !imgError) {
       return (
-        <div style={{ width: '32px', height: '32px', minWidth: '32px', borderRadius: '50%', overflow: 'hidden', marginRight: '8px', border: '1px solid var(--border-color)' }}>
+        <div className={styles.profileImageWrapper}>
             <img 
               src={`http://localhost:5000/api/auth/student/${user._id}/picture`} 
-              alt="Admin" onError={() => setImgError(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              alt="Admin" 
+              onError={() => setImgError(true)}
+              className={styles.profileImage}
             />
         </div>
       );
     }
     const initials = user?.fullName ? user.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'AD';
-    return (
-        <div className={styles.profileAvatar} style={{ width: '32px', height: '32px', minWidth: '32px', fontSize: '12px', marginRight: '8px' }}>
-            {initials}
-        </div>
-    );
+    return <div className={styles.profileAvatar}>{initials}</div>;
   };
 
   return (
     <header className={styles.navbar}>
       <div className={styles.left}>
         <button className={styles.menuBtn} onClick={onMenuClick}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
+          <Menu size={20} />
         </button>
         <h1 className={styles.pageTitle}>{getPageTitle()}</h1>
       </div>
 
       <div className={styles.right}>
         <div className={styles.searchBox}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder="Search..." className={styles.searchInput} />
+          <Search size={16} className={styles.searchIcon} />
+          <input type="text" placeholder="Search records..." className={styles.searchInput} />
         </div>
 
         <ThemeToggle />
 
-        {/* 🔔 Notification Bell */}
+        {/* 🔔 NOTIFICATION BELL */}
         <div className={styles.notificationWrapper} ref={notifRef}>
           <button className={styles.iconBtn} onClick={handleToggleNotifications}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-            {unreadCount > 0 && <span className={styles.notificationBadge}>{unreadCount}</span>}
+            <Bell size={18} />
+            {unreadCount > 0 && <span className={styles.notificationBadge}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
           </button>
 
-          {showNotifications && (
-            <div className={styles.dropdown}>
-              <div className={styles.dropdownHeader} style={{display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--border-color)'}}>
-                <span>Notifications</span>
-                <button className={styles.markAllRead} style={{cursor: 'pointer', background: 'none', border: 'none', color: 'var(--primary-color)'}} onClick={handleMarkRead}>Mark read</button>
-              </div>
-              <div className={styles.dropdownContent} style={{maxHeight: '300px', overflowY: 'auto'}}>
-                {notifications.length === 0 ? (
-                   <div className={styles.emptyState} style={{padding: '15px', textAlign: 'center', color: 'var(--text-secondary)'}}>No notifications yet</div>
-                ) : (
-                  notifications.map((notif) => (
-                    <div key={notif._id} className={styles.notificationItem} style={{padding: '10px', borderBottom: '1px solid var(--border-color)'}}>
-                      <p className={styles.notifText} style={{margin: 0, fontSize: '0.9rem'}}>
-                        <strong>{notif.title}</strong><br/>
-                        <span className={styles.notifUser} style={{color: 'var(--text-secondary)'}}>{notif.message}</span>
-                      </p>
-                      <span className={styles.notifTime} style={{fontSize: '0.75rem', color: 'var(--text-muted)'}}>{formatTimeAgo(notif.createdAt)}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {showNotifications && (
+              <motion.div 
+                className={styles.dropdown}
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <div className={styles.dropdownHeader}>
+                  <span>System Alerts</span>
+                  <button className={styles.markAllRead} onClick={handleMarkRead}>Clear all</button>
+                </div>
+                <div className={styles.dropdownContent}>
+                  {notifications.length === 0 ? (
+                     <div className={styles.emptyState}>All systems nominal. No new alerts.</div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif._id} className={styles.notificationItem}>
+                        <p className={styles.notifText}>
+                          <strong>{notif.title}</strong><br/>
+                          <span className={styles.notifUser}>{notif.message}</span>
+                        </p>
+                        <span className={styles.notifTime}>{formatTimeAgo(notif.createdAt)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* 👤 Profile Dropdown */}
+        {/* 👤 PROFILE DROPDOWN */}
         <div className={styles.profileWrapper} ref={menuRef}>
-          <button className={styles.profileBtn} onClick={() => setShowProfile(!showProfile)} style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '0' }}>
+          <button className={styles.profileBtn} onClick={() => setShowProfile(!showProfile)}>
             {renderProfileImage()}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
+            <span className={styles.profileName}>{user?.fullName ? user.fullName.split(' ')[0] : 'Admin'}</span>
+            <ChevronDown size={14} className={styles.chevron} />
           </button>
 
-          {showProfile && (
-            <div className={styles.dropdown}>
-              <div className={styles.dropdownHeader} style={{padding: '10px 15px', borderBottom: '1px solid var(--border-color)'}}>
-                  <strong style={{display:'block', color: 'var(--text-primary)'}}>{user?.fullName || 'Admin'}</strong>
-                  <span style={{fontSize:'0.8rem', color: 'var(--text-secondary)'}}>{user?.email}</span>
-              </div>
-              <div className={styles.dropdownContent}>
-                <button onClick={() => handleNavigation('/admin/profile')} className={styles.dropdownItem}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Profile
-                </button>
-                <button onClick={() => handleNavigation('/admin/settings')} className={styles.dropdownItem}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg> Settings
-                </button>
-                <div className={styles.dropdownDivider}></div>
+          <AnimatePresence>
+            {showProfile && (
+              <motion.div 
+                className={styles.dropdown}
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <div className={styles.dropdownProfileHeader}>
+                  <div className={styles.dropdownProfileInfo}>
+                    <strong>{user?.fullName || 'System Administrator'}</strong>
+                    <span>{user?.email || 'admin@system.com'}</span>
+                  </div>
+                  <ShieldCheck size={20} className={styles.adminBadgeIcon} />
+                </div>
                 
-                {/* 🟢 HARD LOCKDOWN: Logout Button Security */}
-                <button 
-                  onClick={() => {
-                    if (settings?.maintenanceMode) {
-                      alert("⚠️ SECURITY LOCK: You cannot log out while Maintenance Mode is active. Please turn off Maintenance Mode in Settings before logging out to prevent getting permanently locked out.");
-                      return;
-                    }
-                    sessionStorage.clear();
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('token');
-                    window.location.href = '/login';
-                  }} 
-                  className={styles.dropdownItem}
-                  style={settings?.maintenanceMode ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                  title={settings?.maintenanceMode ? "Disabled to prevent lockout during maintenance" : "Logout"}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> 
-                  Logout {settings?.maintenanceMode && '(Locked)'}
-                </button>
-
-              </div>
-            </div>
-          )}
+                <div className={styles.dropdownContent}>
+                  <button onClick={() => handleNavigation('/admin/profile')} className={styles.dropdownItem}>
+                    <UserIcon size={16} /> My Profile
+                  </button>
+                  <button onClick={() => handleNavigation('/admin/settings')} className={styles.dropdownItem}>
+                    <Settings size={16} /> Global Settings
+                  </button>
+                  
+                  <div className={styles.dropdownDivider}></div>
+                  
+                  {/* 🟢 HARD LOCKDOWN: Logout Button Security */}
+                  <button 
+                    onClick={handleLogout} 
+                    className={`${styles.dropdownItem} ${styles.logoutItem} ${settings?.maintenanceMode ? styles.disabledItem : ''}`}
+                    disabled={settings?.maintenanceMode}
+                    title={settings?.maintenanceMode ? "Disabled to prevent lockout during maintenance" : "Sign out of admin panel"}
+                  >
+                    {settings?.maintenanceMode ? <Lock size={16} /> : <LogOut size={16} />} 
+                    {settings?.maintenanceMode ? 'Logout Locked' : 'Sign Out'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </header>

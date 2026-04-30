@@ -1,26 +1,28 @@
 .adminLayout {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-primary, #0f172a);
 }
 
 .mainArea {
   flex: 1;
-  margin-left: 260px;
-  transition: margin-left var(--transition-normal);
+  margin-left: 260px; /* 🟢 Leaves perfect room for the sidebar on laptop */
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
 }
 
 .mainArea.expanded {
-  margin-left: 70px;
+  margin-left: 76px; /* 🟢 Matches the sidebar when collapsed */
 }
 
 .content {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .overlay {
@@ -29,7 +31,7 @@
 
 @media (max-width: 768px) {
   .mainArea {
-    margin-left: 0;
+    margin-left: 0; /* Full width on mobile */
   }
   
   .mainArea.expanded {
@@ -47,7 +49,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 99;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 90;
   }
 }

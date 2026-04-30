@@ -46,7 +46,7 @@ const UserAvatar = ({ user, getInitials }) => {
   if (!imgError && uId) {
     return (
       <div className={styles.avatarWrapper}>
-        <img src={`http://localhost:5000/api/auth/student/${uId}/picture`} alt={user.fullName} onError={() => setImgError(true)} className={styles.avatarImg} />
+        <img src={`http://${window.location.hostname}:5000/api/auth/student/${uId}/picture`} alt={user.fullName} onError={() => setImgError(true)} className={styles.avatarImg} />
       </div>
     );
   }
@@ -72,7 +72,7 @@ const StudyMatches = () => {
         setCurrentUser(storedUser);
         const userId = storedUser._id || storedUser.id;
 
-        const response = await fetch(`http://localhost:5000/api/auth/matches/${userId}`, {
+        const response = await fetch(`http://${window.location.hostname}:5000/api/auth/matches/${userId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -94,7 +94,7 @@ const StudyMatches = () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       setUsers(prev => prev.map(u => (u._id || u.id) === targetId ? { ...u, connectionStatus: 'pending' } : u));
-      const res = await fetch(`http://localhost:5000/api/auth/connect/${targetId}`, {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/connect/${targetId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });

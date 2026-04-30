@@ -19,7 +19,7 @@ const Courses = () => {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (!token) return;
 
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -50,7 +50,7 @@ const Courses = () => {
   // 2. THE AI FETCHER (Talks to your new backend route)
   const fetchAITopics = async (subject, token) => {
     try {
-      const res = await fetch('http://localhost:5000/api/auth/ai/chat-topics', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/ai/chat-topics`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

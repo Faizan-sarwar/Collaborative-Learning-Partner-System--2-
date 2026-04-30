@@ -12,8 +12,9 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const fileInputRef = useRef(null);
-  
-  // State structure matches User Model
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // 🟢 1. ADDED showAvatar TO INITIAL STATE
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -23,30 +24,22 @@ const Settings = () => {
     semester: '1',
     studyStyle: 'Individual Study',
     settings: {
-      notifications: {
-        email: true,
-        push: true,
-        studyReminders: true,
-        messages: true,
-      },
-      privacy: {
-        showProfile: true,
-        showActivity: true,
-      },
+      notifications: { email: true, push: true, studyReminders: true, messages: true },
+      privacy: { showProfile: true, showActivity: true },
       theme: 'dark',
       language: 'en',
+      showAvatar: true // Explicitly track the Avatar preference
     }
   });
 
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // 1. Fetch User Data on Mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -60,14 +53,18 @@ const Settings = () => {
               ...data.user.settings
             }
           }));
-          
+
+          // 🟢 2. BULLETPROOF SYNC: Instantly update localStorage & Header so they never drift from the DB truth!
+          const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
+          storage.setItem('user', JSON.stringify(data.user));
+          window.dispatchEvent(new Event('userUpdated'));
+
           if (data.user._id) {
-            setPreviewImage(`http://localhost:5000/api/auth/student/${data.user._id}/picture`);
+            setPreviewImage(`http://${window.location.hostname}:5000/api/auth/student/${data.user._id}/picture?t=${Date.now()}`);
           }
-          
-          // Apply initial theme
+
           if (data.user.settings?.theme) {
-              document.documentElement.setAttribute('data-theme', data.user.settings.theme);
+            document.documentElement.setAttribute('data-theme', data.user.settings.theme);
           }
         }
       } catch (err) {
@@ -89,10 +86,7 @@ const Settings = () => {
       ...prev,
       settings: {
         ...prev.settings,
-        [category]: {
-          ...prev.settings[category],
-          [key]: value
-        }
+        ...(category ? { [category]: { ...prev.settings[category], [key]: value } } : { [key]: value })
       }
     }));
   };
@@ -102,15 +96,22 @@ const Settings = () => {
       ...prev,
       settings: { ...prev.settings, theme: value }
     }));
-    // Instantly apply theme to DOM for real-time preview
     document.documentElement.setAttribute('data-theme', value);
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // 🟢 1. BUMPED TO 50MB SAFETY CHECK
+      if (file.size > 50 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Photo is too large! Please choose an image under 50MB.' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+        return;
+      }
+
       setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file)); 
+      setPreviewImage(URL.createObjectURL(file));
+      handleSettingChange(null, 'showAvatar', false);
     }
   };
 
@@ -134,9 +135,9 @@ const Settings = () => {
         dataToSend.append('profilePicture', selectedFile);
       }
 
-      const res = await fetch('http://localhost:5000/api/auth/profile', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/profile`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }, 
+        headers: { 'Authorization': `Bearer ${token}` },
         body: dataToSend
       });
 
@@ -144,13 +145,11 @@ const Settings = () => {
 
       if (result.success) {
         setMessage({ type: 'success', text: 'Settings updated successfully!' });
-        
-        // Update Session Storage & Trigger Global Update
+
         const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
         const currentUser = JSON.parse(storage.getItem('user'));
         storage.setItem('user', JSON.stringify({ ...currentUser, ...result.user }));
-        
-        // 🟢 SHOUT TO SIDEBAR/HEADER TO RE-RENDER IMMEDIATELY
+
         window.dispatchEvent(new Event('userUpdated'));
       } else {
         setMessage({ type: 'error', text: result.message || 'Failed to update.' });
@@ -182,24 +181,33 @@ const Settings = () => {
   return (
     <PageTransition>
       <div className={styles.settings}>
-        <DashboardSidebar />
-        
+        <DashboardSidebar
+          isOpen={isSidebarOpen}
+          closeSidebar={() => setIsSidebarOpen(false)}
+        />
+
+        {isSidebarOpen && (
+          <div className={styles.overlay} onClick={() => setIsSidebarOpen(false)}></div>
+        )}
+
         <div className={styles.mainArea}>
-          <DashboardHeader username={formData.fullName} />
-          
-          {/* 🟢 FLOATING TOAST NOTIFICATION */}
+          <DashboardHeader
+            username={formData.fullName}
+            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          />
+
           <AnimatePresence>
             {message.text && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -20, x: '-50%' }}
                 animate={{ opacity: 1, y: 0, x: '-50%' }}
                 exit={{ opacity: 0, y: -20, x: '-50%' }}
                 style={{
-                    position: 'fixed', top: '80px', left: '50%', zIndex: 1000,
-                    backgroundColor: message.type === 'success' ? '#10b981' : '#ef4444',
-                    color: 'white', padding: '12px 24px', borderRadius: '8px',
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', fontWeight: '500'
+                  position: 'fixed', top: '80px', left: '50%', zIndex: 1000,
+                  backgroundColor: message.type === 'success' ? '#10b981' : '#ef4444',
+                  color: 'white', padding: '12px 24px', borderRadius: '8px',
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)', fontWeight: '500'
                 }}
               >
                 {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
@@ -215,8 +223,6 @@ const Settings = () => {
             </div>
 
             <div className={styles.settingsContainer}>
-              
-              {/* SIDEBAR TABS */}
               <div className={styles.tabsSidebar}>
                 {tabs.map((tab) => (
                   <button
@@ -230,33 +236,32 @@ const Settings = () => {
                 ))}
               </div>
 
-              {/* CONTENT AREA */}
               <div className={styles.tabContent}>
-                
-                {/* 🟢 PROFILE TAB */}
+
+                {/* PROFILE TAB */}
                 {activeTab === 'profile' && (
                   <motion.div variants={fadeVariants} initial="hidden" animate="visible">
                     <div className={styles.sectionHeader}>
-                        <h2>Public Profile</h2>
-                        <p className={styles.sectionDesc}>This is how others will see you on the platform.</p>
+                      <h2>Public Profile</h2>
+                      <p className={styles.sectionDesc}>This is how others will see you on the platform.</p>
                     </div>
 
                     <div className={styles.profilePhoto}>
                       <div className={styles.avatarWrapper} onClick={() => fileInputRef.current.click()}>
-                          <img 
-                            src={previewImage || `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`} 
-                            alt="Profile" 
-                            onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`}
-                          />
-                          <div className={styles.avatarOverlay}>
-                              <Camera size={24} />
-                          </div>
+                        <img
+                          src={previewImage || `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`}
+                          alt="Profile"
+                          onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${formData.fullName}`}
+                        />
+                        <div className={styles.avatarOverlay}>
+                          <Camera size={24} />
+                        </div>
                       </div>
                       <div className={styles.photoActions}>
-                        <input 
-                          type="file" ref={fileInputRef} 
-                          onChange={handleImageChange} 
-                          style={{display: 'none'}} accept="image/*"
+                        <input
+                          type="file" ref={fileInputRef}
+                          onChange={handleImageChange}
+                          style={{ display: 'none' }} accept="image/*"
                         />
                         <button type="button" className={styles.uploadBtn} onClick={() => fileInputRef.current.click()}>
                           Change Avatar
@@ -265,10 +270,29 @@ const Settings = () => {
                       </div>
                     </div>
 
+                    {/* 🟢 4. ADDED UI: Let users manually toggle the setting right from the Profile page! */}
+                    <div className={styles.formGroup} style={{ marginBottom: '24px' }}>
+                      <label>Profile Picture Display</label>
+                      <div className={styles.toggleItem} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '4px' }}>
+                        <div className={styles.toggleInfo}>
+                          <h4>Show Cartoon Avatar</h4>
+                          <p>Turn off to display your uploaded photo to other users.</p>
+                        </div>
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={formData.settings.showAvatar !== false}
+                            onChange={(e) => handleSettingChange(null, 'showAvatar', e.target.checked)}
+                          />
+                          <span className={styles.slider}></span>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
                         <label>Full Name</label>
-                        <input 
+                        <input
                           type="text" value={formData.fullName}
                           onChange={(e) => handleInputChange('fullName', e.target.value)}
                         />
@@ -306,14 +330,14 @@ const Settings = () => {
                       </div>
                       <div className={styles.formGroup}>
                         <label>Phone Number (Optional)</label>
-                        <input 
+                        <input
                           type="tel" value={formData.phone} placeholder="+1 (555) 000-0000"
                           onChange={(e) => handleInputChange('phone', e.target.value)}
                         />
                       </div>
                       <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                         <label>Bio</label>
-                        <textarea 
+                        <textarea
                           value={formData.bio} placeholder="Write a short introduction about yourself..."
                           onChange={(e) => handleInputChange('bio', e.target.value)}
                         />
@@ -321,19 +345,19 @@ const Settings = () => {
                     </div>
 
                     <div className={styles.saveAction}>
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                        {saving ? 'Saving...' : <><Save size={16}/> Save Profile</>}
-                        </button>
+                      <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16} /> Save Profile</>}
+                      </button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* 🟢 PREFERENCES TAB */}
+                {/* PREFERENCES TAB */}
                 {activeTab === 'preferences' && (
                   <motion.div variants={fadeVariants} initial="hidden" animate="visible">
                     <div className={styles.sectionHeader}>
-                        <h2>App Preferences</h2>
-                        <p className={styles.sectionDesc}>Customize your app experience.</p>
+                      <h2>App Preferences</h2>
+                      <p className={styles.sectionDesc}>Customize your app experience.</p>
                     </div>
                     <div className={styles.formGrid}>
                       <div className={styles.formGroup}>
@@ -353,26 +377,26 @@ const Settings = () => {
                       </div>
                     </div>
                     <div className={styles.saveAction}>
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                          {saving ? 'Saving...' : <><Save size={16}/> Save Preferences</>}
-                        </button>
+                      <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16} /> Save Preferences</>}
+                      </button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* 🟢 NOTIFICATIONS TAB */}
+                {/* NOTIFICATIONS TAB */}
                 {activeTab === 'notifications' && (
                   <motion.div variants={fadeVariants} initial="hidden" animate="visible">
                     <div className={styles.sectionHeader}>
-                        <h2>Notifications</h2>
-                        <p className={styles.sectionDesc}>Control when and how you are notified.</p>
+                      <h2>Notifications</h2>
+                      <p className={styles.sectionDesc}>Control when and how you are notified.</p>
                     </div>
                     <div className={styles.toggleList}>
                       {[
-                          { key: 'email', label: 'Email Notifications', desc: 'Receive daily summaries and updates.' },
-                          { key: 'push', label: 'Push Notifications', desc: 'Real-time alerts in your browser.' },
-                          { key: 'studyReminders', label: 'Study Reminders', desc: 'Get reminded for scheduled sessions.' },
-                          { key: 'messages', label: 'Direct Messages', desc: 'Notify me when someone sends a message.' }
+                        { key: 'email', label: 'Email Notifications', desc: 'Receive daily summaries and updates.' },
+                        { key: 'push', label: 'Push Notifications', desc: 'Real-time alerts in your browser.' },
+                        { key: 'studyReminders', label: 'Study Reminders', desc: 'Get reminded for scheduled sessions.' },
+                        { key: 'messages', label: 'Direct Messages', desc: 'Notify me when someone sends a message.' }
                       ].map((item) => (
                         <div className={styles.toggleItem} key={item.key}>
                           <div className={styles.toggleInfo}>
@@ -380,8 +404,8 @@ const Settings = () => {
                             <p>{item.desc}</p>
                           </div>
                           <label className={styles.toggle}>
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={formData.settings.notifications[item.key]}
                               onChange={(e) => handleSettingChange('notifications', item.key, e.target.checked)}
                             />
@@ -391,19 +415,19 @@ const Settings = () => {
                       ))}
                     </div>
                     <div className={styles.saveAction}>
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                        {saving ? 'Saving...' : <><Save size={16}/> Save Notifications</>}
-                        </button>
+                      <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16} /> Save Notifications</>}
+                      </button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* 🟢 PRIVACY TAB */}
+                {/* PRIVACY TAB */}
                 {activeTab === 'privacy' && (
                   <motion.div variants={fadeVariants} initial="hidden" animate="visible">
                     <div className={styles.sectionHeader}>
-                        <h2>Privacy & Visibility</h2>
-                        <p className={styles.sectionDesc}>Control who can see your profile and activity.</p>
+                      <h2>Privacy & Visibility</h2>
+                      <p className={styles.sectionDesc}>Control who can see your profile and activity.</p>
                     </div>
                     <div className={styles.toggleList}>
                       <div className={styles.toggleItem}>
@@ -412,8 +436,8 @@ const Settings = () => {
                           <p>Allow others to discover you in Study Matches.</p>
                         </div>
                         <label className={styles.toggle}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={formData.settings.privacy.showProfile}
                             onChange={(e) => handleSettingChange('privacy', 'showProfile', e.target.checked)}
                           />
@@ -426,8 +450,8 @@ const Settings = () => {
                           <p>Let connections see when you are currently active.</p>
                         </div>
                         <label className={styles.toggle}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={formData.settings.privacy.showActivity}
                             onChange={(e) => handleSettingChange('privacy', 'showActivity', e.target.checked)}
                           />
@@ -436,52 +460,52 @@ const Settings = () => {
                       </div>
                     </div>
                     <div className={styles.saveAction}>
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                        {saving ? 'Saving...' : <><Save size={16}/> Save Privacy</>}
-                        </button>
+                      <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : <><Save size={16} /> Save Privacy</>}
+                      </button>
                     </div>
                   </motion.div>
                 )}
-                
-                {/* 🟢 ACCOUNT TAB */}
-                {activeTab === 'account' && (
-                    <motion.div variants={fadeVariants} initial="hidden" animate="visible">
-                        <div className={styles.sectionHeader}>
-                            <h2>Account Security</h2>
-                            <p className={styles.sectionDesc}>Manage your security settings and account deletion.</p>
-                        </div>
-                        
-                        <div className={styles.formGroup} style={{ marginBottom: '30px' }}>
-                            <label>Password</label>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '10px', marginTop: 0 }}>
-                                Need to change your password? Click below to receive a secure reset link.
-                            </p>
-                            <div>
-                                <button type="button" className={styles.uploadBtn} onClick={() => alert("A password reset link would be sent to your email.")}>
-                                    Send Reset Link
-                                </button>
-                            </div>
-                        </div>
 
-                        <div className={styles.dangerZone}>
-                            <div className={styles.dangerHeader}>
-                                <h3>Danger Zone</h3>
-                            </div>
-                            <div className={styles.dangerContent}>
-                                <div className={styles.dangerInfo}>
-                                    <h4>Delete Account</h4>
-                                    <p>Once you delete your account, there is no going back. Please be certain.</p>
-                                </div>
-                                <button className={styles.deleteBtn} onClick={() => {
-                                    if(window.confirm("Are you absolutely sure? This will delete all your data.")) {
-                                        alert("Contact support to process deletion.");
-                                    }
-                                }}>
-                                    Delete Account
-                                </button>
-                            </div>
+                {/* ACCOUNT TAB */}
+                {activeTab === 'account' && (
+                  <motion.div variants={fadeVariants} initial="hidden" animate="visible">
+                    <div className={styles.sectionHeader}>
+                      <h2>Account Security</h2>
+                      <p className={styles.sectionDesc}>Manage your security settings and account deletion.</p>
+                    </div>
+
+                    <div className={styles.formGroup} style={{ marginBottom: '30px' }}>
+                      <label>Password</label>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '10px', marginTop: 0 }}>
+                        Need to change your password? Click below to receive a secure reset link.
+                      </p>
+                      <div>
+                        <button type="button" className={styles.uploadBtn} onClick={() => alert("A password reset link would be sent to your email.")}>
+                          Send Reset Link
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={styles.dangerZone}>
+                      <div className={styles.dangerHeader}>
+                        <h3>Danger Zone</h3>
+                      </div>
+                      <div className={styles.dangerContent}>
+                        <div className={styles.dangerInfo}>
+                          <h4>Delete Account</h4>
+                          <p>Once you delete your account, there is no going back. Please be certain.</p>
                         </div>
-                    </motion.div>
+                        <button className={styles.deleteBtn} onClick={() => {
+                          if (window.confirm("Are you absolutely sure? This will delete all your data.")) {
+                            alert("Contact support to process deletion.");
+                          }
+                        }}>
+                          Delete Account
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
                 )}
 
               </div>

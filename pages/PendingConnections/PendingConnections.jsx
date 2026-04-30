@@ -82,8 +82,8 @@ const PendingConnections = () => {
         const isNotConnected = (req) => !existingConnections.some(c => (c._id || c) === req._id);
 
         const [resIn, resOut] = await Promise.all([
-            fetch('http://localhost:5000/api/auth/requests/received', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('http://localhost:5000/api/auth/requests/sent', { headers: { 'Authorization': `Bearer ${token}` } })
+            fetch(`http://${window.location.hostname}:5000/api/auth/requests/received`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(`http://${window.location.hostname}:5000/api/auth/requests/sent`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
         const dataIn = await resIn.json();

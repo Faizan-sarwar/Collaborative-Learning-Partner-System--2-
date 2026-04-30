@@ -2,14 +2,14 @@ import cron from 'node-cron';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import jwt from 'jsonwebtoken'; // ADD THIS AT THE TOP
+import jwt from 'jsonwebtoken'; 
 import dotenv from 'dotenv';
 import auth from '../server/routes/auth.js';
 import StudyGroup from '../server/models/StudyGroup.js';
 import ActivityLog from '../server/models/ActivityLog.js';
 import ChatRoutes from '../server/routes/chat.js';
 import User from '../server/models/User.js';
-import Settings from '../server/models/Settings.js'; // 🟢 ADDED: Need this for the firewall
+import Settings from '../server/models/Settings.js'; 
 import gamificationRoutes from '../server/routes/gamification.js';
 import activityLogsRoutes from '../server/routes/activitylogs.js';
 import notificationRoutes from '../server/routes/notification.js';
@@ -20,8 +20,12 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 🟢 FIX 1: DYNAMIC CORS
+// 'origin: true' tells the server to allow whatever IP address the request is coming from.
+// This allows your friends to access it via your IPv4 address during your presentation.
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: true, 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -37,10 +41,8 @@ app.use(async (req, res, next) => {
   try {
     const settings = await Settings.findOne();
 
-    // If maintenance is OFF, let everyone through
     if (!settings || !settings.maintenanceMode) return next();
 
-    // These routes MUST remain public so users can log in and the frontend can check settings
     const publicAllowedPaths = [
       '/api/auth/login',
       '/api/auth/admin/settings',
@@ -51,7 +53,6 @@ app.use(async (req, res, next) => {
       return next();
     }
 
-    // 🟢 NEW: Check if the person making the request is an Admin!
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
@@ -59,16 +60,14 @@ app.use(async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
         const user = await User.findById(decoded.id);
 
-        // If they are an admin or super-admin, wave them through the firewall!
         if (user && (user.role === 'admin' || user.role === 'super-admin')) {
           return next();
         }
       } catch (tokenErr) {
-        // Token is invalid or expired, ignore and let them hit the block below
+        // Token is invalid or expired
       }
     }
 
-    // If we reach here, it's a student trying to fetch data during maintenance. Block them.
     return res.status(503).json({
       success: false,
       message: 'The system is currently undergoing maintenance. Please try again later.'
@@ -279,9 +278,9 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
+
 // ==========================================
 // 🟢 ENTERPRISE BACKGROUND WORKER (CRON JOBS)
-// Runs automatically every night at Midnight (00:00)
 // ==========================================
 cron.schedule('0 0 * * *', async () => {
   console.log('⏳ [CRON] Running nightly system maintenance...');
@@ -289,37 +288,34 @@ cron.schedule('0 0 * * *', async () => {
     const settings = await Settings.findOne();
     if (!settings) return;
 
-    // 1. ENFORCE DATA RETENTION (e.g., 30, 60, or 90 days)
     if (settings.dataRetention) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - settings.dataRetention);
-
-      // Example: Delete Activity Logs older than the retention period to save DB space
       const deletedLogs = await ActivityLog.deleteMany({ createdAt: { $lt: cutoffDate } });
       console.log(`🧹 [CRON] Data Retention: Deleted ${deletedLogs.deletedCount} old activity logs.`);
     }
 
-    // 2. AUTO BACKUP SIMULATION
-    // In a production environment like AWS/AWS, you would trigger an S3 snapshot here.
-    // For this app, we log the cycle based on the frequency setting.
     const dayOfWeek = new Date().getDay();
     const dateOfMonth = new Date().getDate();
 
     let shouldBackup = false;
     if (settings.autoBackup === 'daily') shouldBackup = true;
-    if (settings.autoBackup === 'weekly' && dayOfWeek === 0) shouldBackup = true; // Runs on Sunday
-    if (settings.autoBackup === 'monthly' && dateOfMonth === 1) shouldBackup = true; // Runs 1st of month
+    if (settings.autoBackup === 'weekly' && dayOfWeek === 0) shouldBackup = true; 
+    if (settings.autoBackup === 'monthly' && dateOfMonth === 1) shouldBackup = true; 
 
     if (shouldBackup) {
       console.log(`💾 [CRON] Auto Backup Triggered (${settings.autoBackup} schedule).`);
-      // Logic to trigger MongoDB dump would go here
     }
 
   } catch (err) {
     console.error('❌ [CRON] Maintenance failed:', err);
   }
 });
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+
+// 🟢 FIX 2: BIND TO 0.0.0.0
+// This explicitly tells Node.js to accept requests from your local Wi-Fi network
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT} (Network Accessible)`);
 });

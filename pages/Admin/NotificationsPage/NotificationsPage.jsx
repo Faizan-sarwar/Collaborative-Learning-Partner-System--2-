@@ -82,7 +82,7 @@ const NotificationsPage = () => {
     setIsSending(true);
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/auth/admin/send-notification', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/send-notification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

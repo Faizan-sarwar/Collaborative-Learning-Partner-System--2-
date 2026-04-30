@@ -106,7 +106,7 @@ const Signup = () => {
     useEffect(() => {
         const fetchCourses = async () => {
             try {
-                const res = await fetch('http://localhost:5000/studygroup');
+                const res = await fetch(`http://${window.location.hostname}:5000/studygroup`);
                 const data = await res.json();
                 if (data.success && data.groups.length > 0) {
                     const courses = data.groups.map(g => ({ name: g.name, active: g.active }));

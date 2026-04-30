@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, Plus, RefreshCw, Edit, Trash2, X, 
+  AlertCircle, Loader2, User, Mail, BookOpen, ShieldAlert, CheckCircle2 
+} from 'lucide-react';
 import styles from './StudentManagement.module.css';
 
 const departments = ['Information Technology', 'Computer Science', 'Electronics', 'Mechanical', 'Civil', 'Electrical'];
@@ -8,6 +13,7 @@ const statuses = ['active', 'logged out', 'blocked'];
 const StudentManagement = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -15,71 +21,61 @@ const StudentManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    department: departments[0],
-    semester: semesters[0],
-    status: 'active'
+    name: '', email: '', department: departments[0], semester: semesters[0], status: 'active'
   });
 
-  // Reference to hold the latest interval so we can clear it if needed
   const syncInterval = useRef(null);
 
-  // Get Auth Token Helper
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  // 🟢 FETCH STUDENTS (Live Syncs the Active/Logged Out status)
+  // 🟢 SECURE FETCH STUDENTS
   const fetchStudents = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      const res = await fetch('http://localhost:5000/api/auth/admin/students', {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
+      const token = getToken();
+      if (!token) throw new Error("Authentication token missing");
+
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/admin/students`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       
-      if (data.success) {
+      if (data.success && Array.isArray(data.students)) {
         const formattedStudents = data.students.map(s => ({
-          id: s.id,
-          name: s.name,
+          id: s.id || s._id,
+          name: s.name || s.fullName,
           email: s.email,
-          username: s.username,
+          username: s.username || s.rollNumber,
           department: s.department || 'N/A',
           semester: s.semester || 'N/A',
-          status: s.status, // 🟢 Relies on Backend's logic ('active', 'logged out', 'blocked')
+          status: s.status || (s.approved ? 'active' : 'blocked'),
           lastLogin: s.lastLogin ? new Date(s.lastLogin).toLocaleString('en-US', {
              month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
           }) : 'Never',
-          joinedDate: new Date(s.joinedDate).toLocaleDateString(),
-          rollNumber: s.username 
+          joinedDate: s.joinedDate ? new Date(s.joinedDate).toLocaleDateString() : 'N/A',
         }));
         setStudents(formattedStudents);
+        setError(null);
+      } else {
+        throw new Error(data.message || "Failed to load students");
       }
     } catch (err) {
       console.error('Failed to fetch students', err);
+      if (!isBackground) setError("Unable to load student directory.");
     } finally {
       if (!isBackground) setLoading(false);
     }
   };
 
-  // 🟢 AUTO-REFRESH ENGINE (Every 5 seconds)
   useEffect(() => {
-    // Initial fetch with loading screen
     fetchStudents(false); 
-    
-    // Set up the background heartbeat
-    syncInterval.current = setInterval(() => {
-      fetchStudents(true); // true = silently update the data without triggering the loading spinner
-    }, 5000); 
-
-    // Cleanup on unmount
-    return () => {
-        if (syncInterval.current) clearInterval(syncInterval.current);
-    };
+    syncInterval.current = setInterval(() => { fetchStudents(true); }, 10000); // 10s background poll
+    return () => { if (syncInterval.current) clearInterval(syncInterval.current); };
   }, []);
 
-  // Handlers
   const openModal = (mode, student = null) => {
     setModalMode(mode);
     setSelectedStudent(student);
@@ -92,13 +88,7 @@ const StudentManagement = () => {
         status: student.status === 'blocked' ? 'blocked' : 'active'
       });
     } else {
-        setFormData({ 
-            name: '', 
-            email: '', 
-            department: departments[0], 
-            semester: semesters[0], 
-            status: 'active' 
-        });
+        setFormData({ name: '', email: '', department: departments[0], semester: semesters[0], status: 'active' });
     }
     setShowModal(true);
   };
@@ -108,34 +98,31 @@ const StudentManagement = () => {
     setSelectedStudent(null);
   };
 
-  // 🟢 SAVE STUDENT (Handles Add & Edit securely)
+  // 🟢 SECURE SAVE STUDENT
   const handleSaveStudent = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     const url = modalMode === 'add' 
-        ? 'http://localhost:5000/api/auth/signup' 
+        ? `http://${window.location.hostname}:5000/api/auth/signup` 
         : `http://localhost:5000/api/auth/admin/students/${selectedStudent.id}`;
     
     const method = modalMode === 'add' ? 'POST' : 'PUT';
-
     const payload = modalMode === 'add' 
         ? { 
             fullName: formData.name, 
             email: formData.email, 
             department: formData.department, 
             semester: formData.semester, 
-            password: 'Student123!', // Default temporary password
+            password: 'Student123!', 
             role: 'student', 
             approved: formData.status === 'active',
-            rollNumber: `STD-${Math.floor(1000 + Math.random() * 9000)}`, // Auto-generate to satisfy DB
-            gender: 'Male', // Default to satisfy DB
-            studyStyle: 'Individual Study' // Default to satisfy DB
+            rollNumber: `STD-${Math.floor(1000 + Math.random() * 9000)}`, 
+            gender: 'Male', 
+            studyStyle: 'Individual Study' 
           }
         : { 
-            name: formData.name,
-            email: formData.email,
-            department: formData.department,
-            semester: formData.semester,
-            status: formData.status
+            name: formData.name, email: formData.email, department: formData.department, semester: formData.semester, status: formData.status
           };
 
     try {
@@ -150,20 +137,22 @@ const StudentManagement = () => {
         const data = await res.json();
         
         if (data.success || res.ok) {
-            // Trigger an immediate manual fetch to show the change instantly
             fetchStudents(true);
             closeModal();
         } else {
             alert(data.message || 'Operation failed');
         }
     } catch (err) {
-        console.error(err);
         alert('Server Error connecting to database.');
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
+  // 🟢 SECURE DELETE
   const handleDeleteStudent = async () => {
     if (!selectedStudent) return;
+    setIsSubmitting(true);
     try {
         const res = await fetch(`http://localhost:5000/api/auth/admin/students/${selectedStudent.id}`, {
             method: 'DELETE',
@@ -172,7 +161,6 @@ const StudentManagement = () => {
         const data = await res.json();
         
         if (data.success) {
-            // Trigger immediate refresh
             fetchStudents(true); 
             closeModal();
         } else {
@@ -180,8 +168,12 @@ const StudentManagement = () => {
         }
     } catch (err) {
         console.error(err);
+    } finally {
+        setIsSubmitting(false);
     }
   };
+
+  const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST';
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch = 
@@ -190,14 +182,13 @@ const StudentManagement = () => {
       (student.username?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
-    
     return matchesSearch && matchesStatus;
   });
 
   const getStatusClass = (status) => {
       if (status === 'active') return styles.active;
       if (status === 'blocked') return styles.blocked;
-      return styles.inactive; // Applies to 'logged out'
+      return styles.inactive; 
   };
 
   const formatStatusText = (status) => {
@@ -208,61 +199,47 @@ const StudentManagement = () => {
 
   return (
     <div className={styles.container}>
+      {/* 🟢 HEADER */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <h2>All Students</h2>
-          <span className={styles.count}>
-            {filteredStudents.length} students found
-          </span>
+          <h2>Student Directory</h2>
+          <span className={styles.count}>{filteredStudents.length} students found</span>
         </div>
         
-        <div style={{display:'flex', gap:'10px'}}>
-            <button className={styles.addBtn} onClick={() => fetchStudents(false)} title="Force Manual Refresh">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M23 4v6h-6"></path>
-                <path d="M1 20v-6h6"></path>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
+        <div className={styles.headerActions}>
+            <button className={styles.refreshBtn} onClick={() => fetchStudents(false)} title="Force Manual Refresh">
+              <RefreshCw size={18} />
             </button>
             <button className={styles.addBtn} onClick={() => openModal('add')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add Student
+              <Plus size={18} /> Add Student
             </button>
         </div>
       </div>
 
+      {error && (
+        <div className={styles.errorBanner}>
+          <AlertCircle size={20} /> {error}
+        </div>
+      )}
+
+      {/* 🟢 FILTERS */}
       <div className={styles.filters}>
         <div className={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Search students..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Search size={18} className={styles.searchIcon} />
+          <input type="text" placeholder="Search by name, email, or roll number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <div className={styles.filterButtons}>
-          <button 
-            className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`}
-            onClick={() => setStatusFilter('all')}
-          >
-            All
-          </button>
+          <button className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.activeFilter : ''}`} onClick={() => setStatusFilter('all')}>All</button>
           {statuses.map((status) => (
-            <button
-              key={status}
-              className={`${styles.filterBtn} ${statusFilter === status ? styles.active : ''}`}
-              onClick={() => setStatusFilter(status)}
-            >
+            <button key={status} className={`${styles.filterBtn} ${statusFilter === status ? styles.activeFilter : ''}`} onClick={() => setStatusFilter(status)}>
               {formatStatusText(status)}
             </button>
           ))}
         </div>
       </div>
 
+      {/* 🟢 TABLE */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
@@ -276,27 +253,26 @@ const StudentManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan="6" style={{textAlign: 'center', padding: '2rem'}}>Loading Data...</td></tr>
+            {loading && students.length === 0 ? (
+              <tr><td colSpan="6"><div className={styles.centerState}><Loader2 size={24} className={styles.spinner}/><span>Loading Directory...</span></div></td></tr>
             ) : filteredStudents.length === 0 ? (
-               <tr><td colSpan="6" style={{textAlign: 'center', padding: '2rem'}}>No students found.</td></tr>
+               <tr><td colSpan="6"><div className={styles.centerState}><User size={24} color="var(--text-muted)"/><span>No students found.</span></div></td></tr>
             ) : (
               filteredStudents.map((student) => (
                 <tr key={student.id}>
                   <td>
                     <div className={styles.studentInfo}>
-                      <div className={styles.avatar}>
-                        <img 
-                            src={`http://localhost:5000/api/auth/student/${student.id}/picture`} 
-                            alt="Profile"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
-                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                        />
-                        <div style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#4f46e5' }}>
-                            {student.name ? student.name.charAt(0).toUpperCase() : '?'}
-                        </div>
+                      <div className={styles.avatarWrapper}>
+                        {student.id ? (
+                           <img 
+                              src={`http://localhost:5000/api/auth/student/${student.id}/picture`} 
+                              alt="Profile"
+                              className={styles.avatarImg}
+                              onError={(e) => e.target.style.display = 'none'}
+                           />
+                        ) : null}
+                        <div className={styles.avatarInitials}>{getInitials(student.name)}</div>
                       </div>
-                      
                       <div className={styles.details}>
                         <span className={styles.name}>{student.name}</span>
                         <span className={styles.email}>{student.email}</span>
@@ -305,30 +281,24 @@ const StudentManagement = () => {
                   </td>
                   <td className={styles.username}>{student.username}</td>
                   <td>{student.department}</td>
-                  
                   <td>
-                    <span className={`${styles.status} ${getStatusClass(student.status)}`}>
-                      {formatStatusText(student.status)}
+                    <span className={`${styles.statusBadge} ${getStatusClass(student.status)}`}>
+                      <span className={styles.statusDot}></span> {formatStatusText(student.status)}
                     </span>
                   </td>
-
-                  <td className={styles.date} style={{color: student.status === 'active' ? '#10b981' : '#666'}}>
+                  <td className={styles.date} style={{color: student.status === 'active' ? '#10b981' : 'var(--text-secondary)'}}>
                     {student.lastLogin}
                   </td>
-
                   <td>
                     <div className={styles.actions}>
-                      <button className={styles.actionBtn} title="Edit" onClick={() => openModal('edit', student)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
+                      <button className={styles.actionBtn} title="View Details" onClick={() => openModal('view', student)}>
+                        <User size={16} />
+                      </button>
+                      <button className={styles.actionBtn} title="Edit Student" onClick={() => openModal('edit', student)}>
+                        <Edit size={16} />
                       </button>
                       <button className={`${styles.actionBtn} ${styles.danger}`} title="Delete" onClick={() => openModal('delete', student)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -339,65 +309,95 @@ const StudentManagement = () => {
         </table>
       </div>
 
-      {/* Modals */}
-      {showModal && (
-        <div className={styles.modalOverlay} onClick={closeModal}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>{modalMode === 'delete' ? 'Delete Student' : modalMode === 'add' ? 'Add New Student' : 'Edit Student'}</h3>
-              <button className={styles.closeBtn} onClick={closeModal}>×</button>
-            </div>
-
-            {modalMode === 'delete' ? (
-              <div className={styles.deleteConfirm}>
-                <p>Are you sure you want to delete <strong>{selectedStudent?.name}</strong>?</p>
-                <p className={styles.deleteWarning}>
-                    This will remove them from the database immediately. <br/>
-                    They will see "Data does not exist" upon login.
-                </p>
-                <div className={styles.modalActions}>
-                  <button className={styles.cancelBtn} onClick={closeModal}>Cancel</button>
-                  <button className={styles.deleteBtn} onClick={handleDeleteStudent}>Delete</button>
-                </div>
+      {/* 🟢 MODALS */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>
+            <motion.div className={styles.modal} initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>{modalMode === 'delete' ? 'Remove Student' : modalMode === 'add' ? 'Add New Student' : modalMode === 'view' ? 'Student Profile' : 'Edit Student'}</h3>
+                <button className={styles.closeBtn} onClick={closeModal}><X size={20} /></button>
               </div>
-            ) : (
-              <form className={styles.modalForm} onSubmit={handleSaveStudent}>
-                <div className={styles.formGroup}>
-                    <label>Full Name</label>
-                    <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+
+              {/* DELETE MODE */}
+              {modalMode === 'delete' ? (
+                <div className={styles.deleteConfirm}>
+                  <div className={styles.deleteIcon}><ShieldAlert size={40} /></div>
+                  <h4>Are you sure you want to delete {selectedStudent?.name}?</h4>
+                  <p className={styles.deleteWarning}>This will permanently remove their data from the database. This action cannot be undone.</p>
+                  <div className={styles.modalActions}>
+                    <button className={styles.cancelBtn} onClick={closeModal}>Cancel</button>
+                    <button className={styles.deleteBtn} onClick={handleDeleteStudent} disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 size={16} className={styles.spinnerIcon} /> : <Trash2 size={16} />} Delete
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.formGroup}>
-                    <label>Email</label>
-                    <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+              ) : modalMode === 'view' ? (
+                /* VIEW MODE */
+                <div className={styles.viewMode}>
+                   <div className={styles.viewHeader}>
+                      <div className={styles.avatarLarge}>{getInitials(selectedStudent?.name)}</div>
+                      <div>
+                          <h4>{selectedStudent?.name}</h4>
+                          <p>{selectedStudent?.email}</p>
+                      </div>
+                   </div>
+                   <div className={styles.viewRow}>
+                      <div className={styles.viewField}><label>Department</label><span>{selectedStudent?.department}</span></div>
+                      <div className={styles.viewField}><label>Semester</label><span>{selectedStudent?.semester}</span></div>
+                      <div className={styles.viewField}><label>Status</label><span className={`${styles.statusBadge} ${getStatusClass(selectedStudent?.status)}`}>{formatStatusText(selectedStudent?.status)}</span></div>
+                      <div className={styles.viewField}><label>Joined Date</label><span>{selectedStudent?.joinedDate}</span></div>
+                   </div>
+                   <div className={styles.modalActions}>
+                      <button className={styles.cancelBtn} onClick={closeModal}>Close</button>
+                      <button className={styles.submitBtn} onClick={() => setModalMode('edit')}><Edit size={16} /> Edit Student</button>
+                   </div>
                 </div>
-                <div className={styles.formGroup}>
-                    <label>Department</label>
-                    <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}>
-                        {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                </div>
-                <div className={styles.formGroup}>
-                    <label>Semester</label>
-                    <select value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})}>
-                        {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
-                    </select>
-                </div>
-                <div className={styles.formGroup}>
-                    <label>Account Status</label>
-                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
-                        <option value="active">Active / Allowed</option>
-                        <option value="blocked">Blocked (Login Disabled)</option>
-                    </select>
-                </div>
-                <div className={styles.modalActions}>
-                  <button type="button" className={styles.cancelBtn} onClick={closeModal}>Cancel</button>
-                  <button type="submit" className={styles.submitBtn}>Save Changes</button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+              ) : (
+                /* ADD / EDIT MODE */
+                <form className={styles.modalForm} onSubmit={handleSaveStudent}>
+                  <div className={styles.formGroup}>
+                      <label>Full Name</label>
+                      <input type="text" placeholder="Enter full name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                  </div>
+                  <div className={styles.formGroup}>
+                      <label>Email Address</label>
+                      <input type="email" placeholder="student@university.edu" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+                  </div>
+                  <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                          <label>Department</label>
+                          <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}>
+                              {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                      </div>
+                      <div className={styles.formGroup}>
+                          <label>Semester</label>
+                          <select value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})}>
+                              {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
+                          </select>
+                      </div>
+                  </div>
+                  <div className={styles.formGroup}>
+                      <label>Account Status</label>
+                      <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                          <option value="active">Active (Allowed)</option>
+                          <option value="blocked">Blocked (Login Disabled)</option>
+                      </select>
+                  </div>
+                  <div className={styles.modalActions}>
+                    <button type="button" className={styles.cancelBtn} onClick={closeModal}>Cancel</button>
+                    <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 size={16} className={styles.spinnerIcon} /> : <CheckCircle2 size={16} />} 
+                        {modalMode === 'add' ? 'Create Student' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -58,6 +58,9 @@
   display: flex;
   align-items: center;
   gap: 32px;
+  list-style: none; /* Ensures no bullet points */
+  margin: 0;
+  padding: 0;
 }
 
 .navLink {
@@ -66,6 +69,7 @@
   color: var(--text-secondary);
   transition: var(--transition-fast);
   position: relative;
+  text-decoration: none;
 }
 
 .navLink:hover {
@@ -93,6 +97,11 @@
   gap: 12px;
 }
 
+/* 🟢 Hides the mobile buttons while on desktop */
+.mobileOnlyActions {
+  display: none;
+}
+
 .loginBtn {
   padding: 10px 20px;
   font-size: 0.95rem;
@@ -102,6 +111,8 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   transition: var(--transition-normal);
+  text-decoration: none;
+  text-align: center;
 }
 
 .loginBtn:hover {
@@ -118,6 +129,8 @@
   border-radius: var(--radius-md);
   transition: var(--transition-normal);
   box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  text-decoration: none;
+  text-align: center;
 }
 
 .getStartedBtn:hover {
@@ -131,6 +144,8 @@
   gap: 5px;
   padding: 8px;
   background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .mobileToggle span {
@@ -155,6 +170,7 @@
     transform: translateY(-120%);
     opacity: 0;
     transition: var(--transition-normal);
+    visibility: hidden; /* Prevents clicking links when menu is closed */
   }
 
   [data-theme="light"] .navLinks {
@@ -164,12 +180,29 @@
   .navLinks.mobileOpen {
     transform: translateY(0);
     opacity: 1;
+    visibility: visible;
+  }
+
+  /* 🟢 Shows the buttons inside the dropdown and stacks them nicely */
+  .mobileOnlyActions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-top: 16px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+  }
+
+  .mobileOnlyActions a {
+    width: 100%;
   }
 
   .mobileToggle {
     display: flex;
   }
 
+  /* Hides the desktop buttons */
   .navActions {
     display: none;
   }

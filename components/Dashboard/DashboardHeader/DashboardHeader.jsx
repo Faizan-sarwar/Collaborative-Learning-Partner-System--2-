@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, Moon, Sun, Bell, Play, Gift, 
-  User as UserIcon, Settings, LogOut, 
-  MessageSquare, AlertCircle, Award 
+import {
+  Search, Moon, Sun, Bell, Play, Gift,
+  User as UserIcon, Settings, LogOut,
+  MessageSquare, AlertCircle, Award, Menu
 } from 'lucide-react';
 import styles from './DashboardHeader.module.css';
 
@@ -32,9 +32,9 @@ const avatars = {
 const mergeNotifications = (localArray, remoteArray) => {
   const combined = [...localArray, ...remoteArray];
   const uniqueMap = new Map();
-  
+
   combined.forEach(notif => {
-    const key = notif._id || notif.id; 
+    const key = notif._id || notif.id;
     if (!uniqueMap.has(key)) {
       uniqueMap.set(key, notif);
     } else {
@@ -49,7 +49,7 @@ const mergeNotifications = (localArray, remoteArray) => {
   });
 };
 
-const DashboardHeader = ({ title, isFullWidth }) => {
+const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => { // 🟢 Add toggleSidebar here
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -57,6 +57,7 @@ const DashboardHeader = ({ title, isFullWidth }) => {
   const [isDark, setIsDark] = useState(true);
 
   const [user, setUser] = useState(JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user'))) || {});
+  const [imgCacheKey, setImgCacheKey] = useState(Date.now());
   const [notifications, setNotifications] = useState([]);
 
   const menuRef = useRef(null);
@@ -70,6 +71,7 @@ const DashboardHeader = ({ title, isFullWidth }) => {
   const loadUser = () => {
     const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     setUser(storedUser);
+    setImgCacheKey(Date.now()); // 🟢 Refresh image instantly when profile updates
   };
 
   useEffect(() => {
@@ -111,43 +113,42 @@ const DashboardHeader = ({ title, isFullWidth }) => {
       if (!token || !user.role) return;
 
       const endpoint = (user.role === 'admin' || user.role === 'super-admin')
-        ? 'http://localhost:5000/api/auth/admin/notifications'
-        : 'http://localhost:5000/api/notifications';
+        ? `http://${window.location.hostname}:5000/api/auth/admin/notifications`
+        : `http://${window.location.hostname}:5000/api/notifications`;
 
       const res = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       let backendNotifs = data.success ? data.notifications : [];
 
       if (user.role === 'student') {
-          const chatRes = await fetch('http://localhost:5000/api/chat/conversations', { headers: { 'Authorization': `Bearer ${token}` } });
-          const chatData = await chatRes.json();
-          if (chatData.success) {
-              const totalUnread = chatData.conversations.reduce((sum, conv) => sum + (conv.unread || 0), 0);
-              if (totalUnread > 0) {
-                  backendNotifs.unshift({
-                      id: 'global-unread-messages',
-                      title: 'New Messages',
-                      message: `You have ${totalUnread} unread chat message(s).`,
-                      type: 'message',
-                      read: false,
-                      timestamp: new Date().toISOString()
-                  });
-              } else {
-                 // Remove it if they read everything
-                 const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-                 const filtered = localNotifs.filter(n => n.id !== 'global-unread-messages');
-                 localStorage.setItem('notifications', JSON.stringify(filtered));
-              }
+        const chatRes = await fetch(`http://${window.location.hostname}:5000/api/chat/conversations`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const chatData = await chatRes.json();
+        if (chatData.success) {
+          const totalUnread = chatData.conversations.reduce((sum, conv) => sum + (conv.unread || 0), 0);
+          if (totalUnread > 0) {
+            backendNotifs.unshift({
+              id: 'global-unread-messages',
+              title: 'New Messages',
+              message: `You have ${totalUnread} unread chat message(s).`,
+              type: 'message',
+              read: false,
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+            const filtered = localNotifs.filter(n => n.id !== 'global-unread-messages');
+            localStorage.setItem('notifications', JSON.stringify(filtered));
           }
+        }
       }
 
       const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]').filter(n => n.id !== 'global-unread-messages' || backendNotifs.some(b => b.id === 'global-unread-messages'));
       const merged = mergeNotifications(localNotifs, backendNotifs);
-      
+
       setNotifications(merged);
       localStorage.setItem('notifications', JSON.stringify(merged));
 
-    } catch (err) {}
+    } catch (err) { }
   }, [user.role]);
 
   useEffect(() => {
@@ -155,9 +156,8 @@ const DashboardHeader = ({ title, isFullWidth }) => {
     loadNotifications();
 
     const handleUserUpdate = () => loadUser();
-    const handleNotificationAdd = () => loadNotifications(); 
-    
-    // 🟢 NEW: Listen for when a user reads a chat on the Messages page
+    const handleNotificationAdd = () => loadNotifications();
+
     const handleChatRead = () => {
       const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
       const filtered = localNotifs.filter(n => n.id !== 'global-unread-messages');
@@ -199,36 +199,32 @@ const DashboardHeader = ({ title, isFullWidth }) => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (user.role === 'student') {
-        await fetch('http://localhost:5000/api/notifications/read', {
+        await fetch(`http://${window.location.hostname}:5000/api/notifications/read`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}` }
         });
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const clearNotifications = async () => {
     setNotifications([]);
-    localStorage.setItem('notifications', JSON.stringify([])); 
+    localStorage.setItem('notifications', JSON.stringify([]));
     window.dispatchEvent(new Event('notificationAdded'));
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (user.role === 'student') {
-        await fetch('http://localhost:5000/api/notifications/clear', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        await fetch(`http://${window.location.hostname}:5000/api/notifications/clear`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
-  // 🟢 SMART REDIRECT HANDLER
   const handleNotificationClick = async (notif) => {
-    setShowNotifications(false); // Close dropdown
-    
-    // Mark as read locally
+    setShowNotifications(false);
     const updated = notifications.map(n => n.id === notif.id || n._id === notif._id ? { ...n, unread: false, read: true } : n);
     setNotifications(updated);
     localStorage.setItem('notifications', JSON.stringify(updated));
 
-    // Redirect based on type
     if (notif.type === 'message') {
       navigate('/messages');
     } else if (notif.title.includes('Connection') || notif.type === 'connection') {
@@ -249,8 +245,8 @@ const DashboardHeader = ({ title, isFullWidth }) => {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      await fetch('http://localhost:5000/api/auth/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
-    } catch (err) {}
+      await fetch(`http://${window.location.hostname}:5000/api/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+    } catch (err) { }
     finally {
       localStorage.removeItem('studyTimerState');
       sessionStorage.clear();
@@ -261,7 +257,8 @@ const DashboardHeader = ({ title, isFullWidth }) => {
 
   const getAvatarSrc = () => {
     if (user.settings?.showAvatar === false) {
-      return user._id ? `http://localhost:5000/api/auth/student/${user._id}/picture?t=${Date.now()}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`;
+      // 🟢 Fixed localhost and applied anti-flicker cache key
+      return user._id ? `http://${window.location.hostname}:5000/api/auth/student/${user._id}/picture?t=${imgCacheKey}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`;
     }
     const gender = user.gender?.toLowerCase() === 'female' ? 'female' : 'male';
     const level = user.level || 1;
@@ -282,6 +279,12 @@ const DashboardHeader = ({ title, isFullWidth }) => {
 
   return (
     <header className={styles.header} style={isFullWidth ? { left: 0, width: '100vw', maxWidth: '100vw', marginLeft: 0, borderRadius: 0 } : {}}>
+
+      {/* 🟢 NEW: Mobile Hamburger Menu Button */}
+      <button className={styles.mobileMenuBtn} onClick={toggleSidebar}>
+        <Menu size={24} />
+      </button>
+
       <div className={styles.userInfo}>
         <div className={styles.avatar}>
           <img src={getAvatarSrc()} alt="User" onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`} />
@@ -313,9 +316,9 @@ const DashboardHeader = ({ title, isFullWidth }) => {
               <motion.div className={styles.notificationDropdown} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className={styles.notifHeader}>
                   <h3>Notifications</h3>
-                  <div style={{display: 'flex', gap: '10px'}}>
-                      <button className={styles.markAllBtn} onClick={markAllAsRead}>Mark Read</button>
-                      {user.role === 'student' && <button className={styles.markAllBtn} onClick={clearNotifications}>Clear</button>}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className={styles.markAllBtn} onClick={markAllAsRead}>Mark Read</button>
+                    {user.role === 'student' && <button className={styles.markAllBtn} onClick={clearNotifications}>Clear</button>}
                   </div>
                 </div>
                 <div className={styles.notifList}>
@@ -323,8 +326,8 @@ const DashboardHeader = ({ title, isFullWidth }) => {
                     <div className={styles.emptyNotif}><p>No new notifications</p></div>
                   ) : (
                     notifications.map((notif, index) => (
-                      <div 
-                        key={notif.id || notif._id || index} 
+                      <div
+                        key={notif.id || notif._id || index}
                         className={`${styles.notifItem} ${notif.unread || !notif.read ? styles.unread : ''}`}
                         onClick={() => handleNotificationClick(notif)}
                       >

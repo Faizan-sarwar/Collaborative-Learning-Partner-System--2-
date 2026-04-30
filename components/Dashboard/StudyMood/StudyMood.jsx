@@ -48,7 +48,7 @@ const StudyMood = () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (token) {
         // Send to your backend stats route
-        await fetch('http://localhost:5000/api/auth/update-stats', {
+        await fetch(`http://${window.location.hostname}:5000/api/auth/update-stats`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,

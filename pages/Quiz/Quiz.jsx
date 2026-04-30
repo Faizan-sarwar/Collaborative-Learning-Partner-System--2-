@@ -113,7 +113,7 @@ const Quiz = () => {
           currentUser.quizCompleted = true; 
           sessionStorage.setItem('user', JSON.stringify(currentUser));
 
-          const res = await fetch('http://localhost:5000/api/auth/submit-quiz', {
+          const res = await fetch(`http://${window.location.hostname}:5000/api/auth/submit-quiz`, {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',

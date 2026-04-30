@@ -139,11 +139,11 @@ const userSchema = new mongoose.Schema({
 
   // --- SETTINGS ---
   settings: {
+    showAvatar: { type: Boolean, default: true },  // ← moved to top level
     notifications: {
       email: { type: Boolean, default: true },
       push: { type: Boolean, default: true },
       studyReminders: { type: Boolean, default: true },
-      showAvatar: { type: Boolean, default: true },
       messages: { type: Boolean, default: true }
     },
     privacy: {
@@ -176,6 +176,8 @@ userSchema.methods.toSafeObject = function () {
   delete obj.password;
   delete obj.picture;
   obj.pictureUrl = `/student/${this._id}/picture`;
+  // Explicitly serialize settings so nested Mongoose objects don't get stripped
+  obj.settings = this.settings ? this.settings.toObject ? this.settings.toObject() : this.settings : {};
   return obj;
 };
 

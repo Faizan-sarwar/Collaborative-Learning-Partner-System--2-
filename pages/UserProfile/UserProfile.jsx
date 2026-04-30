@@ -35,7 +35,7 @@ const UserProfile = () => {
 
         // 1. SILENT REFRESH
         try {
-          const meRes = await fetch('http://localhost:5000/api/auth/me', {
+          const meRes = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
              headers: { 'Authorization': `Bearer ${token}` }
           });
           const meData = await meRes.json();

@@ -64,7 +64,7 @@ const Messages = () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if(!token) return;
-      const res = await fetch('http://localhost:5000/api/chat/conversations', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`http://${window.location.hostname}:5000/api/chat/conversations`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) setConversations(data.conversations);
     } catch (err) {} 
@@ -142,7 +142,7 @@ const Messages = () => {
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/chat/messages', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/chat/messages`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId: selectedConversation.id, targetUserId: selectedConversation.otherUserId, text: messageText })
@@ -168,7 +168,7 @@ const Messages = () => {
     setShowNewChatModal(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/auth/connections', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/connections`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) setConnections(data.connections);
     } catch (err) {}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import styles from './AdminLayout.module.css';
+import { Outlet } from 'react-router-dom';
+import styles from './AdminLayout.module.css'; // 🟢 CRITICAL: Import your CSS module!
 import AdminSidebar from '../../../components/Admin/AdminSidebar/AdminSidebar';
 import AdminNavbar from '../../../components/Admin/AdminNavbar/AdminNavbar';
 import PageTransition from '../../../components/PageTransition/PageTransition';
@@ -8,7 +8,6 @@ import PageTransition from '../../../components/PageTransition/PageTransition';
 const AdminLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const location = useLocation();
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -21,14 +20,22 @@ const AdminLayout = () => {
   return (
     <PageTransition>
       <div className={styles.adminLayout}>
+        
         <AdminSidebar 
           collapsed={sidebarCollapsed} 
           onToggle={toggleSidebar}
           mobileOpen={mobileMenuOpen}
         />
         
-        {mobileMenuOpen && <div className={styles.overlay} onClick={() => setMobileMenuOpen(false)} />}
+        {/* Mobile Overlay */}
+        {mobileMenuOpen && (
+          <div 
+            className={styles.overlay} 
+            onClick={() => setMobileMenuOpen(false)} 
+          />
+        )}
         
+        {/* 🟢 Main Area uses CSS modules to dynamically switch margins */}
         <div className={`${styles.mainArea} ${sidebarCollapsed ? styles.expanded : ''}`}>
           <AdminNavbar onMenuClick={toggleMobileMenu} />
           
@@ -36,6 +43,7 @@ const AdminLayout = () => {
             <Outlet />
           </main>
         </div>
+        
       </div>
     </PageTransition>
   );

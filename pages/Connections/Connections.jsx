@@ -15,7 +15,7 @@ const Connections = () => {
     const fetchConnections = async () => {
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/auth/connections', {
+        const res = await fetch(`http://${window.location.hostname}:5000/api/auth/connections`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

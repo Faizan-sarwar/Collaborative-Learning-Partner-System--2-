@@ -1,26 +1,32 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import styles from './LoginCard.module.css';
-import TextInput from '../TextInput/TextInput';
-import Divider from '../Divider/Divider';
-import GoogleButton from '../GoogleButton/GoogleButton';
 import Alert from '../Alert/Alert';
-import { Link } from 'react-router-dom';
-import { useSettings } from '../../src/context/SettingsContext';
 
 const LoginCard = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
   const [alert, setAlert] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setAlert(null);
+    setIsSubmitting(true);
+
+    // 🟢 Fetch the dynamic URL from your .env file
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, rememberMe })
@@ -29,30 +35,27 @@ const LoginCard = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setAlert({ type: 'error', message: data.message || 'Login failed' });
+        setAlert({ type: 'error', message: data.message || 'Invalid email or password.' });
+        setIsSubmitting(false);
         return;
       }
 
-      // 1. Handle Token Storage (Wallet vs Wristband)
+      // 🟢 Secure Storage Logic
       if (rememberMe) {
-        // Save BOTH in localStorage (Survives computer restart for 30 days)
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Clear old session data just in case
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
       } else {
-        // Save BOTH in sessionStorage (Dies when tab closes)
         sessionStorage.setItem('token', data.token);
         sessionStorage.setItem('user', JSON.stringify(data.user));
-        // Clear old local data so it doesn't accidentally remember them
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
 
-      setAlert({ type: 'success', message: 'Login successful! Redirecting...' });
+      setAlert({ type: 'success', message: 'Authentication successful. Redirecting...' });
 
-      // 3. LOGIC UPDATE: Check Role Correctly
+      // 🟢 Smart Redirection Logic
       setTimeout(() => {
         if (data.user.role === 'admin' || data.user.role === 'super-admin') {
           navigate('/admin');
@@ -71,18 +74,24 @@ const LoginCard = () => {
 
     } catch (err) {
       console.error('Login error:', err);
-      setAlert({ type: 'error', message: 'Server error. Please try again.' });
+      setAlert({ type: 'error', message: 'Server communication failed. Please try again.' });
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className={styles.card}>
+    <motion.div 
+      className={styles.card}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className={styles.header}>
         <div className={styles.secureBadge}>
-          <span className={styles.greenDot}></span>
-          <span>Secure</span>
+          <ShieldCheck size={14} className={styles.shieldIcon} />
+          <span>Secure Login</span>
         </div>
-        <h1 className={styles.title}>Welcome</h1>
+        <h1 className={styles.title}>Welcome Back</h1>
         <p className={styles.subtitle}>Sign in to continue your learning journey</p>
       </div>
 
@@ -95,53 +104,84 @@ const LoginCard = () => {
           />
         )}
 
-        <TextInput
-          label="Email Address"
-          type="email"
-          name="email"                 //  Added for browser autofill
-          autoComplete="username"      //  Tells browser to look for saved accounts
-          placeholder="Enter your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        {/* 🟢 ENTERPRISE EMAIL INPUT */}
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Email Address</label>
+          <div className={styles.inputWrapper}>
+            <Mail size={18} className={styles.inputIcon} />
+            <input
+              type="email"
+              name="email"
+              autoComplete="username"
+              placeholder="name@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={styles.inputField}
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
 
-        <TextInput
-          label="Password"
-          type="password"
-          name="password"              //  Added for browser autofill
-          autoComplete="current-password" //  Triggers the saved password/fingerprint prompt
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        {/* 🟢 ENTERPRISE PASSWORD INPUT WITH TOGGLE */}
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Password</label>
+          <div className={styles.inputWrapper}>
+            <Lock size={18} className={styles.inputIcon} />
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              autoComplete="current-password"
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={styles.inputField}
+              required
+              disabled={isSubmitting}
+            />
+            <button 
+              type="button" 
+              className={styles.eyeBtn} 
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex="-1"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
 
+        {/* 🟢 OPTIONS ROW */}
         <div className={styles.options}>
-          <label className={styles.checkbox}>
+          <label className={styles.checkboxContainer}>
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={isSubmitting}
             />
-            {/* <span className={styles.checkmark}></span> */}
-            {/* <span className={styles.checkboxLabel}>Remember me for 30 days</span> */}
+            <div className={styles.customCheckmark}></div>
+            <span className={styles.checkboxLabel}>Remember me</span>
           </label>
           <Link to="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
         </div>
 
-        <button type="submit" className={styles.signInButton}>
-          Sign In
+        <button type="submit" className={styles.signInButton} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 size={18} className={styles.spinner} />
+              Authenticating...
+            </>
+          ) : (
+            'Sign In'
+          )}
         </button>
-
-        {/* <Divider text="Or continue with" />
-
-        <GoogleButton /> */}
 
         <p className={styles.signupText}>
           Don't have an account?{' '}
-          <Link to="/signup" className={styles.signupLink}>Sign up</Link>
+          <Link to="/signup" className={styles.signupLink}>Sign up here</Link>
         </p>
       </form>
-    </div>
+    </motion.div>
   );
 };
 

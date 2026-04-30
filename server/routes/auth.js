@@ -43,7 +43,7 @@ const getClientIp = (req) => {
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 🟢 BUMPED TO 10MB FOR MOBILE PHOTOS
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
 });
 
@@ -393,6 +393,10 @@ router.get('/me', async (req, res) => {
     const safeUser = user.toSafeObject();
     safeUser.reliability = user.reliability || 0;
     safeUser.quizCompleted = user.quizCompleted || false;
+    // Always include settings so the frontend can read showAvatar preference
+    safeUser.settings = user.settings
+      ? (typeof user.settings.toObject === 'function' ? user.settings.toObject() : user.settings)
+      : {};
 
     res.json({ success: true, user: safeUser });
   } catch (err) {
@@ -404,6 +408,7 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
+
     const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -420,14 +425,48 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
 
     user.isProfileComplete = true;
 
-    if (settings) {
-      try { user.settings = { ...user.settings, ...(typeof settings === 'string' ? JSON.parse(settings) : settings) }; } catch (e) { }
+    // 🟢 MONGOOSE CRASH FIX: Extract the RAW object first so we don't destroy nested data!
+    let currentSettings = {};
+    if (user.settings) {
+      currentSettings = typeof user.settings.toObject === 'function' ? user.settings.toObject() : user.settings;
     }
-    if (req.file) user.picture = { data: req.file.buffer, contentType: req.file.mimetype };
+
+    // Safely merge incoming settings
+    if (settings) {
+      try {
+        const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : settings;
+        currentSettings = { ...currentSettings, ...parsedSettings };
+      } catch (e) {
+        console.error("Error parsing settings:", e);
+      }
+    }
+
+    // Process profile picture
+    if (req.file) {
+      user.picture = { data: req.file.buffer, contentType: req.file.mimetype };
+      // Only auto-switch to Photo Mode if user hasn't explicitly set a preference yet
+      if (typeof currentSettings.showAvatar === 'undefined') {
+        currentSettings.showAvatar = false;
+      }
+    }
+
+    // Apply the safely merged object back to Mongoose
+    user.settings = currentSettings;
+    user.markModified('settings');
 
     await user.save();
-    res.json({ success: true, message: 'Profile updated successfully', user: user.toSafeObject() });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+
+    const safeUser = typeof user.toSafeObject === 'function' ? user.toSafeObject() : user;
+
+    res.json({ success: true, message: 'Profile updated successfully', user: safeUser });
+
+  } catch (err) {
+    console.error("🔥 PROFILE UPDATE CRASH:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Server error - check backend terminal'
+    });
+  }
 });
 
 // --- Admin Management ---
@@ -497,7 +536,7 @@ router.get('/admin/analytics', async (req, res) => {
 });
 
 router.get('/admin/recent-registrations', async (req, res) => {
-  try { res.json({ success: true, users: await User.find().sort({ createdAt: -1 }).limit(5).select('fullName email approved createdAt') }); }
+  try { res.json({ success: true, users: await User.find().sort({ createdAt: -1 }).limit(5).select('fullName email approved createdAt isOnline lastLogin') }); }
   catch (err) { res.status(500).json({ success: false, message: 'Failed to fetch' }); }
 });
 

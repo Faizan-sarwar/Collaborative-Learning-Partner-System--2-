@@ -19,7 +19,7 @@ const StudyStreak = () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch('http://localhost:5000/api/auth/me', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -110,7 +110,7 @@ const StudyStreak = () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (token) {
-        await fetch('http://localhost:5000/api/auth/update-stats', {
+        await fetch(`http://${window.location.hostname}:5000/api/auth/update-stats`, {
           method: 'PUT',
           headers: { 
             'Authorization': `Bearer ${token}`,

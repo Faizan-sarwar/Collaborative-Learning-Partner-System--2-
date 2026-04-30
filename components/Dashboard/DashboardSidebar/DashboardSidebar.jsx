@@ -4,7 +4,7 @@ import { useSettings } from '../../../src/context/SettingsContext';
 import { 
   LayoutDashboard, Clock, BookOpen, UserPlus, Users, UserCheck, 
   MessageSquare, Zap, Trophy, BarChart3, Settings, 
-  TrendingUp, Flame, CalendarDays 
+  TrendingUp, Flame, CalendarDays, X 
 } from 'lucide-react';
 import styles from './DashboardSidebar.module.css';
 
@@ -22,7 +22,7 @@ const navItems = [
   { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
-const DashboardSidebar = () => {
+const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
   const location = useLocation();
   const [activeWidget, setActiveWidget] = useState(null);
   const { settings } = useSettings(); 
@@ -38,7 +38,6 @@ const DashboardSidebar = () => {
     const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     const storedNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
 
-    // --- BADGES LOGIC ---
     let newBadges = {};
     if (storedUser.receivedRequests && storedUser.receivedRequests.length > 0) {
       newBadges['pending-connections'] = true;
@@ -53,7 +52,6 @@ const DashboardSidebar = () => {
     }
     setBadges(newBadges);
 
-    // --- WIDGET DATA LOGIC ---
     setWidgetData({
         hours: storedUser.studyHours || 0,
         streak: storedUser.streak || 0,
@@ -72,40 +70,21 @@ const DashboardSidebar = () => {
     };
   }, []);
 
-  // Dynamically populated widgets based on user data
   const sidebarWidgets = [
-    { 
-        id: 'weekly-progress', 
-        title: 'Study Progress', 
-        subtitle: `${widgetData.hours.toFixed(1)}h logged`, 
-        icon: <TrendingUp size={20} />, 
-        color: 'purple' 
-    },
-    { 
-        id: 'study-streak', 
-        title: 'Study Streak', 
-        subtitle: `${widgetData.streak} days active`, 
-        icon: <Flame size={20} />, 
-        color: 'green' 
-    },
-    { 
-        id: 'study-partners', 
-        title: 'Network', 
-        subtitle: `${widgetData.connections} connections`, 
-        icon: <Users size={20} />, 
-        color: 'yellow' 
-    },
-    { 
-        id: 'next-deadline', 
-        title: 'Deadlines', 
-        subtitle: 'Check calendar', 
-        icon: <CalendarDays size={20} />, 
-        color: 'red' 
-    },
+    { id: 'weekly-progress', title: 'Study Progress', subtitle: `${widgetData.hours.toFixed(1)}h logged`, icon: <TrendingUp size={20} />, color: 'purple' },
+    { id: 'study-streak', title: 'Study Streak', subtitle: `${widgetData.streak} days active`, icon: <Flame size={20} />, color: 'green' },
+    { id: 'study-partners', title: 'Network', subtitle: `${widgetData.connections} connections`, icon: <Users size={20} />, color: 'yellow' },
+    { id: 'next-deadline', title: 'Deadlines', subtitle: 'Check calendar', icon: <CalendarDays size={20} />, color: 'red' },
   ];
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}> {/* 🟢 Apply dynamic class */}
+      
+      {/* 🟢 NEW: Mobile Close Button */}
+      <button className={styles.mobileCloseBtn} onClick={closeSidebar}>
+        <X size={24} />
+      </button>
+
       <div className={styles.header}>
         <div className={styles.logo}>
           <div className={styles.logoIcon}>
@@ -132,6 +111,7 @@ const DashboardSidebar = () => {
             <Link
               key={item.id}
               to={item.path}
+              onClick={closeSidebar} // 🟢 Close sidebar when a link is clicked
               className={`${styles.navItem} ${location.pathname === item.path ? styles.active : ''}`}
             >
               <span className={styles.navIcon}>

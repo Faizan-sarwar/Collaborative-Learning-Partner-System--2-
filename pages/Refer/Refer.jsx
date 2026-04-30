@@ -41,7 +41,7 @@ const Refer = () => {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         
         // 1. Fetch user data to get their unique referral code
-        const userRes = await fetch('http://localhost:5000/api/auth/me', {
+        const userRes = await fetch(`http://${window.location.hostname}:5000/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const userData = await userRes.json();
@@ -51,7 +51,7 @@ const Refer = () => {
         }
 
         // 2. Fetch the list of people they have referred
-        const refRes = await fetch('http://localhost:5000/api/referrals/my-referrals', {
+        const refRes = await fetch(`http://${window.location.hostname}:5000/api/referrals/my-referrals`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const refData = await refRes.json();
@@ -89,7 +89,7 @@ const Refer = () => {
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/referrals/invite', {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/referrals/invite`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
