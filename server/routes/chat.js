@@ -20,19 +20,28 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// 1. Get All Conversations for Current User (Hides deleted ones)
+// 🟢 1. Get All Conversations for Current User
 router.get('/conversations', verifyToken, async (req, res) => {
   try {
     const conversations = await Conversation.find({
       participants: req.userId,
-      deletedBy: { $ne: req.userId } // Don't fetch if this user deleted it
+      deletedBy: { $ne: req.userId }
     })
-      .populate('participants', 'fullName picture isOnline lastSeen')
+      .populate('participants', 'fullName picture isOnline lastLogin')
       .sort({ updatedAt: -1 });
 
     const formattedConversations = conversations.map(conv => {
       const otherUser = conv.participants.find(p => p._id.toString() !== req.userId);
       if (!otherUser) return null;
+
+      // 🟢 CRITICAL FIX: Get lastLogin from User model, not from oldData
+      const lastLoginTime = otherUser.lastLogin || Date.now();
+      const now = Date.now();
+      const timeDiffMs = now - new Date(lastLoginTime).getTime();
+      const ONLINE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+      
+      // Determine if user is ACTUALLY online
+      const isActuallyOnline = otherUser.isOnline === true && timeDiffMs <= ONLINE_WINDOW_MS;
 
       return {
         id: conv._id,
@@ -42,12 +51,11 @@ router.get('/conversations', verifyToken, async (req, res) => {
           ? `http://localhost:5000/api/auth/student/${otherUser._id}/picture`
           : null,
         lastMessage: conv.lastMessage?.text || conv.lastMessage || 'Start a conversation',
-        online: otherUser.isOnline,
-        lastSeen: otherUser.isOnline
-          ? 'Online'
-          : otherUser.lastSeen
-            ? new Date(otherUser.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : 'Offline',
+        lastMessageAt: conv.updatedAt,
+        online: isActuallyOnline, // 🟢 Use computed online status
+        lastSeen: otherUser.lastLogin, // 🟢 Raw timestamp for formatting on frontend
+        lastLogin: otherUser.lastLogin, // 🟢 Include lastLogin for frontend calculations
+        isOnline: otherUser.isOnline, // 🟢 Include raw flag
         unread: (conv.unreadCount && conv.unreadCount.get(req.userId)) || 0,
       };
     }).filter(Boolean);
@@ -59,7 +67,7 @@ router.get('/conversations', verifyToken, async (req, res) => {
   }
 });
 
-// 2. Get Messages for a Conversation (Hides cleared messages)
+// 🟢 2. Get Messages for a Conversation
 router.get('/messages/:conversationId', verifyToken, async (req, res) => {
   try {
     const conversation = await Conversation.findById(req.params.conversationId);
@@ -68,7 +76,6 @@ router.get('/messages/:conversationId', verifyToken, async (req, res) => {
     const clearTime = conversation.clearedAt?.get(req.userId);
     let query = { conversationId: req.params.conversationId };
 
-    // Only fetch messages sent AFTER the user cleared the chat
     if (clearTime) {
       query.createdAt = { $gt: clearTime };
     }
@@ -80,7 +87,8 @@ router.get('/messages/:conversationId', verifyToken, async (req, res) => {
       text: msg.text,
       senderId: msg.sender.toString(),
       isOwn: msg.sender.toString() === req.userId,
-      timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: msg.createdAt
     }));
 
     res.json({ success: true, messages: formattedMessages });
@@ -89,7 +97,7 @@ router.get('/messages/:conversationId', verifyToken, async (req, res) => {
   }
 });
 
-// 3. Send a Message
+// 🟢 3. Send a Message
 router.post('/messages', verifyToken, async (req, res) => {
   try {
     const { conversationId, text, targetUserId } = req.body;
@@ -123,7 +131,7 @@ router.post('/messages', verifyToken, async (req, res) => {
       text
     });
 
-    // Update Conversation and pull from deletedBy so it reappears if previously deleted
+    // Update Conversation
     await Conversation.findByIdAndUpdate(convId, {
       lastMessage: text,
       lastMessageAt: new Date(),
@@ -138,7 +146,8 @@ router.post('/messages', verifyToken, async (req, res) => {
         text: newMessage.text,
         senderId: req.userId,
         isOwn: true,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt: newMessage.createdAt
       },
       conversationId: convId
     });
@@ -149,7 +158,7 @@ router.post('/messages', verifyToken, async (req, res) => {
   }
 });
 
-// 4. Clear Chat (Soft Delete - keeps it in sidebar but empties messages)
+// 🟢 4. Clear Chat
 router.delete('/messages/:conversationId/clear', verifyToken, async (req, res) => {
   try {
     await Conversation.findByIdAndUpdate(req.params.conversationId, {
@@ -162,7 +171,7 @@ router.delete('/messages/:conversationId/clear', verifyToken, async (req, res) =
   }
 });
 
-// 5. Delete Chat (Hide from sidebar entirely)
+// 🟢 5. Delete Chat
 router.delete('/conversations/:id', verifyToken, async (req, res) => {
   try {
     const conv = await Conversation.findByIdAndUpdate(req.params.id, {
@@ -181,7 +190,7 @@ router.delete('/conversations/:id', verifyToken, async (req, res) => {
   }
 });
 
-// 6. Block User Route
+// 🟢 6. Block User
 router.post('/block/:targetUserId', verifyToken, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.userId, {
@@ -193,13 +202,25 @@ router.post('/block/:targetUserId', verifyToken, async (req, res) => {
   }
 });
 
-// 7. Delete Single Message
+// 🟢 7. Delete Single Message
 router.delete('/message/:messageId', verifyToken, async (req, res) => {
   try {
     await Message.findByIdAndDelete(req.params.messageId);
     res.json({ success: true, message: 'Message deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to delete message' });
+  }
+});
+
+// 🟢 8. Mark Conversation as Read
+router.put('/conversations/:id/read', verifyToken, async (req, res) => {
+  try {
+    await Conversation.findByIdAndUpdate(req.params.id, {
+      $set: { [`unreadCount.${req.userId}`]: 0 }
+    });
+    res.json({ success: true, message: 'Marked as read' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to mark as read' });
   }
 });
 

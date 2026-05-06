@@ -47,7 +47,6 @@ const Courses = () => {
   }, []);
 
   // 2. THE AI FETCHER (Talks to your new backend route)
-  // 2. THE AI FETCHER (Talks to your new backend route)
   const fetchAITopics = async (subject, token) => {
     try {
       const res = await fetch(`http://${window.location.hostname}:5000/api/auth/ai/chat-topics`, {

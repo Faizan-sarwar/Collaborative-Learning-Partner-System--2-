@@ -4,18 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Moon, Sun, Bell, Play, Gift,
   User as UserIcon, Settings, LogOut,
-  MessageSquare, AlertCircle, Award, Menu
+  MessageSquare, AlertCircle, Award, Menu, Check, Trash2
 } from 'lucide-react';
 import styles from './DashboardHeader.module.css';
 
-import maleLevel1 from '../../../src/assets/gamification/male-level-1.png';
-import maleLevel2 from '../../../src/assets/gamification/male-level-2.png';
-import maleLevel3 from '../../../src/assets/gamification/male-level-3.png';
-import maleLevel4 from '../../../src/assets/gamification/male-level-4.png';
-import maleLevel5 from '../../../src/assets/gamification/male-level-5.png';
-import maleLevel6 from '../../../src/assets/gamification/male-level-6.png';
-import maleLevel7 from '../../../src/assets/gamification/male-level-7.png';
-
+import maleLevel1   from '../../../src/assets/gamification/male-level-1.png';
+import maleLevel2   from '../../../src/assets/gamification/male-level-2.png';
+import maleLevel3   from '../../../src/assets/gamification/male-level-3.png';
+import maleLevel4   from '../../../src/assets/gamification/male-level-4.png';
+import maleLevel5   from '../../../src/assets/gamification/male-level-5.png';
+import maleLevel6   from '../../../src/assets/gamification/male-level-6.png';
+import maleLevel7   from '../../../src/assets/gamification/male-level-7.png';
 import femaleLevel1 from '../../../src/assets/gamification/female-level-1.png';
 import femaleLevel2 from '../../../src/assets/gamification/female-level-2.png';
 import femaleLevel3 from '../../../src/assets/gamification/female-level-3.png';
@@ -24,312 +23,574 @@ import femaleLevel5 from '../../../src/assets/gamification/female-level-5.png';
 import femaleLevel6 from '../../../src/assets/gamification/female-level-6.png';
 import femaleLevel7 from '../../../src/assets/gamification/female-level-7.png';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const API        = `http://${window.location.hostname}:5000/api`;
+const POLL_MS    = 8000; // poll every 8s — not 5s, reduces server load
+
 const avatars = {
-  male: { 1: maleLevel1, 2: maleLevel2, 3: maleLevel3, 4: maleLevel4, 5: maleLevel5, 6: maleLevel6, 7: maleLevel7 },
+  male:   { 1: maleLevel1,   2: maleLevel2,   3: maleLevel3,   4: maleLevel4,   5: maleLevel5,   6: maleLevel6,   7: maleLevel7   },
   female: { 1: femaleLevel1, 2: femaleLevel2, 3: femaleLevel3, 4: femaleLevel4, 5: femaleLevel5, 6: femaleLevel6, 7: femaleLevel7 }
 };
 
-const mergeNotifications = (localArray, remoteArray) => {
-  const combined = [...localArray, ...remoteArray];
-  const uniqueMap = new Map();
+const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  combined.forEach(notif => {
-    const key = notif._id || notif.id;
-    if (!uniqueMap.has(key)) {
-      uniqueMap.set(key, notif);
-    } else {
-      const existing = uniqueMap.get(key);
-      if (notif.read !== undefined) existing.read = notif.read;
-      if (notif.unread !== undefined) existing.unread = notif.unread;
-    }
-  });
-
-  return Array.from(uniqueMap.values()).sort((a, b) => {
-    return new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt);
-  });
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+  } catch { return {}; }
 };
 
-const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => { // 🟢 Add toggleSidebar here
+// ─── Notification helpers ─────────────────────────────────────────────────────
+
+/**
+ * Normalise a notification from ANY source (DB, local, chat-derived)
+ * into one consistent shape so the rest of the code never has to guess.
+ *
+ * DB shape:   { _id, recipient, type, title, message, link, unread: true/false, createdAt }
+ * Local shape: { id, type, title, message, read: true/false, timestamp }
+ */
+const normalise = (n) => ({
+  // canonical id — always a string
+  id:        String(n._id || n.id || ''),
+  // canonical read flag — unread:true means NOT read
+  isUnread:  n.unread === true || (n.unread === undefined && n.read === false),
+  type:      (n.type || 'system').toLowerCase(),
+  title:     n.title  || '',
+  message:   n.message || '',
+  link:      n.link   || null,
+  createdAt: n.createdAt || n.timestamp || new Date().toISOString(),
+  // keep originals for API calls that need _id
+  _id:       n._id    || null,
+  // mark origin so we know whether to call API or just update localStorage
+  _local:    !n._id,
+});
+
+/**
+ * Merge two arrays of normalised notifications deduplicating by id.
+ * Remote (DB) values win on read-state because they are the source of truth.
+ */
+const mergeNotifications = (local = [], remote = []) => {
+  const map = new Map();
+
+  // Local first (lower priority)
+  local.forEach(n => map.set(n.id, n));
+
+  // Remote overwrites — crucially, remote read-state wins
+  remote.forEach(n => {
+    map.set(n.id, { ...map.get(n.id), ...n });
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+};
+
+// ─── Welcome notification — injected ONCE per user, stored in localStorage ───
+const WELCOME_FLAG = (userId) => `welcome_injected_${userId}`;
+
+const buildWelcomeNotifications = (user) => {
+  const now = new Date().toISOString();
+  const notes = [
+    {
+      id:        `welcome-${user._id}`,
+      isUnread:  true,
+      type:      'success',
+      title:     'Welcome to the Platform! 🎉',
+      message:   `Hi ${user.fullName?.split(' ')[0] || 'there'}, your learning journey starts now. Find study matches to get started!`,
+      link:      '/matches',
+      createdAt: now,
+      _local:    true,
+    }
+  ];
+
+  // Only add XP bonus note if they genuinely have 0 XP (brand new) or the
+  // signup flow awarded exactly 10 welcome XP — don't show this to returning users
+  if ((user.xp ?? 0) <= 10) {
+    notes.push({
+      id:        `welcome-xp-${user._id}`,
+      isUnread:  true,
+      type:      'achievement',
+      title:     'Welcome Bonus! ⚡',
+      message:   'You received 10 XP for joining. Level up by logging study time and connecting with peers!',
+      link:      '/gamification',
+      createdAt: new Date(Date.now() - 1).toISOString(), // 1ms earlier so welcome is on top
+      _local:    true,
+    });
+  }
+
+  return notes;
+};
+
+// ─── localStorage helpers (only for local/client-side notifications) ──────────
+const LOCAL_KEY = 'local_notifications';
+
+const readLocalNotifs = () => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+  catch { return []; }
+};
+
+const writeLocalNotifs = (arr) => {
+  // Only persist locally-created notifications (_local: true).
+  // DB notifications are always re-fetched fresh — storing them locally
+  // causes stale read-state bugs.
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(arr.filter(n => n._local)));
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
+const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
   const navigate = useNavigate();
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isDark, setIsDark] = useState(true);
 
-  const [user, setUser] = useState(JSON.parse((localStorage.getItem('user') || sessionStorage.getItem('user'))) || {});
-  const [imgCacheKey, setImgCacheKey] = useState(Date.now());
-  const [notifications, setNotifications] = useState([]);
+  const [user,             setUser]             = useState(getStoredUser);
+  const [imgCacheKey,      setImgCacheKey]      = useState(Date.now);
+  const [isDark,           setIsDark]           = useState(() => {
+    const t = document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark';
+    return t === 'dark';
+  });
 
-  const menuRef = useRef(null);
+  const [notifications,    setNotifications]    = useState([]);
+  const [showNotifications,setShowNotifications]= useState(false);
+  const [showProfileMenu,  setShowProfileMenu]  = useState(false);
+  const [searchQuery,      setSearchQuery]      = useState('');
+
+  const menuRef  = useRef(null);
   const notifRef = useRef(null);
 
-  useEffect(() => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark';
-    setIsDark(currentTheme === 'dark');
+  // ── Load user from storage ───────────────────────────────────────────────
+  const loadUser = useCallback(() => {
+    const u = getStoredUser();
+    setUser(u);
+    setImgCacheKey(Date.now());
   }, []);
 
-  const loadUser = () => {
-    const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-    setUser(storedUser);
-    setImgCacheKey(Date.now()); // 🟢 Refresh image instantly when profile updates
-  };
-
+  // ── Welcome notification (runs once per user id) ─────────────────────────
   useEffect(() => {
-    if (!user || !user._id) return;
-    const welcomeKey = `has_received_welcome_${user._id}`;
-    if (!localStorage.getItem(welcomeKey)) {
-      const currentLocalNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-      const newInjections = [{
-        id: `welcome-${Date.now()}`,
-        title: 'Welcome to the Platform! 🎉',
-        message: `Hi ${user.fullName.split(' ')[0]}, your learning journey begins now. Start by finding study matches!`,
-        type: 'success',
-        read: false,
-        timestamp: new Date().toISOString()
-      }];
+    if (!user?._id) return;
 
-      if (user.xp === 0 || user.xp === 10) {
-        newInjections.push({
-          id: `xp-${Date.now() + 1}`,
-          title: 'Welcome Bonus! ⚡',
-          message: 'You received 10 XP for joining. Level up by logging study time!',
-          type: 'achievement',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-      }
+    const flag = WELCOME_FLAG(user._id);
+    if (localStorage.getItem(flag)) return; // already injected
 
-      const merged = mergeNotifications(newInjections, currentLocalNotifs);
-      localStorage.setItem('notifications', JSON.stringify(merged));
-      setNotifications(merged);
-      localStorage.setItem(welcomeKey, 'true');
-      window.dispatchEvent(new Event('notificationAdded'));
+    // Determine if this is truly a new user:
+    // New users have no study hours, no connections, and very low XP
+    const isNewUser = (
+      (user.studyHours ?? 0) === 0 &&
+      (user.connections?.length ?? 0) === 0 &&
+      (user.xp ?? 0) <= 10
+    );
+
+    if (!isNewUser) {
+      // Existing user: mark flag so we never inject welcome again
+      localStorage.setItem(flag, 'existing');
+      return;
     }
-  }, [user]);
 
+    // Inject welcome notes into local storage
+    const welcomeNotes  = buildWelcomeNotifications(user);
+    const existingLocal = readLocalNotifs();
+    // Avoid duplicating if component remounts before flag is set
+    const alreadyHas    = existingLocal.some(n => n.id === welcomeNotes[0].id);
+    if (!alreadyHas) {
+      writeLocalNotifs([...welcomeNotes, ...existingLocal]);
+    }
+    localStorage.setItem(flag, 'new');
+
+  }, [user._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Core notification fetch ───────────────────────────────────────────────
   const loadNotifications = useCallback(async () => {
+    const token = getToken();
+    if (!token || !user?.role) return;
+
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (!token || !user.role) return;
+      // ── 1. Fetch DB notifications based on role ──────────────────────────
+      let dbNotifs = [];
 
-      const endpoint = (user.role === 'admin' || user.role === 'super-admin')
-        ? `http://${window.location.hostname}:5000/api/auth/admin/notifications`
-        : `http://${window.location.hostname}:5000/api/notifications`;
+      if (user.role === 'admin' || user.role === 'super-admin') {
+        // Admin: only system/registration/admin notifications
+        const res  = await fetch(`${API}/auth/admin/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) dbNotifs = data.notifications;
 
-      const res = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${token}` } });
-      const data = await res.json();
-      let backendNotifs = data.success ? data.notifications : [];
-
-      if (user.role === 'student') {
-        const chatRes = await fetch(`http://${window.location.hostname}:5000/api/chat/conversations`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const chatData = await chatRes.json();
-        if (chatData.success) {
-          const totalUnread = chatData.conversations.reduce((sum, conv) => sum + (conv.unread || 0), 0);
-          if (totalUnread > 0) {
-            backendNotifs.unshift({
-              id: 'global-unread-messages',
-              title: 'New Messages',
-              message: `You have ${totalUnread} unread chat message(s).`,
-              type: 'message',
-              read: false,
-              timestamp: new Date().toISOString()
-            });
-          } else {
-            const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-            const filtered = localNotifs.filter(n => n.id !== 'global-unread-messages');
-            localStorage.setItem('notifications', JSON.stringify(filtered));
-          }
+      } else {
+        // Student: personal notifications from the dedicated endpoint
+        // GET /api/notifications returns { success, notifications: [...] }
+        // where each notification has { _id, type, title, message, link, unread, createdAt }
+        const res  = await fetch(`${API}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) dbNotifs = data.notifications;
         }
+        // If the endpoint 404s (route doesn't exist yet in this project),
+        // we gracefully fall through with empty dbNotifs — local notifs still show.
       }
 
-      const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]').filter(n => n.id !== 'global-unread-messages' || backendNotifs.some(b => b.id === 'global-unread-messages'));
-      const merged = mergeNotifications(localNotifs, backendNotifs);
+      const normDB = dbNotifs.map(normalise);
 
-      setNotifications(merged);
-      localStorage.setItem('notifications', JSON.stringify(merged));
+      // ── 2. Inject unread chat count as a synthetic notification ──────────
+      // Only for students — admin doesn't use chat
+      let chatNotif = null;
+      if (user.role === 'student') {
+        try {
+          const chatRes  = await fetch(`${API}/chat/conversations`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (chatRes.ok) {
+            const chatData = await chatRes.json();
+            if (chatData.success) {
+              const totalUnread = chatData.conversations.reduce(
+                (sum, c) => sum + (c.unread || 0), 0
+              );
+              if (totalUnread > 0) {
+                chatNotif = normalise({
+                  id:        'synthetic-chat-unread',
+                  type:      'message',
+                  title:     'New Messages',
+                  message:   `You have ${totalUnread} unread message${totalUnread > 1 ? 's' : ''}.`,
+                  link:      '/messages',
+                  unread:    true,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          }
+        } catch { /* chat fetch failing should never crash notifications */ }
+      }
 
-    } catch (err) { }
-  }, [user.role]);
+      // ── 3. Read local-only notifications (welcome, etc.) ─────────────────
+      const localNotifs = readLocalNotifs().map(normalise);
 
+      // ── 4. Merge: local + DB + optional chat synthetic ───────────────────
+      // Order: chat synthetic first (most urgent), then merge rest
+      const merged = mergeNotifications(localNotifs, normDB);
+      const final  = chatNotif ? [chatNotif, ...merged.filter(n => n.id !== 'synthetic-chat-unread')] : merged;
+
+      setNotifications(final);
+
+      // Persist only local ones back — DB ones are always refetched
+      writeLocalNotifs(final);
+
+    } catch (err) {
+      console.error('[DashboardHeader] loadNotifications:', err);
+      // On error, still show whatever we have locally
+      const localNotifs = readLocalNotifs().map(normalise);
+      setNotifications(localNotifs);
+    }
+  }, [user.role]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Event listeners + polling ────────────────────────────────────────────
   useEffect(() => {
     loadUser();
     loadNotifications();
 
-    const handleUserUpdate = () => loadUser();
-    const handleNotificationAdd = () => loadNotifications();
-
-    const handleChatRead = () => {
-      const localNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-      const filtered = localNotifs.filter(n => n.id !== 'global-unread-messages');
-      localStorage.setItem('notifications', JSON.stringify(filtered));
-      setNotifications(filtered);
+    const onUserUpdated     = () => loadUser();
+    const onNotificationAdd = () => loadNotifications();
+    const onChatRead        = () => {
+      // Remove the synthetic chat notification immediately
+      setNotifications(prev => prev.filter(n => n.id !== 'synthetic-chat-unread'));
     };
 
-    window.addEventListener('userUpdated', handleUserUpdate);
-    window.addEventListener('notificationAdded', handleNotificationAdd);
-    window.addEventListener('chatRead', handleChatRead);
+    window.addEventListener('userUpdated',      onUserUpdated);
+    window.addEventListener('notificationAdded',onNotificationAdd);
+    window.addEventListener('chatRead',         onChatRead);
 
-    const liveSync = setInterval(() => {
-      loadNotifications();
-    }, 5000);
+    const poll = setInterval(loadNotifications, POLL_MS);
 
     return () => {
-      clearInterval(liveSync);
-      window.removeEventListener('userUpdated', handleUserUpdate);
-      window.removeEventListener('notificationAdded', handleNotificationAdd);
-      window.removeEventListener('chatRead', handleChatRead);
+      window.removeEventListener('userUpdated',      onUserUpdated);
+      window.removeEventListener('notificationAdded',onNotificationAdd);
+      window.removeEventListener('chatRead',         onChatRead);
+      clearInterval(poll);
     };
-  }, [user.role, loadNotifications]);
+  }, [loadUser, loadNotifications]);
 
+  // ── Click outside ────────────────────────────────────────────────────────
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setShowProfileMenu(false);
+    const handler = (e) => {
+      if (menuRef.current  && !menuRef.current.contains(e.target))  setShowProfileMenu(false);
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // ── Mark all as read ─────────────────────────────────────────────────────
   const markAllAsRead = async () => {
-    const updated = notifications.map(n => ({ ...n, unread: false, read: true }));
-    setNotifications(updated);
-    localStorage.setItem('notifications', JSON.stringify(updated));
-    window.dispatchEvent(new Event('notificationAdded'));
+    // 1. Optimistic UI
+    setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })));
 
+    // 2. Update local storage (local notifications)
+    const updated = readLocalNotifs().map(n => ({ ...n, isUnread: false, read: true, unread: false }));
+    writeLocalNotifs(updated);
+
+    // 3. Tell backend to mark all DB notifications as read
+    const token = getToken();
+    if (!token || user.role !== 'student') return;
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (user.role === 'student') {
-        await fetch(`http://${window.location.hostname}:5000/api/notifications/read`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
-    } catch (e) { }
-  };
-
-  const clearNotifications = async () => {
-    setNotifications([]);
-    localStorage.setItem('notifications', JSON.stringify([]));
-    window.dispatchEvent(new Event('notificationAdded'));
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (user.role === 'student') {
-        await fetch(`http://${window.location.hostname}:5000/api/notifications/clear`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-      }
-    } catch (e) { }
-  };
-
-  const handleNotificationClick = async (notif) => {
-    setShowNotifications(false);
-    const updated = notifications.map(n => n.id === notif.id || n._id === notif._id ? { ...n, unread: false, read: true } : n);
-    setNotifications(updated);
-    localStorage.setItem('notifications', JSON.stringify(updated));
-
-    if (notif.type === 'message') {
-      navigate('/messages');
-    } else if (notif.title.includes('Connection') || notif.type === 'connection') {
-      navigate('/pending-connections');
-    } else if (notif.type === 'achievement') {
-      navigate('/gamification');
+      await fetch(`${API}/notifications/read`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('[DashboardHeader] markAllAsRead:', err);
     }
   };
 
-  const toggleTheme = () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    setIsDark(newTheme === 'dark');
+  // ── Clear all notifications ───────────────────────────────────────────────
+  const clearNotifications = async () => {
+    // 1. Optimistic UI — keep the chat synthetic if present (real-time data)
+    setNotifications(prev => prev.filter(n => n.id === 'synthetic-chat-unread'));
+
+    // 2. Wipe local storage notifications
+    writeLocalNotifs([]);
+
+    // 3. Tell backend to delete all DB notifications for this user
+    const token = getToken();
+    if (!token || user.role !== 'student') return;
+    try {
+      await fetch(`${API}/notifications/clear`, {
+        method:  'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('[DashboardHeader] clearNotifications:', err);
+    }
   };
 
+  // ── Click a single notification ───────────────────────────────────────────
+  const handleNotificationClick = async (notif) => {
+    setShowNotifications(false);
+
+    // 1. Mark as read in UI
+    setNotifications(prev =>
+      prev.map(n => n.id === notif.id ? { ...n, isUnread: false } : n)
+    );
+
+    // 2. Persist read state for local notifications
+    if (notif._local) {
+      const updated = readLocalNotifs().map(n =>
+        n.id === notif.id ? { ...n, isUnread: false, read: true, unread: false } : n
+      );
+      writeLocalNotifs(updated);
+    } else if (notif._id) {
+      // 3. Tell backend to mark this specific DB notification as read
+      // Most backends expose PUT /api/notifications/:id/read
+      // We fire-and-forget — the next poll will confirm
+      const token = getToken();
+      if (token) {
+        fetch(`${API}/notifications/${notif._id}/read`, {
+          method:  'PUT',
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {});
+      }
+    }
+
+    // 4. Navigate to relevant page
+    const dest = notif.link ||
+      (notif.type === 'message'     ? '/messages'             :
+       notif.type === 'connection'  ? '/pending-connections'  :
+       notif.type === 'achievement' ? '/gamification'         : null);
+
+    if (dest) navigate(dest);
+  };
+
+  // ── Theme toggle ──────────────────────────────────────────────────────────
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    setIsDark(!isDark);
+  };
+
+  // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
+    const token = getToken();
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      await fetch(`http://${window.location.hostname}:5000/api/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
-    } catch (err) { }
+      if (token) {
+        await fetch(`${API}/auth/logout`, {
+          method:  'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+      }
+    } catch { /* always proceed with logout */ }
     finally {
-      localStorage.removeItem('studyTimerState');
+      // Clear everything — in correct order
       sessionStorage.clear();
-      localStorage.clear();
+      localStorage.removeItem('studyTimerState');
+      // Do NOT wipe LOCAL_KEY here so welcome flag persists across sessions
+      // (prevents re-injecting welcome on next login)
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       navigate('/login');
     }
   };
 
+  // ── Avatar source ─────────────────────────────────────────────────────────
   const getAvatarSrc = () => {
-    if (user.settings?.showAvatar === false) {
-      // 🟢 Fixed localhost and applied anti-flicker cache key
-      return user._id ? `http://${window.location.hostname}:5000/api/auth/student/${user._id}/picture?t=${imgCacheKey}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`;
+    if (!user) return `https://api.dicebear.com/7.x/initials/svg?seed=ST`;
+    if (user.settings?.showAvatar === false && user._id) {
+      return `${API}/auth/student/${user._id}/picture?t=${imgCacheKey}`;
     }
     const gender = user.gender?.toLowerCase() === 'female' ? 'female' : 'male';
-    const level = user.level || 1;
-    return avatars[gender]?.[level] || avatars['male'][1];
+    const level  = Math.min(Math.max(user.level || 1, 1), 7);
+    return avatars[gender]?.[level] || avatars.male[1];
   };
 
-  const unreadCount = notifications.filter(n => n.unread === true || (n.unread === undefined && !n.read)).length;
+  const avatarSrc   = getAvatarSrc();
+  const fallbackSrc = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.fullName || 'ST')}`;
 
+  // ── Derived counts ────────────────────────────────────────────────────────
+  const unreadCount = notifications.filter(n => n.isUnread).length;
+
+  // ── Notification icon ─────────────────────────────────────────────────────
   const getNotifIcon = (type) => {
-    switch (type?.toLowerCase()) {
+    switch (type) {
       case 'achievement':
-      case 'success': return <Award size={20} className={styles.iconSuccess} />;
-      case 'message': return <MessageSquare size={20} className={styles.iconMessage} />;
-      case 'reminder': return <AlertCircle size={20} className={styles.iconWarning} />;
-      default: return <Bell size={20} className={styles.iconDefault} />;
+      case 'success':    return <Award        size={18} className={styles.iconSuccess} />;
+      case 'message':    return <MessageSquare size={18} className={styles.iconMessage} />;
+      case 'connection': return <UserIcon      size={18} className={styles.iconDefault} />;
+      case 'reminder':   return <AlertCircle  size={18} className={styles.iconWarning} />;
+      default:           return <Bell         size={18} className={styles.iconDefault} />;
     }
   };
 
-  return (
-    <header className={styles.header} style={isFullWidth ? { left: 0, width: '100vw', maxWidth: '100vw', marginLeft: 0, borderRadius: 0 } : {}}>
+  const fmtTime = (iso) => {
+    if (!iso) return 'Just now';
+    const d = new Date(iso);
+    const now = Date.now();
+    const diff = Math.floor((now - d.getTime()) / 1000);
+    if (diff < 60)   return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
 
-      {/* 🟢 NEW: Mobile Hamburger Menu Button */}
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <header
+      className={styles.header}
+      style={isFullWidth ? { left: 0, width: '100vw', maxWidth: '100vw', marginLeft: 0, borderRadius: 0 } : {}}
+    >
+      {/* Mobile hamburger */}
       <button className={styles.mobileMenuBtn} onClick={toggleSidebar}>
         <Menu size={24} />
       </button>
 
+      {/* User greeting */}
       <div className={styles.userInfo}>
         <div className={styles.avatar}>
-          <img src={getAvatarSrc()} alt="User" onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`} />
+          <img
+            src={avatarSrc}
+            alt="User"
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
+          />
         </div>
         <div className={styles.greeting}>
-          <span className={styles.hello}>Hi, {user.fullName ? user.fullName.split(' ')[0] : 'Student'}</span>
+          <span className={styles.hello}>
+            Hi, {user.fullName ? user.fullName.split(' ')[0] : 'Student'}
+          </span>
           <span className={styles.welcomeText}>Welcome back!</span>
         </div>
       </div>
 
+      {/* Search */}
       <div className={styles.searchBar}>
         <Search className={styles.searchIcon} size={18} />
-        <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={styles.searchInput} />
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={styles.searchInput}
+        />
       </div>
 
+      {/* Actions */}
       <div className={styles.actions}>
-        <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle Theme">
+
+        {/* Theme toggle */}
+        <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle theme">
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
+        {/* Notifications */}
         <div className={styles.notificationSection} ref={notifRef}>
-          <button className={styles.iconBtn} onClick={() => { setShowNotifications(!showNotifications); }}>
+          <button
+            className={styles.iconBtn}
+            onClick={() => setShowNotifications(v => !v)}
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+          >
             <Bell size={18} />
-            {unreadCount > 0 && <span className={styles.notifBadge}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            {unreadCount > 0 && (
+              <span className={styles.notifBadge}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
 
           <AnimatePresence>
             {showNotifications && (
-              <motion.div className={styles.notificationDropdown} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <motion.div
+                className={styles.notificationDropdown}
+                initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0,   scale: 1     }}
+                exit={{   opacity: 0, y: -10, scale: 0.97 }}
+                transition={{ duration: 0.18 }}
+              >
+                {/* Header */}
                 <div className={styles.notifHeader}>
-                  <h3>Notifications</h3>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className={styles.markAllBtn} onClick={markAllAsRead}>Mark Read</button>
-                    {user.role === 'student' && <button className={styles.markAllBtn} onClick={clearNotifications}>Clear</button>}
+                  <h3>
+                    Notifications
+                    {unreadCount > 0 && (
+                      <span style={{
+                        marginLeft: '8px', fontSize: '0.7rem', fontWeight: '700',
+                        background: '#6366f1', color: 'white',
+                        borderRadius: '999px', padding: '1px 7px'
+                      }}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </h3>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {unreadCount > 0 && (
+                      <button
+                        className={styles.markAllBtn}
+                        onClick={markAllAsRead}
+                        title="Mark all as read"
+                      >
+                        <Check size={13} /> All read
+                      </button>
+                    )}
+                    {(user.role === 'student') && notifications.length > 0 && (
+                      <button
+                        className={styles.markAllBtn}
+                        onClick={clearNotifications}
+                        title="Clear all"
+                        style={{ color: '#ef4444' }}
+                      >
+                        <Trash2 size={13} /> Clear
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {/* List */}
                 <div className={styles.notifList}>
                   {notifications.length === 0 ? (
-                    <div className={styles.emptyNotif}><p>No new notifications</p></div>
+                    <div className={styles.emptyNotif}>
+                      <Bell size={28} style={{ opacity: 0.2, margin: '0 auto 8px', display: 'block' }} />
+                      <p>No notifications</p>
+                    </div>
                   ) : (
                     notifications.map((notif, index) => (
                       <div
-                        key={notif.id || notif._id || index}
-                        className={`${styles.notifItem} ${notif.unread || !notif.read ? styles.unread : ''}`}
+                        key={notif.id || index}
+                        className={`${styles.notifItem} ${notif.isUnread ? styles.unread : ''}`}
                         onClick={() => handleNotificationClick(notif)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && handleNotificationClick(notif)}
                       >
                         <div className={styles.notifIcon}>
                           {getNotifIcon(notif.type)}
@@ -337,11 +598,9 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => { // 🟢 Add
                         <div className={styles.notifContent}>
                           <span className={styles.notifTitle}>{notif.title}</span>
                           <p className={styles.notifMessage}>{notif.message}</p>
-                          <span className={styles.notifTime}>
-                            {notif.createdAt || notif.timestamp ? new Date(notif.createdAt || notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                          </span>
+                          <span className={styles.notifTime}>{fmtTime(notif.createdAt)}</span>
                         </div>
-                        {(notif.unread || (notif.unread === undefined && !notif.read)) && <div className={styles.unreadDot} />}
+                        {notif.isUnread && <div className={styles.unreadDot} />}
                       </div>
                     ))
                   )}
@@ -351,32 +610,78 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => { // 🟢 Add
           </AnimatePresence>
         </div>
 
+        {/* Start Timer */}
         <button className={styles.startTimer} onClick={() => navigate('/study-time')}>
           <Play size={16} fill="currentColor" /> Start Timer
         </button>
+
+        {/* Refer */}
         <button className={styles.referBtn} onClick={() => navigate('/refer')}>
           <Gift size={16} /> Refer
         </button>
 
+        {/* Profile menu */}
         <div className={styles.profileSection} ref={menuRef}>
-          <button className={styles.profileBtn} onClick={() => setShowProfileMenu(!showProfileMenu)}>
-            <img src={getAvatarSrc()} alt="Profile" onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`} />
+          <button
+            className={styles.profileBtn}
+            onClick={() => setShowProfileMenu(v => !v)}
+            aria-label="Open profile menu"
+          >
+            <img
+              src={avatarSrc}
+              alt="Profile"
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
+            />
           </button>
+
           <AnimatePresence>
             {showProfileMenu && (
-              <motion.div className={styles.profileMenu} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <motion.div
+                className={styles.profileMenu}
+                initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0,   scale: 1     }}
+                exit={{   opacity: 0, y: -10, scale: 0.97 }}
+                transition={{ duration: 0.18 }}
+              >
                 <div className={styles.menuHeader}>
-                  <img src={getAvatarSrc()} alt="Profile" />
+                  <img
+                    src={avatarSrc}
+                    alt="Profile"
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
+                  />
                   <div className={styles.menuUserInfo}>
-                    <span className={styles.menuName}>{user.fullName}</span>
-                    <span className={styles.menuEmail}>{user.email}</span>
+                    <span className={styles.menuName}>{user.fullName || 'Student'}</span>
+                    <span className={styles.menuEmail}>{user.email || ''}</span>
+                    {user.level && (
+                      <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: '700', marginTop: '2px' }}>
+                        Level {user.level} · {user.xp ?? 0} XP
+                      </span>
+                    )}
                   </div>
                 </div>
+
                 <div className={styles.menuDivider} />
-                <Link to={`/user-profile/${user._id || user.id}`} className={styles.menuItem}><UserIcon size={16} /> Profile</Link>
-                <Link to="/settings" className={styles.menuItem}><Settings size={16} /> Settings</Link>
+
+                <Link
+                  to={`/user-profile/${user._id || user.id}`}
+                  className={styles.menuItem}
+                  onClick={() => setShowProfileMenu(false)}
+                >
+                  <UserIcon size={15} /> Profile
+                </Link>
+                <Link
+                  to="/settings"
+                  className={styles.menuItem}
+                  onClick={() => setShowProfileMenu(false)}
+                >
+                  <Settings size={15} /> Settings
+                </Link>
+
                 <div className={styles.menuDivider} />
-                <button className={styles.menuItemLogout} onClick={handleLogout}><LogOut size={16} /> Log out</button>
+
+                <button className={styles.menuItemLogout} onClick={handleLogout}>
+                  <LogOut size={15} /> Log out
+                </button>
               </motion.div>
             )}
           </AnimatePresence>

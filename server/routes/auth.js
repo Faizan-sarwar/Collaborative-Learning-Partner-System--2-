@@ -279,7 +279,10 @@ router.post('/login', async (req, res) => {
       });
     } catch (logErr) { console.error('Logging failed:', logErr); }
 
+    // 🟢 CRITICAL FIX: Set isOnline and lastLogin EVERY login
     user.isOnline = true;
+    user.lastLogin = Date.now(); // 🟢 Update IMMEDIATELY before any other logic
+
     let xpMessage = '';
     const today = new Date(), lastLogin = new Date(user.lastLogin || 0);
 
@@ -296,16 +299,15 @@ router.post('/login', async (req, res) => {
       }
       xpMessage = `Daily Login! +${streakBonus} XP (Streak: ${user.streak})`;
 
-      // 🟢 BUMP RELIABILITY FOR 7-DAY STREAKS
       if (user.streak > 0 && user.streak % 7 === 0) {
         if (typeof user.adjustReliability === 'function') {
-          await user.adjustReliability(2); // +2% every 7 days!
+          await user.adjustReliability(2);
           xpMessage += ` 🎉 7-Day Streak Bonus: +2% Trust Score!`;
         }
       }
     }
 
-    user.lastLogin = Date.now();
+    // 🟢 Save user with updated online status
     await user.save();
 
     const tokenExpiry = rememberMe ? '30d' : '1d';
@@ -1358,4 +1360,5 @@ router.put('/track-time', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 export default router;

@@ -328,7 +328,8 @@
   justify-content: center;
 }
 
-.chatMenuBtn, .closeChat {
+.chatMenuBtn,
+.closeChat {
   padding: 0.5rem;
   background: transparent;
   border: 1px solid transparent;
@@ -341,7 +342,8 @@
   justify-content: center;
 }
 
-.chatMenuBtn:hover, .closeChat:hover {
+.chatMenuBtn:hover,
+.closeChat:hover {
   background: var(--bg-tertiary, #1e293b);
   border-color: var(--border-color, #334155);
   color: var(--text-primary, #f8fafc);
@@ -416,7 +418,7 @@
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
   color: var(--text-primary, #f8fafc);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .ownMessage .messageBubble {
@@ -460,7 +462,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* 🟢 INPUT AREA */
@@ -472,7 +474,7 @@
   background: var(--bg-secondary, #0f172a);
   border-top: 1px solid var(--border-color, #1e293b);
   /* Added right padding so the ChatBot floating button doesn't cover the Send button */
-  padding-right: 80px; 
+  padding-right: 80px;
 }
 
 .messageInput {
@@ -569,7 +571,7 @@
   max-width: 400px;
   width: 90%;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .confirmIcon {
@@ -633,7 +635,7 @@
   width: 90%;
   max-width: 450px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .newChatHeader {
@@ -725,13 +727,28 @@
 }
 
 @media (max-width: 900px) {
-  .conversationsSidebar { width: 300px; }
+  .conversationsSidebar {
+    width: 300px;
+  }
 }
 
 @media (max-width: 768px) {
-  .messagesWrapper { flex-direction: column; }
-  .conversationsSidebar { width: 100%; max-height: 40%; border-right: none; border-bottom: 1px solid var(--border-color); }
-  .chatArea { min-height: 0; }
-  .messageBubble { max-width: 85%; }
-  .messageInputContainer { padding-right: 1.5rem; } /* Restore padding on mobile if Chatbot hides */
+  .messagesWrapper {
+    flex-direction: column;
+  }
+  .conversationsSidebar {
+    width: 100%;
+    max-height: 40%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .chatArea {
+    min-height: 0;
+  }
+  .messageBubble {
+    max-width: 85%;
+  }
+  .messageInputContainer {
+    padding-right: 1.5rem;
+  } /* Restore padding on mobile if Chatbot hides */
 }
