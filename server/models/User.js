@@ -127,14 +127,14 @@ const userSchema = new mongoose.Schema({
   achievements: [{ type: Number }],
 
   // 🟢 --- REFERRAL SYSTEM ---
-  referralCode: { 
-    type: String, 
-    unique: true, 
+  referralCode: {
+    type: String,
+    unique: true,
     sparse: true // sparse allows existing users without a code to not crash the DB
   },
-  referredBy: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
 
   // --- SETTINGS ---
@@ -211,53 +211,23 @@ userSchema.methods.awardXP = async function (amount) {
   await this.save();
   return { xp: this.xp, level: this.level, added: amount };
 };
-// Centralized XP Logic
-userSchema.methods.awardXP = async function (amount) {
-  this.xp += amount;
-
-  // Level Thresholds (Must match your Frontend 'levels' array)
-  const levels = [
-    { level: 1, xp: 0 },
-    { level: 2, xp: 200 },
-    { level: 3, xp: 500 },
-    { level: 4, xp: 1000 },
-    { level: 5, xp: 2000 },
-    { level: 6, xp: 4000 },
-    { level: 7, xp: 8000 }
-  ];
-
-  let newLevel = this.level;
-  for (let i = levels.length - 1; i >= 0; i--) {
-    if (this.xp >= levels[i].xp) {
-      newLevel = levels[i].level;
-      break;
-    }
-  }
-
-  if (newLevel > this.level) {
-    this.level = newLevel;
-  }
-
-  await this.save();
-  return { xp: this.xp, level: this.level, added: amount };
-};
 
 // 🟢 PROFESSIONAL RELIABILITY ENGINE
 // Call this function anywhere in your backend to safely bump a user's score up or down
-userSchema.methods.adjustReliability = async function(amount) {
-    // 1. Get current score (default to 40 if they somehow have nothing)
-    let currentScore = this.reliability || 40;
-    
-    // 2. Add or subtract the amount
-    currentScore += amount;
-    
-    // 3. Ensure the score never goes above 100% or below 0%
-    this.reliability = Math.max(0, Math.min(100, currentScore));
-    
-    // 4. Save the user
-    await this.save();
-    
-    return this.reliability;
+userSchema.methods.adjustReliability = async function (amount) {
+  // 1. Get current score (default to 40 if they somehow have nothing)
+  let currentScore = this.reliability || 40;
+
+  // 2. Add or subtract the amount
+  currentScore += amount;
+
+  // 3. Ensure the score never goes above 100% or below 0%
+  this.reliability = Math.max(0, Math.min(100, currentScore));
+
+  // 4. Save the user
+  await this.save();
+
+  return this.reliability;
 };
 
 export default mongoose.model('User', userSchema);

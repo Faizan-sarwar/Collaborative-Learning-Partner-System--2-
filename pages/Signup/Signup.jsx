@@ -349,7 +349,9 @@ const Signup = () => {
             setTimeout(() => {
                 if (data.user.role === 'admin') {
                     window.location.href = '/admin';
-                } else if (formData.academicStrengths.length > 0) {
+                } else if (!data.user.quizCompleted) {
+                    // New users (and anyone who hasn't finished the quiz) MUST take it
+                    // before they can reach the dashboard.
                     window.location.href = '/quiz';
                 } else {
                     window.location.href = '/dashboard';
