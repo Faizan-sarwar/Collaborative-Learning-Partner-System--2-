@@ -1,50 +1,63 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './DashboardLayout.module.css';
-import PageTransition from '../../PageTransition/PageTransition';
 import DashboardSidebar from '../DashboardSidebar/DashboardSidebar';
 import DashboardHeader from '../DashboardHeader/DashboardHeader';
+import PageWrapper from '../../../src/motion/PageWrapper';
+import { springs } from '../../../src/motion/motion';
 
 const DashboardLayout = ({ children, title, hideSidebar = false }) => {
-  // 🟢 NEW: Mobile sidebar state (Just like we did in Dashboard.jsx)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
-
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = () => setIsSidebarOpen((v) => !v);
 
   return (
-    <PageTransition>
+    <PageWrapper>
       <div className={`${styles.dashboard} ${hideSidebar ? styles.dashboardFull : ''}`}>
-        
-        {/* 🟢 NEW: Pass state to Sidebar */}
         {!hideSidebar && (
-          <DashboardSidebar 
-            isOpen={isSidebarOpen} 
-            closeSidebar={() => setIsSidebarOpen(false)} 
+          <DashboardSidebar
+            isOpen={isSidebarOpen}
+            closeSidebar={() => setIsSidebarOpen(false)}
           />
         )}
-        
-        {/* 🟢 NEW: Dark overlay for mobile when sidebar is open */}
-        {isSidebarOpen && !hideSidebar && (
-          <div className={styles.overlay} onClick={() => setIsSidebarOpen(false)}></div>
-        )}
-        
+
+        {/* Overlay — AnimatePresence handles fade in/out cleanly */}
+        <AnimatePresence>
+          {isSidebarOpen && !hideSidebar && (
+            <motion.div
+              key="overlay"
+              className={styles.overlay}
+              onClick={() => setIsSidebarOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            />
+          )}
+        </AnimatePresence>
+
         <div className={`${styles.mainArea} ${hideSidebar ? styles.mainAreaFull : ''}`}>
-          
-          {/* 🟢 NEW: Pass toggle function to Header */}
-          <DashboardHeader 
-            title={title} 
-            isFullWidth={hideSidebar} 
-            toggleSidebar={toggleSidebar} 
+          <DashboardHeader
+            title={title}
+            isFullWidth={hideSidebar}
+            toggleSidebar={toggleSidebar}
           />
-          
+
           <main className={styles.content}>
-            <div className={styles.contentInner}>
+            {/* Content fades + slides up on every page load */}
+            <motion.div
+              key={title}
+              className={styles.contentInner}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={springs.soft}
+            >
               {children}
-            </div>
+            </motion.div>
           </main>
         </div>
-        
       </div>
-    </PageTransition>
+    </PageWrapper>
   );
 };
 

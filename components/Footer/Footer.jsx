@@ -1,23 +1,29 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import styles from './Footer.module.css';
-import { useSettings } from '../../src/context/SettingsContext'; // Adjust path if needed!
+import { useSettings } from '../../src/context/SettingsContext';
 import { Link } from 'react-router-dom';
+import {
+  staggerContainer,
+  fadeUpItem,
+  viewportRise,
+  springs,
+} from '../../src/motion/motion';
 
 const Footer = () => {
-  const { settings } = useSettings(); // 🟢 Pull the global settings
-  
-  // 🟢 UPDATED: Changed 'href' to 'to' to map to your React Router paths
+  const { settings } = useSettings();
+
   const quickLinks = [
     { name: 'Home', to: '/' },
     { name: 'Features', to: '/#features' },
     { name: 'FAQ', to: '/help' }
   ];
-  
+
   const helpLinks = [
     { name: 'Help Center', to: '/help' },
     { name: 'Contact Us', to: '/contact' },
     { name: 'FAQs', to: '/help' },
-    { name: 'Tutorials', to: '/help' } // Falls back to help for now
+    { name: 'Tutorials', to: '/help' }
   ];
 
   const companyLinks = [
@@ -27,7 +33,6 @@ const Footer = () => {
     { name: 'Press', to: '/' }
   ];
 
-  // Social Links remain standard <a> tags because they go to external websites
   const socialLinks = [
     {
       name: 'Twitter',
@@ -71,11 +76,44 @@ const Footer = () => {
     }
   ];
 
+  // Renders one of the link columns with staggered children
+  const LinksColumn = ({ title, links }) => (
+    <motion.div className={styles.linksColumn} variants={fadeUpItem}>
+      <h4 className={styles.columnTitle}>{title}</h4>
+      <motion.ul
+        className={styles.linksList}
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.3 }}
+      >
+        {links.map((link, i) => (
+          <motion.li key={i} variants={fadeUpItem}>
+            <Link to={link.to} className={styles.link}>{link.name}</Link>
+          </motion.li>
+        ))}
+      </motion.ul>
+    </motion.div>
+  );
+
   return (
-    <footer className={styles.footer}>
+    <motion.footer
+      className={styles.footer}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.1 }}
+      variants={viewportRise}
+    >
       <div className={styles.container}>
-        <div className={styles.grid}>
-          <div className={styles.brand}>
+        <motion.div
+          className={styles.grid}
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+        >
+          {/* Brand */}
+          <motion.div className={styles.brand} variants={fadeUpItem}>
             <div className={styles.logo}>
               <div className={styles.logoIcon}>
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -95,66 +133,52 @@ const Footer = () => {
             <p className={styles.brandDescription}>
               Empowering students worldwide to achieve academic excellence through collaborative learning and intelligent study tools.
             </p>
-            <div className={styles.socialLinks}>
+            <motion.div
+              className={styles.socialLinks}
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+            >
               {socialLinks.map((link, index) => (
-                <a key={index} href={link.href} target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label={link.name}>
+                <motion.a
+                  key={index}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.socialLink}
+                  aria-label={link.name}
+                  variants={fadeUpItem}
+                  whileHover={{ scale: 1.15, y: -3 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={springs.snappy}
+                >
                   {link.icon}
-                </a>
+                </motion.a>
               ))}
-            </div>
-          </div>
-          
-          <div className={styles.linksColumn}>
-            <h4 className={styles.columnTitle}>Quick Links</h4>
-            <ul className={styles.linksList}>
-              {quickLinks.map((link, index) => (
-                <li key={index}>
-                  {/* 🟢 MAGIC HAPPENS HERE: Swapped <a> for React <Link> */}
-                  <Link to={link.to} className={styles.link}>{link.name}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          <div className={styles.linksColumn}>
-            <h4 className={styles.columnTitle}>Help</h4>
-            <ul className={styles.linksList}>
-              {helpLinks.map((link, index) => (
-                <li key={index}>
-                  <Link to={link.to} className={styles.link}>{link.name}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <LinksColumn title="Quick Links" links={quickLinks} />
+          <LinksColumn title="Help" links={helpLinks} />
+          <LinksColumn title="Company" links={companyLinks} />
+        </motion.div>
 
-          <div className={styles.linksColumn}>
-            <h4 className={styles.columnTitle}>Company</h4>
-            <ul className={styles.linksList}>
-              {companyLinks.map((link, index) => (
-                <li key={index}>
-                  <Link to={link.to} className={styles.link}>{link.name}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className={styles.bottom}>
+        <motion.div className={styles.bottom} variants={fadeUpItem}>
           <div className={styles.divider}></div>
           <div className={styles.bottomContent}>
             <p className={styles.copyright}>
               © {new Date().getFullYear()} {settings?.platformName || 'Loading...'}. All rights reserved.
             </p>
             <div className={styles.legalLinks}>
-              {/* 🟢 Privacy and Terms are now hooked up to React Router */}
               <Link to="/privacy" className={styles.legalLink}>Privacy Policy</Link>
               <span className={styles.dot}>•</span>
               <Link to="/terms" className={styles.legalLink}>Terms of Service</Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 

@@ -5,15 +5,12 @@ const profanityFilter = new Filter();
 import { ChevronDown, X, Eye, EyeOff } from 'lucide-react'; // Added explicit icons
 import styles from './Signup.module.css';
 import Alert from '../../components/Alert/Alert';
-import PageTransition from '../../components/PageTransition/PageTransition';
+import { motion } from 'framer-motion';
+import PageWrapper from '../../src/motion/PageWrapper';
+import { staggerContainer, fadeUpItem, springs } from '../../src/motion/motion';
 
 const departments = [
     'Information Technology',
-    'Computer Science',
-    'Electronics',
-    'Mechanical',
-    'Civil',
-    'Electrical'
 ];
 
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -262,12 +259,28 @@ const Signup = () => {
     };
 
     const handleSubjectToggle = (field, subjectName) => {
+        // 🟢 NEW LIMIT LOGIC: Block user if they try to add an 11th strength
+        if (field === 'academicStrengths' && !formData[field].includes(subjectName) && formData[field].length >= 10) {
+            setAlertError("You can only select a maximum of 10 academic strengths.");
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up so they see the error banner
+            return; // Stop execution
+        }
+
+        const oppositeField = field === 'academicStrengths' ? 'subjectsOfDifficulty' : 'academicStrengths';
+
         setFormData((prev) => {
             const current = prev[field];
-            const updated = current.includes(subjectName)
-                ? current.filter((s) => s !== subjectName)
-                : [...current, subjectName];
-            return { ...prev, [field]: updated };
+            const isAdding = !current.includes(subjectName);
+            const updated = isAdding
+                ? [...current, subjectName]
+                : current.filter((s) => s !== subjectName);
+
+            // If we're ADDING to this list, also remove from opposite list (defensive guard)
+            const updatedOpposite = isAdding
+                ? prev[oppositeField].filter((s) => s !== subjectName)
+                : prev[oppositeField];
+
+            return { ...prev, [field]: updated, [oppositeField]: updatedOpposite };
         });
     };
 
@@ -325,7 +338,7 @@ const Signup = () => {
                 }
             });
 
-            const response = await fetch("http://localhost:5000/api/auth/signup", {
+            const response = await fetch(`http://${window.location.hostname}:5000/api/auth/signup`, {
                 method: "POST",
                 body: formPayload,
             });
@@ -369,7 +382,7 @@ const Signup = () => {
     };
 
     return (
-        <PageTransition>
+        <PageWrapper>
             <div className={styles.container}>
                 <header className={styles.header}>
                     <div className={styles.headerContent}>
@@ -394,24 +407,29 @@ const Signup = () => {
                 </header>
 
                 <main className={styles.main}>
-                    <div className={styles.formContainer}>
+                    <motion.div
+                        className={styles.formContainer}
+                        variants={staggerContainer}
+                        initial="hidden"
+                        animate="show"
+                    >
                         {alertError && <Alert type="error" message={alertError} onClose={() => setAlertError('')} />}
                         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
                         {formData.referredByCode && !alertError && !success && (
-                            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', color: '#10B981', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
+                            <motion.div variants={fadeUpItem} style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', color: '#10B981', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
                                 🎉 You've been invited by a friend! Sign up to claim your rewards.
-                            </div>
+                            </motion.div>
                         )}
 
-                        <div className={styles.formHeader}>
+                        <motion.div className={styles.formHeader} variants={fadeUpItem}>
                             <h2>Student Registration</h2>
                             <p>Complete your profile to find study partners.</p>
-                        </div>
+                        </motion.div>
 
                         <form className={styles.form} onSubmit={handleSubmit} noValidate>
                             {/* === STUDENT INFO SECTION === */}
-                            <div className={styles.section}>
+                            <motion.div className={styles.section} variants={fadeUpItem}>
                                 <h3 className={styles.sectionTitle}>Student Information</h3>
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
@@ -619,15 +637,18 @@ const Signup = () => {
                                         {errors.semester && <span className={styles.errorMessage}>{errors.semester}</span>}
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
 
                             {/* === ACADEMIC PROFILE SECTION === */}
-                            <div className={styles.section}>
+                            <motion.div className={styles.section} variants={fadeUpItem}>
                                 <h3 className={styles.sectionTitle}>📚 Academic Profile</h3>
 
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Academic Strengths</label>
+                                        <small style={{ display: 'block', marginTop: '-4px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                                            Your reliability quiz will be drawn only from these subjects.
+                                        </small>
                                         <div className={styles.multiSelectWrapper} ref={strengthsRef}>
                                             <div className={styles.multiSelectTrigger} onClick={() => setStrengthsDropdownOpen(!strengthsDropdownOpen)}>
                                                 <div className={styles.selectedTags}>
@@ -651,18 +672,32 @@ const Signup = () => {
                                             </div>
                                             {strengthsDropdownOpen && (
                                                 <div className={styles.dropdownMenu}>
-                                                    {availableSubjects.filter(s => s.active).map((subjectObj) => (
-                                                        <div key={subjectObj.name} className={`${styles.dropdownItem} ${formData.academicStrengths.includes(subjectObj.name) ? styles.selected : ''}`} onClick={() => handleSubjectToggle('academicStrengths', subjectObj.name)}>
-                                                            <span className={styles.itemCheckbox}>
-                                                                {formData.academicStrengths.includes(subjectObj.name) && (
-                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                                                        <polyline points="20 6 9 17 4 12" />
-                                                                    </svg>
-                                                                )}
-                                                            </span>
-                                                            {subjectObj.name}
-                                                        </div>
-                                                    ))}
+                                                    {availableSubjects.filter(s => s.active).map((subjectObj) => {
+                                                        const isDisabled = formData.subjectsOfDifficulty.includes(subjectObj.name);
+                                                        const isSelected = formData.academicStrengths.includes(subjectObj.name);
+                                                        return (
+                                                            <div
+                                                                key={subjectObj.name}
+                                                                className={`${styles.dropdownItem} ${isSelected ? styles.selected : ''}`}
+                                                                onClick={() => {
+                                                                    if (isDisabled) return;
+                                                                    handleSubjectToggle('academicStrengths', subjectObj.name);
+                                                                }}
+                                                                style={isDisabled ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+                                                                title={isDisabled ? 'Already selected as a difficult subject' : ''}
+                                                            >
+                                                                <span className={styles.itemCheckbox}>
+                                                                    {isSelected && (
+                                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                            <polyline points="20 6 9 17 4 12" />
+                                                                        </svg>
+                                                                    )}
+                                                                </span>
+                                                                {subjectObj.name}
+                                                                {isDisabled && <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>(in difficulties)</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
@@ -670,6 +705,9 @@ const Signup = () => {
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Subjects of Difficulty</label>
+                                        <small style={{ display: 'block', marginTop: '-4px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                                            Subjects you'd like help with — cannot overlap with strengths.
+                                        </small>
                                         <div className={styles.multiSelectWrapper} ref={difficultyRef}>
                                             <div className={styles.multiSelectTrigger} onClick={() => setDifficultyDropdownOpen(!difficultyDropdownOpen)}>
                                                 <div className={styles.selectedTags}>
@@ -693,27 +731,41 @@ const Signup = () => {
                                             </div>
                                             {difficultyDropdownOpen && (
                                                 <div className={styles.dropdownMenu}>
-                                                    {availableSubjects.filter(s => s.active).map((subjectObj) => (
-                                                        <div key={subjectObj.name} className={`${styles.dropdownItem} ${formData.subjectsOfDifficulty.includes(subjectObj.name) ? styles.selected : ''}`} onClick={() => handleSubjectToggle('subjectsOfDifficulty', subjectObj.name)}>
-                                                            <span className={styles.itemCheckbox}>
-                                                                {formData.subjectsOfDifficulty.includes(subjectObj.name) && (
-                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                                                        <polyline points="20 6 9 17 4 12" />
-                                                                    </svg>
-                                                                )}
-                                                            </span>
-                                                            {subjectObj.name}
-                                                        </div>
-                                                    ))}
+                                                    {availableSubjects.filter(s => s.active).map((subjectObj) => {
+                                                        const isDisabled = formData.academicStrengths.includes(subjectObj.name);
+                                                        const isSelected = formData.subjectsOfDifficulty.includes(subjectObj.name);
+                                                        return (
+                                                            <div
+                                                                key={subjectObj.name}
+                                                                className={`${styles.dropdownItem} ${isSelected ? styles.selected : ''}`}
+                                                                onClick={() => {
+                                                                    if (isDisabled) return;
+                                                                    handleSubjectToggle('subjectsOfDifficulty', subjectObj.name);
+                                                                }}
+                                                                style={isDisabled ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+                                                                title={isDisabled ? 'Already selected as a strength' : ''}
+                                                            >
+                                                                <span className={styles.itemCheckbox}>
+                                                                    {isSelected && (
+                                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                            <polyline points="20 6 9 17 4 12" />
+                                                                        </svg>
+                                                                    )}
+                                                                </span>
+                                                                {subjectObj.name}
+                                                                {isDisabled && <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>(in strengths)</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
 
                             {/* === LEARNING PREFERENCES === */}
-                            <div className={styles.section}>
+                            <motion.div className={styles.section} variants={fadeUpItem}>
                                 <h3 className={styles.sectionTitle}>Learning Preferences</h3>
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
@@ -774,10 +826,10 @@ const Signup = () => {
                                     />
                                     {errors.availability && <span className={styles.errorMessage}>{errors.availability}</span>}
                                 </div>
-                            </div>
+                            </motion.div>
 
                             {/* 🟢 ADDED: Legal / TOS Checkbox */}
-                            <div className={styles.legalSection} style={{ marginTop: '30px', marginBottom: '20px' }}>
+                            <motion.div className={styles.legalSection} variants={fadeUpItem} style={{ marginTop: '30px', marginBottom: '20px' }}>
                                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                                     <input
                                         type="checkbox"
@@ -791,21 +843,24 @@ const Signup = () => {
                                     </span>
                                 </label>
                                 {errors.acceptTerms && <span className={styles.errorMessage} style={{ display: 'block', marginTop: '5px' }}>{errors.acceptTerms}</span>}
-                            </div>
+                            </motion.div>
 
-                            <button
+                            <motion.button
                                 type="submit"
                                 className={styles.submitButton}
                                 disabled={isSubmitting || !formData.acceptTerms}
                                 style={{ opacity: (!formData.acceptTerms || isSubmitting) ? 0.6 : 1 }}
+                                whileHover={(!formData.acceptTerms || isSubmitting) ? {} : { y: -2, scale: 1.01 }}
+                                whileTap={(!formData.acceptTerms || isSubmitting) ? {} : { scale: 0.97 }}
+                                transition={springs.snappy}
                             >
                                 {isSubmitting ? 'Creating Secure Profile...' : 'Create Profile'}
-                            </button>
+                            </motion.button>
                         </form>
-                    </div>
+                    </motion.div>
                 </main>
             </div>
-        </PageTransition>
+        </PageWrapper>
     );
 };
 

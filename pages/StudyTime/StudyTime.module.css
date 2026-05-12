@@ -41,15 +41,15 @@
 
 /* 🟢 TIMER CENTERPIECE */
 .timerCard {
-  background: var(--card-bg, #0f172a);
-  border: 1px solid var(--border-color, #1e293b);
+  background: var(--bg-card); /* Fix: changed from --card-bg */
+  border: 1px solid var(--border-color);
   border-radius: 24px;
   padding: 4rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: var(--card-shadow); /* Optional: uses your App.css shadow */
 }
 
 .statusBadge {
@@ -67,7 +67,7 @@
 }
 
 .pulseActive::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -18px;
   top: 50%;
@@ -84,28 +84,36 @@
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 .timerCircle {
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: var(--input-bg, #1e293b);
-  border: 6px solid var(--border-color, #334155);
+  background: var(--bg-tertiary); /* Fix: Maps to theme properly */
+  border: 6px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 3.5rem;
   transition: all 0.3s ease;
-  box-shadow: inset 0 4px 20px rgba(0,0,0,0.2);
+  box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .glowActive {
   border-color: #3b82f6;
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.1);
+  box-shadow:
+    0 0 40px rgba(59, 130, 246, 0.3),
+    inset 0 0 20px rgba(59, 130, 246, 0.1);
 }
 
 .timerDisplay {
@@ -146,7 +154,8 @@
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
 }
 
-.btnStartLg:hover, .btnResume:hover {
+.btnStartLg:hover,
+.btnResume:hover {
   transform: translateY(-3px);
   filter: brightness(1.1);
   box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4);
@@ -170,7 +179,8 @@
   border: 1px solid #ef4444 !important;
 }
 
-.btnPause:hover, .btnStop:hover {
+.btnPause:hover,
+.btnStop:hover {
   filter: brightness(1.2);
   transform: translateY(-2px);
 }
@@ -183,8 +193,8 @@
 }
 
 .statCard {
-  background: var(--card-bg, #0f172a);
-  border: 1px solid var(--border-color, #1e293b);
+  background: var(--bg-card); /* Fix: changed from --card-bg */
+  border: 1px solid var(--border-color);
   padding: 1.5rem;
   border-radius: 16px;
   display: flex;
@@ -208,10 +218,22 @@
   flex-shrink: 0;
 }
 
-.iconWrapper.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-.iconWrapper.green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.iconWrapper.purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.iconWrapper.amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.iconWrapper.blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+.iconWrapper.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+.iconWrapper.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+.iconWrapper.amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
 
 .statInfo h3 {
   font-size: 1.3rem;
@@ -231,14 +253,33 @@
 
 /* 🟢 Responsive Design */
 @media (max-width: 1024px) {
-  .grid { grid-template-columns: repeat(2, 1fr); }
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-  .timerCircle { width: 240px; height: 240px; border-width: 4px; }
-  .timerDisplay { font-size: 3.5rem; }
-  .timerControls { flex-direction: column; width: 100%; max-width: 300px; }
-  .timerControls button { width: 100%; justify-content: center; }
-  .grid { grid-template-columns: 1fr; }
-  .timerCard { padding: 3rem 1.5rem; }
+  .timerCircle {
+    width: 240px;
+    height: 240px;
+    border-width: 4px;
+  }
+  .timerDisplay {
+    font-size: 3.5rem;
+  }
+  .timerControls {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+  }
+  .timerControls button {
+    width: 100%;
+    justify-content: center;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .timerCard {
+    padding: 3rem 1.5rem;
+  }
 }

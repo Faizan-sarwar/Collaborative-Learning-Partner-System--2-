@@ -1,3 +1,4 @@
+import '../pages/Analytics/sessionTracker.js'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import React, { useEffect, useState } from "react";

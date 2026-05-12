@@ -1,43 +1,52 @@
-.navbar {
+/* === FLOATING PILL NAVBAR === */
+.navWrap {
   position: fixed;
-  top: 0;
+  top: 20px;
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 16px 0;
-  transition: var(--transition-normal);
-  background: transparent;
-}
-
-.navbar.scrolled {
-  background: var(--bg-primary);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .navbar.scrolled {
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-}
-
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 24px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  padding: 0 24px;
+  pointer-events: none;
 }
 
+.pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 20px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.4);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.pill.scrolled {
+  background: var(--bg-secondary);
+  border-color: var(--border-color-hover);
+}
+
+/* === LOGO === */
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border-color);
+  margin-right: 8px;
 }
 
 .logoIcon {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .logoIcon svg {
@@ -46,135 +55,151 @@
 }
 
 .logoText {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
+/* === NAV LINKS === */
 .navLinks {
   display: flex;
   align-items: center;
-  gap: 32px;
-  list-style: none; /* Ensures no bullet points */
+  gap: 4px;
+  list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .navLink {
-  font-size: 0.95rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
-  transition: var(--transition-fast);
-  position: relative;
   text-decoration: none;
+  border-radius: 9999px;
+  transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .navLink:hover {
   color: var(--text-primary);
 }
 
-.navLink::after {
-  content: '';
+.linkLabel {
+  position: relative;
+  z-index: 1;
+}
+
+/* Dark text on light active pill, Light text on dark active pill */
+.navLinkActive {
+  color: var(--bg-primary);
+}
+
+.activePill {
   position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--gradient-primary);
-  transition: var(--transition-normal);
+  inset: 0;
+  background: var(--text-primary);
+  border-radius: 9999px;
+  z-index: 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.navLink:hover::after {
-  width: 100%;
-}
-
-.navActions {
+/* === ACTIONS === */
+.actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding-left: 8px;
 }
 
-/* 🟢 Hides the mobile buttons while on desktop */
-.mobileOnlyActions {
-  display: none;
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+  margin-right: 4px;
 }
 
-.loginBtn {
-  padding: 10px 20px;
-  font-size: 0.95rem;
+.loginLink {
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  transition: var(--transition-normal);
   text-decoration: none;
-  text-align: center;
+  padding: 8px 12px;
+  transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
-.loginBtn:hover {
+.loginLink:hover {
   color: var(--text-primary);
-  border-color: var(--accent-purple);
 }
 
-.getStartedBtn {
-  padding: 10px 24px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: white;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-md);
-  transition: var(--transition-normal);
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
-  text-decoration: none;
-  text-align: center;
-}
-
-.getStartedBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(59, 130, 246, 0.4);
-}
-
+/* === MOBILE HAMBURGER === */
 .mobileToggle {
   display: none;
   flex-direction: column;
   gap: 5px;
-  padding: 8px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   cursor: pointer;
+  margin-left: 8px;
 }
 
 .mobileToggle span {
-  width: 24px;
+  display: block;
+  width: 22px;
   height: 2px;
   background: var(--text-primary);
   border-radius: 2px;
-  transition: var(--transition-fast);
+  transform-origin: center;
 }
 
+.mobileOnlyActions {
+  display: none;
+}
+
+/* === RESPONSIVE === */
 @media (max-width: 968px) {
+  .navWrap {
+    top: 12px;
+    padding: 0 12px;
+  }
+
+  .pill {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 8px 8px 16px;
+  }
+
+  .logo {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
+
   .navLinks {
-    position: fixed;
-    top: 70px;
+    position: absolute;
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     flex-direction: column;
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
     backdrop-filter: blur(20px);
-    padding: 24px;
-    gap: 16px;
-    transform: translateY(-120%);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 16px;
+    gap: 8px;
+    transform: translateY(-12px);
     opacity: 0;
-    transition: var(--transition-normal);
-    visibility: hidden; /* Prevents clicking links when menu is closed */
-  }
-
-  [data-theme="light"] .navLinks {
-    background: rgba(255, 255, 255, 0.98);
+    visibility: hidden;
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.25s ease;
   }
 
   .navLinks.mobileOpen {
@@ -183,33 +208,50 @@
     visibility: visible;
   }
 
-  /* 🟢 Shows the buttons inside the dropdown and stacks them nicely */
+  .navLink {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 16px;
+  }
+
+  .activePill {
+    display: none;
+  }
+
+  .navLinkActive {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+  }
+
   .mobileOnlyActions {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    margin-top: 16px;
-    border-top: 1px solid var(--border-color);
+    margin-top: 12px;
     padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+    list-style: none;
   }
 
-  .mobileOnlyActions a {
+  .mobileOnlyActions .loginLink {
     width: 100%;
+    text-align: center;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  .actions {
+    display: none;
   }
 
   .mobileToggle {
     display: flex;
   }
-
-  /* Hides the desktop buttons */
-  .navActions {
-    display: none;
-  }
 }
 
 @media (max-width: 480px) {
   .logoText {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 }

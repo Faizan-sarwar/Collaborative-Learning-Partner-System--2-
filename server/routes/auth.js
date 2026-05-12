@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv'; //  1. IMPORT DOTENV
+import Groq from 'groq-sdk';
 
 
 dotenv.config(); //  2. RUN IT IMMEDIATELY so the credentials load
@@ -718,10 +719,13 @@ router.post('/submit-quiz', async (req, res) => {
     const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
 
     const score = parseInt(req.body.score) || 0;
+    const totalQuestions = parseInt(req.body.totalQuestions) || 10;
 
-    // 🟢 NEW PROFESSIONAL ALGORITHM
+    // 🟢 PROFESSIONAL ALGORITHM — scales with however many questions were available
     const baseScore = 40;
-    const earnedScore = Math.round(score * 5.8);
+    const earnedScore = totalQuestions > 0
+      ? Math.round((score / totalQuestions) * 58)
+      : 0;
     const finalReliability = Math.min(baseScore + earnedScore, 98); // Max 98% initially
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -969,68 +973,38 @@ router.post('/award-xp', async (req, res) => {
   }
 });
 
-// 🟢 RAPIDAPI CHAT TOPICS GENERATOR
-// 🟢 RAPIDAPI CHAT TOPICS GENERATOR
+// 🟢 GROQ AI CHAT TOPICS GENERATOR
 router.post('/ai/chat-topics', async (req, res) => {
   try {
     const { subject } = req.body;
     if (!subject) return res.status(400).json({ success: false, message: 'Subject is required' });
 
-    if (!process.env.RAPIDAPI_KEY || !process.env.RAPIDAPI_HOST) {
-      console.error("❌ CRITICAL ERROR: RAPIDAPI credentials missing in .env file!");
+    if (!process.env.GROQ_API_KEY) {
+      console.error("❌ CRITICAL ERROR: GROQ_API_KEY missing in .env file!");
       return res.status(500).json({ success: false, message: "API Credentials missing" });
     }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const prompt = `You are a study assistant for a university student. They are struggling with the subject "${subject}". 
     Generate 4 highly specific, engaging conversation starters or questions they can use to discuss this subject with a study partner.
     Provide 1 short, actionable tip on how they should approach studying this subject together.
     Also provide a single fitting emoji icon, and a hex color code that fits the vibe of the subject.
-    Return ONLY a raw JSON object in this exact format, with no markdown formatting or backticks: 
+    Return ONLY a raw JSON object in this exact format: 
     { "icon": "emoji", "color": "#hexcode", "topics": ["topic 1", "topic 2", "topic 3", "topic 4"], "tip": "The study tip" }`;
 
-    // 🟢 RAPIDAPI FETCH CALL (Tailored for gemini-pro-ai.p.rapidapi.com)
-    const response = await fetch(`https://${process.env.RAPIDAPI_HOST}/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-rapidapi-host': process.env.RAPIDAPI_HOST,
-        'x-rapidapi-key': process.env.RAPIDAPI_KEY
-      },
-      // Formatted exactly like your code snippet!
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
-          }
-        ]
-      })
+    // 🟢 Groq Fetch Call
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: "You output strict JSON only. No markdown formatting." },
+        { role: "user", content: prompt }
+      ],
+      model: "llama-3.1-8b-instant", // Lightning fast free-tier model
+      response_format: { type: "json_object" },
+      temperature: 0.7,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "RapidAPI request failed");
-    }
-
-    // 🟢 Extract the text from the Gemini-style response
-    let responseText = "";
-    if (data.candidates && data.candidates[0].content.parts[0].text) {
-      responseText = data.candidates[0].content.parts[0].text;
-    } else if (data.text) {
-      responseText = data.text; // Fallback if the API simplifies the response
-    } else {
-      responseText = JSON.stringify(data);
-    }
-
-    // Clean the text to ensure perfect JSON parsing
-    const jsonStart = responseText.indexOf('{');
-    const jsonEnd = responseText.lastIndexOf('}') + 1;
-    if (jsonStart !== -1 && jsonEnd !== -1) {
-      responseText = responseText.substring(jsonStart, jsonEnd);
-    }
-
-    const aiData = JSON.parse(responseText);
+    const aiData = JSON.parse(chatCompletion.choices[0].message.content);
 
     res.json({
       success: true,
@@ -1040,7 +1014,7 @@ router.post('/ai/chat-topics', async (req, res) => {
       tip: aiData.tip
     });
   } catch (err) {
-    console.error("❌ RapidAPI Generation Error:", err.message);
+    console.error("❌ Groq Generation Error:", err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });

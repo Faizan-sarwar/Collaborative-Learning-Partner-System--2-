@@ -173,10 +173,11 @@
 
 .bestMatchCard {
   border: 2px solid #f59e0b !important;
+  /* Fix: Replaced hardcoded dark blue with dynamic --bg-secondary */
   background: linear-gradient(
     180deg,
-    rgba(245, 158, 11, 0.05) 0%,
-    rgba(15, 23, 42, 1) 100%
+    rgba(245, 158, 11, 0.08) 0%,
+    var(--bg-secondary) 100%
   );
   box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
 }
@@ -192,15 +193,15 @@
 .avatarWrapper {
   width: 64px;
   height: 64px;
-  min-width: 64px; /* Ensures it never shrinks */
+  min-width: 64px;
   border-radius: 50%;
-  border: 2px solid var(--border-color, #334155);
-  background: var(--bg-tertiary, #1e293b);
+  border: 2px solid var(--border-color);
+  background: var(--bg-tertiary); /* Fix: Adapts to theme */
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0; /* Prevents flexbox squishing */
+  flex-shrink: 0;
 }
 
 .avatarImg {
@@ -396,11 +397,11 @@
 .statsRow {
   display: flex;
   justify-content: space-between;
-  background: var(--bg-primary, #020617);
+  background: var(--bg-primary); /* Fix: Adapts to theme */
   border-radius: 10px;
   padding: 12px;
   margin-top: 16px;
-  border: 1px solid var(--border-color, #334155);
+  border: 1px solid var(--border-color);
 }
 .stat {
   display: flex;
@@ -424,8 +425,10 @@
   padding: 16px 20px;
   display: flex;
   gap: 12px;
-  border-top: 1px solid var(--border-color, #1e293b);
-  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--border-color);
+  background: var(
+    --bg-tertiary
+  ); /* Fix: Was rgba(255,255,255,0.02) which vanishes in light mode */
   border-radius: 0 0 16px 16px;
 }
 
@@ -510,7 +513,7 @@
 @media (max-width: 768px) {
   /* 🟢 1. Reduce overall screen padding so cards have room */
   .container {
-    padding: 1rem; 
+    padding: 1rem;
   }
 
   /* 🟢 2. Fix Search Bar Overflow */
@@ -529,7 +532,7 @@
   /* 🟢 3. Force Grid to 1 Column with tighter gaps */
   .usersGrid {
     grid-template-columns: 1fr;
-    gap: 1rem; 
+    gap: 1rem;
   }
 
   /* 🟢 4. Shrink internal card padding to fit mobile screens */
@@ -546,7 +549,7 @@
 
   /* 🟢 5. CRITICAL: Stop long names from pushing the screen out */
   .userName {
-    white-space: normal; 
+    white-space: normal;
     flex-wrap: wrap;
     line-height: 1.3;
   }
