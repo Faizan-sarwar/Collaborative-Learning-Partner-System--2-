@@ -8,7 +8,7 @@ const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     req.userId = decoded.id;
     next();
   } catch (err) {
@@ -53,7 +53,7 @@ router.put('/read', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id;
 
     await Notification.updateMany({ recipient: userId }, { $set: { unread: false, read: true } });
     res.json({ success: true, message: 'Marked as read' });
@@ -65,7 +65,7 @@ router.delete('/clear', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id;
 
     await Notification.deleteMany({ recipient: userId });
     res.json({ success: true, message: 'Notifications cleared' });

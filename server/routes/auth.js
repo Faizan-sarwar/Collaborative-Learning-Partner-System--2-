@@ -48,7 +48,7 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
 });
 
-const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET || 'your_jwt_secret_key', { expiresIn: process.env.JWT_EXPIRE || '7d' });
+const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET || 'test_key', { expiresIn: process.env.JWT_EXPIRE || '7d' });
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 const validateSignupData = (data) => {
@@ -314,7 +314,7 @@ router.post('/login', async (req, res) => {
     const tokenExpiry = rememberMe ? '30d' : '1d';
     res.json({
       success: true,
-      token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_fallback_secret_key', { expiresIn: tokenExpiry }),
+      token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'test_key', { expiresIn: tokenExpiry }),
       user: typeof user.toSafeObject === 'function' ? user.toSafeObject() : user,
       message: xpMessage || 'Logged in successfully'
     });
@@ -327,7 +327,7 @@ router.post('/logout', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
       await User.findByIdAndUpdate(decoded.id, { isOnline: false });
     }
     res.status(200).json({ success: true, message: 'Logged out successfully' });
@@ -370,7 +370,7 @@ router.post("/google-login", async (req, res) => {
 
     res.json({
       success: true,
-      token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_fallback_secret_key', { expiresIn: "30d" }),
+      token: jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'test_key', { expiresIn: "30d" }),
       user: typeof user.toSafeObject === 'function' ? user.toSafeObject() : user,
       isNewUser
     });
@@ -384,7 +384,7 @@ router.get('/me', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
 
-    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id);
+    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'test_key').id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     // 🟢 THE FIX: Auto-generate a referral code for older users who don't have one yet
@@ -412,7 +412,7 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
 
-    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id);
+    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'test_key').id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const { fullName, email, phone, bio, department, semester, studyStyle, settings, gender, rollNumber } = req.body;
@@ -716,7 +716,7 @@ router.post('/submit-quiz', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id;
 
     const score = parseInt(req.body.score) || 0;
     const totalQuestions = parseInt(req.body.totalQuestions) || 10;
@@ -842,7 +842,7 @@ router.get('/connections', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     const user = await User.findById(decoded.id).populate('connections', 'fullName department picture email level isOnline lastSeen reliability');
 
     // 🟢 FIX: If the token belongs to a deleted user or wrong DB, kick them out safely!
@@ -860,7 +860,7 @@ router.post('/connect/:targetId', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const senderId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id, targetId = req.params.targetId;
+    const senderId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id, targetId = req.params.targetId;
     if (senderId === targetId) return res.status(400).json({ message: 'Cannot connect to self' });
 
     const senderUser = await User.findByIdAndUpdate(senderId, { $addToSet: { sentRequests: targetId } });
@@ -875,7 +875,7 @@ router.get('/requests/:type', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id).populate(req.params.type === 'sent' ? 'sentRequests' : 'receivedRequests', 'fullName email department picture level');
+    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'test_key').id).populate(req.params.type === 'sent' ? 'sentRequests' : 'receivedRequests', 'fullName email department picture level');
     res.json({ success: true, requests: req.params.type === 'sent' ? user?.sentRequests : user?.receivedRequests || [] });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
@@ -884,7 +884,7 @@ router.post('/requests/:senderId/:action', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id, { senderId, action } = req.params;
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id, { senderId, action } = req.params;
 
     if (action === 'accept') {
       // 🟢 Add $inc: { xp: 75 } to instantly award the points to both users
@@ -908,7 +908,7 @@ router.post('/connections/:targetId/remove', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id, targetId = req.params.targetId;
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id, targetId = req.params.targetId;
     await User.findByIdAndUpdate(userId, { $pull: { connections: targetId } });
     await User.findByIdAndUpdate(targetId, { $pull: { connections: userId } });
     res.json({ success: true, message: 'Connection removed' });
@@ -930,7 +930,7 @@ router.post('/award-xp', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const userId = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id;
+    const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id;
 
     const { amount, activityTitle } = req.body;
     const user = await User.findById(userId);
@@ -1105,7 +1105,7 @@ router.get('/admin/export-data', async (req, res) => {
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
     // Verify admin
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     const user = await User.findById(decoded.id);
     if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
       return res.status(403).json({ message: 'Forbidden' });
@@ -1142,7 +1142,7 @@ router.post('/admin/clear-cache', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     const user = await User.findById(decoded.id);
     if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
       return res.status(403).json({ message: 'Forbidden' });
@@ -1227,7 +1227,7 @@ router.post('/admin/migrate-reliability', async (req, res) => {
     // Verify Admin safely
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     } catch (jwtErr) {
       return res.status(401).json({ message: 'Unauthorized: Invalid token' });
     }
@@ -1280,7 +1280,7 @@ router.post('/requests/:id/accept', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     const receiverId = decoded.id; // The logged-in user
     const senderId = req.params.id; // The user who sent the request
 
@@ -1327,7 +1327,7 @@ router.put('/track-time', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
 
     // The frontend will send minutes. We convert to hours for the DB.
     const minutesToAdd = parseFloat(req.body.minutes) || 0;

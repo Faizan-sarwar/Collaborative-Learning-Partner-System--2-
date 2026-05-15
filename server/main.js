@@ -57,7 +57,7 @@ app.use(async (req, res, next) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
         const user = await User.findById(decoded.id);
 
         if (user && (user.role === 'admin' || user.role === 'super-admin')) {
