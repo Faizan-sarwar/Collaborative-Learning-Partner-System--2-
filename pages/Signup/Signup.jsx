@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Filter } from 'bad-words';
 const profanityFilter = new Filter();
-import { ChevronDown, X, Eye, EyeOff } from 'lucide-react'; // Added explicit icons
+import { ChevronDown, X, Eye, EyeOff } from 'lucide-react';
 import styles from './Signup.module.css';
 import Alert from '../../components/Alert/Alert';
 import { motion } from 'framer-motion';
@@ -65,7 +65,6 @@ const Signup = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // 🟢 ADDED: confirmPassword and acceptTerms to the payload
     const [formData, setFormData] = useState({
         fullName: '',
         rollNumber: '',
@@ -95,7 +94,7 @@ const Signup = () => {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false); // 🟢 Added
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [alertError, setAlertError] = useState('');
     const [success, setSuccess] = useState('');
@@ -196,7 +195,6 @@ const Signup = () => {
                 return !value ? 'Please select a preferred study style' : '';
             case 'availability':
                 if (value.length > 500) return 'Description must be less than 500 characters';
-                // 🟢 SECURITY: Block basic HTML injection attempts
                 if (/[<>]/.test(value)) return 'Angle brackets (< >) are not allowed';
                 return '';
             case 'acceptTerms':
@@ -227,7 +225,6 @@ const Signup = () => {
             setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
         }
 
-        // 🟢 Re-validate confirm password if primary password changes
         if (name === 'password' && touched.confirmPassword) {
             setErrors(prev => ({ ...prev, confirmPassword: validateField('confirmPassword', formData.confirmPassword) }));
         }
@@ -259,11 +256,10 @@ const Signup = () => {
     };
 
     const handleSubjectToggle = (field, subjectName) => {
-        // 🟢 NEW LIMIT LOGIC: Block user if they try to add an 11th strength
         if (field === 'academicStrengths' && !formData[field].includes(subjectName) && formData[field].length >= 10) {
             setAlertError("You can only select a maximum of 10 academic strengths.");
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up so they see the error banner
-            return; // Stop execution
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
         }
 
         const oppositeField = field === 'academicStrengths' ? 'subjectsOfDifficulty' : 'academicStrengths';
@@ -275,7 +271,6 @@ const Signup = () => {
                 ? [...current, subjectName]
                 : current.filter((s) => s !== subjectName);
 
-            // If we're ADDING to this list, also remove from opposite list (defensive guard)
             const updatedOpposite = isAdding
                 ? prev[oppositeField].filter((s) => s !== subjectName)
                 : prev[oppositeField];
@@ -307,7 +302,6 @@ const Signup = () => {
             if (err) newErrors[f] = err;
         });
 
-        // Re-run confirm password check against current state just to be safe
         if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Passwords do not match';
         }
@@ -316,7 +310,6 @@ const Signup = () => {
             setErrors(newErrors);
             setAlertError('Please fix errors in the form before submitting.');
 
-            // Auto-scroll to the first validation error
             const firstErrorField = document.querySelector(`[name="${Object.keys(newErrors)[0]}"]`);
             if (firstErrorField) firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -328,7 +321,7 @@ const Signup = () => {
         try {
             const formPayload = new FormData();
             Object.keys(formData).forEach((key) => {
-                if (key === 'confirmPassword' || key === 'acceptTerms') return; // Don't send these to DB
+                if (key === 'confirmPassword' || key === 'acceptTerms') return;
                 if (key === 'referredByCode' && !formData[key]) return;
 
                 if (Array.isArray(formData[key])) {
@@ -355,16 +348,12 @@ const Signup = () => {
             }
 
             setSuccess("Profile created successfully! Redirecting...");
-
-            // 🟢 MAGIC FIX: Instantly scroll smoothly to the top to show the success banner
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             setTimeout(() => {
                 if (data.user.role === 'admin') {
                     window.location.href = '/admin';
                 } else if (!data.user.quizCompleted) {
-                    // New users (and anyone who hasn't finished the quiz) MUST take it
-                    // before they can reach the dashboard.
                     window.location.href = '/quiz';
                 } else {
                     window.location.href = '/dashboard';
@@ -373,8 +362,6 @@ const Signup = () => {
 
         } catch (error) {
             setAlertError(error.message);
-
-            // 🟢 MAGIC FIX: Scroll to the top if there's a backend error (e.g., "Email already registered")
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {
             setIsSubmitting(false);
@@ -428,8 +415,13 @@ const Signup = () => {
                         </motion.div>
 
                         <form className={styles.form} onSubmit={handleSubmit} noValidate>
-                            {/* === STUDENT INFO SECTION === */}
-                            <motion.div className={styles.section} variants={fadeUpItem}>
+
+                            {/* 🟢 THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
+                            <motion.div
+                                className={styles.section}
+                                variants={fadeUpItem}
+                                style={{ position: 'relative', zIndex: (departmentDropdownOpen || semesterDropdownOpen) ? 50 : 1 }}
+                            >
                                 <h3 className={styles.sectionTitle}>Student Information</h3>
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
@@ -516,10 +508,9 @@ const Signup = () => {
                                     </div>
 
                                     <div className={styles.inputGroup}>
-                                        {/* Blank space to keep grid alignment if needed, or leave empty */}
+                                        {/* Blank space */}
                                     </div>
 
-                                    {/* 🟢 PASSWORD SETUP */}
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Password *</label>
                                         <div className={styles.passwordWrapper}>
@@ -577,7 +568,7 @@ const Signup = () => {
                                         {errors.confirmPassword && <span className={styles.errorMessage}>{errors.confirmPassword}</span>}
                                     </div>
 
-                                    <div className={styles.inputGroup}>
+                                    <div className={styles.inputGroup} style={{ position: 'relative', zIndex: departmentDropdownOpen ? 50 : 1 }}>
                                         <label className={styles.label}>Department *</label>
                                         <div className={styles.multiSelectWrapper} ref={departmentRef}>
                                             <div className={styles.multiSelectTrigger} onClick={() => setDepartmentDropdownOpen(!departmentDropdownOpen)}>
@@ -607,7 +598,7 @@ const Signup = () => {
                                         {errors.department && <span className={styles.errorMessage}>{errors.department}</span>}
                                     </div>
 
-                                    <div className={styles.inputGroup}>
+                                    <div className={styles.inputGroup} style={{ position: 'relative', zIndex: semesterDropdownOpen ? 50 : 1 }}>
                                         <label className={styles.label}>Semester *</label>
                                         <div className={styles.multiSelectWrapper} ref={semesterRef}>
                                             <div className={styles.multiSelectTrigger} onClick={() => setSemesterDropdownOpen(!semesterDropdownOpen)}>
@@ -639,12 +630,16 @@ const Signup = () => {
                                 </div>
                             </motion.div>
 
-                            {/* === ACADEMIC PROFILE SECTION === */}
-                            <motion.div className={styles.section} variants={fadeUpItem}>
+                            {/* 🟢 THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
+                            <motion.div
+                                className={styles.section}
+                                variants={fadeUpItem}
+                                style={{ position: 'relative', zIndex: (strengthsDropdownOpen || difficultyDropdownOpen) ? 50 : 1 }}
+                            >
                                 <h3 className={styles.sectionTitle}>📚 Academic Profile</h3>
 
                                 <div className={styles.formGrid}>
-                                    <div className={styles.inputGroup}>
+                                    <div className={styles.inputGroup} style={{ position: 'relative', zIndex: strengthsDropdownOpen ? 50 : 1 }}>
                                         <label className={styles.label}>Academic Strengths</label>
                                         <small style={{ display: 'block', marginTop: '-4px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                                             Your reliability quiz will be drawn only from these subjects.
@@ -703,7 +698,7 @@ const Signup = () => {
                                         </div>
                                     </div>
 
-                                    <div className={styles.inputGroup}>
+                                    <div className={styles.inputGroup} style={{ position: 'relative', zIndex: difficultyDropdownOpen ? 50 : 1 }}>
                                         <label className={styles.label}>Subjects of Difficulty</label>
                                         <small style={{ display: 'block', marginTop: '-4px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                                             Subjects you'd like help with — cannot overlap with strengths.
@@ -764,11 +759,16 @@ const Signup = () => {
                                 </div>
                             </motion.div>
 
-                            {/* === LEARNING PREFERENCES === */}
-                            <motion.div className={styles.section} variants={fadeUpItem}>
+                            {/* 🟢 THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
+                            <motion.div
+                                className={styles.section}
+                                variants={fadeUpItem}
+                                style={{ position: 'relative', zIndex: studyStyleDropdownOpen ? 50 : 1 }}
+                            >
                                 <h3 className={styles.sectionTitle}>Learning Preferences</h3>
                                 <div className={styles.formGrid}>
-                                    <div className={styles.inputGroup}>
+
+                                    <div className={styles.inputGroup} style={{ position: 'relative', zIndex: studyStyleDropdownOpen ? 50 : 1 }}>
                                         <label className={styles.label}>Preferred Study Style *</label>
                                         <div className={styles.singleSelectWrapper} ref={studyStyleRef}>
                                             <div className={styles.singleSelectTrigger} onClick={() => setStudyStyleDropdownOpen(!studyStyleDropdownOpen)}>
@@ -797,7 +797,6 @@ const Signup = () => {
                                         {errors.studyStyle && <span className={styles.errorMessage}>{errors.studyStyle}</span>}
                                     </div>
 
-                                    {/* 🟢 ADDED: Manual Referral Code Entry */}
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Referral Code (Optional)</label>
                                         <input
@@ -812,7 +811,6 @@ const Signup = () => {
                                     </div>
                                 </div>
 
-                                {/* Availability Section */}
                                 <div className={styles.inputGroup} style={{ marginTop: '20px' }}>
                                     <label className={styles.label}>Describe your available study times</label>
                                     <textarea
@@ -828,7 +826,6 @@ const Signup = () => {
                                 </div>
                             </motion.div>
 
-                            {/* 🟢 ADDED: Legal / TOS Checkbox */}
                             <motion.div className={styles.legalSection} variants={fadeUpItem} style={{ marginTop: '30px', marginBottom: '20px' }}>
                                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                                     <input

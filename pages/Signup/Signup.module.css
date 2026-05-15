@@ -358,7 +358,9 @@
 .strengthFill {
   height: 100%;
   border-radius: 3px;
-  transition: width 0.4s ease, background 0.4s ease;
+  transition:
+    width 0.4s ease,
+    background 0.4s ease;
 }
 
 .strength1 {
@@ -493,17 +495,19 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: linear-gradient(
-    180deg,
-    var(--bg-secondary) 0%,
-    var(--bg-primary) 100%
-  );
+  /* 🟢 FIX: Solid background instead of gradient to prevent bleed-through */
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.1);
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(99, 102, 241, 0.15);
   z-index: 1000;
   max-height: 250px;
   overflow-y: auto;
+  /* 🟢 FIX: Forces the mouse scroll to stay inside the menu */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   animation: dropdownSlide 0.2s ease-out;
 }
 
