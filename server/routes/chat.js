@@ -23,6 +23,7 @@ const verifyToken = (req, res, next) => {
 router.get('/conversations', verifyToken, async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId).select('blockedUsers');
+    if (!currentUser) return res.status(401).json({ message: 'User not found' });
     const myBlockedList = currentUser.blockedUsers?.map(id => id.toString()) || [];
 
     const conversations = await Conversation.find({

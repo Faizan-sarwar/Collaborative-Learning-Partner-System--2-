@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSettings } from '../../../src/context/SettingsContext';
-import { 
-  LayoutDashboard, Clock, BookOpen, UserPlus, Users, UserCheck, 
-  MessageSquare, Zap, Trophy, BarChart3, Settings, 
-  TrendingUp, Flame, CalendarDays, X 
+import {
+  LayoutDashboard, Clock, BookOpen, UserPlus, Users, UserCheck,
+  MessageSquare, Zap, Trophy, BarChart3, Settings,
+  TrendingUp, Flame, CalendarDays, X
 } from 'lucide-react';
 import styles from './DashboardSidebar.module.css';
 
@@ -25,8 +25,8 @@ const navItems = [
 const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
   const location = useLocation();
   const [activeWidget, setActiveWidget] = useState(null);
-  const { settings } = useSettings(); 
-  
+  const { settings } = useSettings();
+
   const [badges, setBadges] = useState({});
   const [widgetData, setWidgetData] = useState({
     hours: 0,
@@ -43,8 +43,8 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
       newBadges['pending-connections'] = true;
     }
 
-    const hasUnreadMessages = storedNotifs.some(n => 
-      (n.type === 'message' || n.title.toLowerCase().includes('message')) && 
+    const hasUnreadMessages = storedNotifs.some(n =>
+      (n.type === 'message' || n.title.toLowerCase().includes('message')) &&
       (n.unread === true || (n.unread === undefined && !n.read))
     );
     if (hasUnreadMessages) {
@@ -53,17 +53,17 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
     setBadges(newBadges);
 
     setWidgetData({
-        hours: storedUser.studyHours || 0,
-        streak: storedUser.streak || 0,
-        connections: storedUser.connections ? storedUser.connections.length : 0
+      hours: storedUser.studyHours || 0,
+      streak: storedUser.streak || 0,
+      connections: storedUser.connections ? storedUser.connections.length : 0
     });
   };
 
   useEffect(() => {
-    calculateBadgesAndWidgets(); 
+    calculateBadgesAndWidgets();
     window.addEventListener('userUpdated', calculateBadgesAndWidgets);
     window.addEventListener('notificationAdded', calculateBadgesAndWidgets);
-    
+
     return () => {
       window.removeEventListener('userUpdated', calculateBadgesAndWidgets);
       window.removeEventListener('notificationAdded', calculateBadgesAndWidgets);
@@ -79,10 +79,10 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
 
   return (
     <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}> {/* 🟢 Apply dynamic class */}
-      
-      {/* 🟢 NEW: Mobile Close Button */}
-      <button className={styles.mobileCloseBtn} onClick={closeSidebar}>
-        <X size={24} />
+
+      {/* 🟢 A11Y FIX: Added aria-label to icon button */}
+      <button className={styles.mobileCloseBtn} onClick={closeSidebar} aria-label="Close sidebar">
+        <X size={24} aria-hidden="true" />
       </button>
 
       <div className={styles.header}>

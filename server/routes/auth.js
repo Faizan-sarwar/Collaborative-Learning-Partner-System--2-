@@ -841,9 +841,20 @@ router.get('/connections', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    res.json({ success: true, connections: (await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id).populate('connections', 'fullName department picture email level isOnline lastSeen reliability')).connections || [] });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const user = await User.findById(decoded.id).populate('connections', 'fullName department picture email level isOnline lastSeen reliability');
+
+    // 🟢 FIX: If the token belongs to a deleted user or wrong DB, kick them out safely!
+    if (!user) return res.status(401).json({ message: 'User not found in this database. Please log out.' });
+
+    // 🟢 FIX: .filter(Boolean) ensures if a connection was deleted, it doesn't send 'null' to the frontend
+    res.json({ success: true, connections: user.connections.filter(Boolean) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
+
 
 router.post('/connect/:targetId', async (req, res) => {
   try {

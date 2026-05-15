@@ -9,21 +9,19 @@ import DashboardLayout from '../../components/Dashboard/DashboardLayout/Dashboar
 import ChatBot from '../ChatBot/ChatBot';
 import styles from './Messages.module.css';
 
-import maleLevel1 from '../../src/assets/gamification/male-level-1.png';
-import maleLevel2 from '../../src/assets/gamification/male-level-2.png';
-import maleLevel3 from '../../src/assets/gamification/male-level-3.png';
-import maleLevel4 from '../../src/assets/gamification/male-level-4.png';
-import maleLevel5 from '../../src/assets/gamification/male-level-5.png';
-import maleLevel6 from '../../src/assets/gamification/male-level-6.png';
-import maleLevel7 from '../../src/assets/gamification/male-level-7.png';
-import femaleLevel1 from '../../src/assets/gamification/female-level-1.png';
-import femaleLevel2 from '../../src/assets/gamification/female-level-2.png';
-import femaleLevel3 from '../../src/assets/gamification/female-level-3.png';
-import femaleLevel4 from '../../src/assets/gamification/female-level-4.png';
-import femaleLevel5 from '../../src/assets/gamification/female-level-5.png';
-import femaleLevel6 from '../../src/assets/gamification/female-level-6.png';
-import femaleLevel7 from '../../src/assets/gamification/female-level-7.png';
-
+const avatars = {
+  male: {
+    1: '/gamification/male-level-1.png',
+    2: '/gamification/male-level-2.png',
+    3: '/gamification/male-level-3.png',
+    /* ... */
+  },
+  female: {
+    1: '/gamification/female-level-1.png',
+    2: '/gamification/female-level-2.png',
+    /* ... */
+  }
+};
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_MESSAGE_LENGTH = 4000;
 const POLL_INTERVAL_MS = 3000;
@@ -31,12 +29,6 @@ const API = `http://${window.location.hostname}:5000/api`;
 
 // 🟢 ONLINE WINDOW: Matches exactly what backend validates (auth.js login)
 const ONLINE_WINDOW_MS = 15 * 60 * 1000; // 15 min
-
-const avatars = {
-  male: { 1: maleLevel1, 2: maleLevel2, 3: maleLevel3, 4: maleLevel4, 5: maleLevel5, 6: maleLevel6, 7: maleLevel7 },
-  female: { 1: femaleLevel1, 2: femaleLevel2, 3: femaleLevel3, 4: femaleLevel4, 5: femaleLevel5, 6: femaleLevel6, 7: femaleLevel7 }
-};
-
 const getAvatarSrc = (userObj) => {
   if (userObj?.settings?.showAvatar === false) {
     const id = userObj._id || userObj.id;

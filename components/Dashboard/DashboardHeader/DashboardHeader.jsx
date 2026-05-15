@@ -8,27 +8,27 @@ import {
 } from 'lucide-react';
 import styles from './DashboardHeader.module.css';
 
-import maleLevel1   from '../../../src/assets/gamification/male-level-1.png';
-import maleLevel2   from '../../../src/assets/gamification/male-level-2.png';
-import maleLevel3   from '../../../src/assets/gamification/male-level-3.png';
-import maleLevel4   from '../../../src/assets/gamification/male-level-4.png';
-import maleLevel5   from '../../../src/assets/gamification/male-level-5.png';
-import maleLevel6   from '../../../src/assets/gamification/male-level-6.png';
-import maleLevel7   from '../../../src/assets/gamification/male-level-7.png';
-import femaleLevel1 from '../../../src/assets/gamification/female-level-1.png';
-import femaleLevel2 from '../../../src/assets/gamification/female-level-2.png';
-import femaleLevel3 from '../../../src/assets/gamification/female-level-3.png';
-import femaleLevel4 from '../../../src/assets/gamification/female-level-4.png';
-import femaleLevel5 from '../../../src/assets/gamification/female-level-5.png';
-import femaleLevel6 from '../../../src/assets/gamification/female-level-6.png';
-import femaleLevel7 from '../../../src/assets/gamification/female-level-7.png';
+import maleLevel1 from '../../../public/gamification/male-level-1.png';
+import maleLevel2 from '../../../public/gamification/male-level-2.png';
+import maleLevel3 from '../../../public/gamification/male-level-3.png';
+import maleLevel4 from '../../../public/gamification/male-level-4.png';
+import maleLevel5 from '../../../public/gamification/male-level-5.png';
+import maleLevel6 from '../../../public/gamification/male-level-6.png';
+import maleLevel7 from '../../../public/gamification/male-level-7.png';
+import femaleLevel1 from '../../../public/gamification/female-level-1.png';
+import femaleLevel2 from '../../../public/gamification/female-level-2.png';
+import femaleLevel3 from '../../../public/gamification/female-level-3.png';
+import femaleLevel4 from '../../../public/gamification/female-level-4.png';
+import femaleLevel5 from '../../../public/gamification/female-level-5.png';
+import femaleLevel6 from '../../../public/gamification/female-level-6.png';
+import femaleLevel7 from '../../../public/gamification/female-level-7.png';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const API        = `http://${window.location.hostname}:5000/api`;
-const POLL_MS    = 8000; // poll every 8s — not 5s, reduces server load
+const API = `http://${window.location.hostname}:5000/api`;
+const POLL_MS = 8000; // poll every 8s — not 5s, reduces server load
 
 const avatars = {
-  male:   { 1: maleLevel1,   2: maleLevel2,   3: maleLevel3,   4: maleLevel4,   5: maleLevel5,   6: maleLevel6,   7: maleLevel7   },
+  male: { 1: maleLevel1, 2: maleLevel2, 3: maleLevel3, 4: maleLevel4, 5: maleLevel5, 6: maleLevel6, 7: maleLevel7 },
   female: { 1: femaleLevel1, 2: femaleLevel2, 3: femaleLevel3, 4: femaleLevel4, 5: femaleLevel5, 6: femaleLevel6, 7: femaleLevel7 }
 };
 
@@ -51,18 +51,18 @@ const getStoredUser = () => {
  */
 const normalise = (n) => ({
   // canonical id — always a string
-  id:        String(n._id || n.id || ''),
+  id: String(n._id || n.id || ''),
   // canonical read flag — unread:true means NOT read
-  isUnread:  n.unread === true || (n.unread === undefined && n.read === false),
-  type:      (n.type || 'system').toLowerCase(),
-  title:     n.title  || '',
-  message:   n.message || '',
-  link:      n.link   || null,
+  isUnread: n.unread === true || (n.unread === undefined && n.read === false),
+  type: (n.type || 'system').toLowerCase(),
+  title: n.title || '',
+  message: n.message || '',
+  link: n.link || null,
   createdAt: n.createdAt || n.timestamp || new Date().toISOString(),
   // keep originals for API calls that need _id
-  _id:       n._id    || null,
+  _id: n._id || null,
   // mark origin so we know whether to call API or just update localStorage
-  _local:    !n._id,
+  _local: !n._id,
 });
 
 /**
@@ -91,14 +91,14 @@ const buildWelcomeNotifications = (user) => {
   const now = new Date().toISOString();
   const notes = [
     {
-      id:        `welcome-${user._id}`,
-      isUnread:  true,
-      type:      'success',
-      title:     'Welcome to the Platform! 🎉',
-      message:   `Hi ${user.fullName?.split(' ')[0] || 'there'}, your learning journey starts now. Find study matches to get started!`,
-      link:      '/matches',
+      id: `welcome-${user._id}`,
+      isUnread: true,
+      type: 'success',
+      title: 'Welcome to the Platform! 🎉',
+      message: `Hi ${user.fullName?.split(' ')[0] || 'there'}, your learning journey starts now. Find study matches to get started!`,
+      link: '/matches',
       createdAt: now,
-      _local:    true,
+      _local: true,
     }
   ];
 
@@ -106,14 +106,14 @@ const buildWelcomeNotifications = (user) => {
   // signup flow awarded exactly 10 welcome XP — don't show this to returning users
   if ((user.xp ?? 0) <= 10) {
     notes.push({
-      id:        `welcome-xp-${user._id}`,
-      isUnread:  true,
-      type:      'achievement',
-      title:     'Welcome Bonus! ⚡',
-      message:   'You received 10 XP for joining. Level up by logging study time and connecting with peers!',
-      link:      '/gamification',
+      id: `welcome-xp-${user._id}`,
+      isUnread: true,
+      type: 'achievement',
+      title: 'Welcome Bonus! ⚡',
+      message: 'You received 10 XP for joining. Level up by logging study time and connecting with peers!',
+      link: '/gamification',
       createdAt: new Date(Date.now() - 1).toISOString(), // 1ms earlier so welcome is on top
-      _local:    true,
+      _local: true,
     });
   }
 
@@ -139,19 +139,19 @@ const writeLocalNotifs = (arr) => {
 const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
   const navigate = useNavigate();
 
-  const [user,             setUser]             = useState(getStoredUser);
-  const [imgCacheKey,      setImgCacheKey]      = useState(Date.now);
-  const [isDark,           setIsDark]           = useState(() => {
+  const [user, setUser] = useState(getStoredUser);
+  const [imgCacheKey, setImgCacheKey] = useState(Date.now);
+  const [isDark, setIsDark] = useState(() => {
     const t = document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark';
     return t === 'dark';
   });
 
-  const [notifications,    setNotifications]    = useState([]);
-  const [showNotifications,setShowNotifications]= useState(false);
-  const [showProfileMenu,  setShowProfileMenu]  = useState(false);
-  const [searchQuery,      setSearchQuery]      = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const menuRef  = useRef(null);
+  const menuRef = useRef(null);
   const notifRef = useRef(null);
 
   // ── Load user from storage ───────────────────────────────────────────────
@@ -183,10 +183,10 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     }
 
     // Inject welcome notes into local storage
-    const welcomeNotes  = buildWelcomeNotifications(user);
+    const welcomeNotes = buildWelcomeNotifications(user);
     const existingLocal = readLocalNotifs();
     // Avoid duplicating if component remounts before flag is set
-    const alreadyHas    = existingLocal.some(n => n.id === welcomeNotes[0].id);
+    const alreadyHas = existingLocal.some(n => n.id === welcomeNotes[0].id);
     if (!alreadyHas) {
       writeLocalNotifs([...welcomeNotes, ...existingLocal]);
     }
@@ -205,7 +205,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
 
       if (user.role === 'admin' || user.role === 'super-admin') {
         // Admin: only system/registration/admin notifications
-        const res  = await fetch(`${API}/auth/admin/notifications`, {
+        const res = await fetch(`${API}/auth/admin/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -215,7 +215,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
         // Student: personal notifications from the dedicated endpoint
         // GET /api/notifications returns { success, notifications: [...] }
         // where each notification has { _id, type, title, message, link, unread, createdAt }
-        const res  = await fetch(`${API}/notifications`, {
+        const res = await fetch(`${API}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -233,7 +233,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       let chatNotif = null;
       if (user.role === 'student') {
         try {
-          const chatRes  = await fetch(`${API}/chat/conversations`, {
+          const chatRes = await fetch(`${API}/chat/conversations`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (chatRes.ok) {
@@ -244,12 +244,12 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
               );
               if (totalUnread > 0) {
                 chatNotif = normalise({
-                  id:        'synthetic-chat-unread',
-                  type:      'message',
-                  title:     'New Messages',
-                  message:   `You have ${totalUnread} unread message${totalUnread > 1 ? 's' : ''}.`,
-                  link:      '/messages',
-                  unread:    true,
+                  id: 'synthetic-chat-unread',
+                  type: 'message',
+                  title: 'New Messages',
+                  message: `You have ${totalUnread} unread message${totalUnread > 1 ? 's' : ''}.`,
+                  link: '/messages',
+                  unread: true,
                   createdAt: new Date().toISOString(),
                 });
               }
@@ -264,7 +264,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       // ── 4. Merge: local + DB + optional chat synthetic ───────────────────
       // Order: chat synthetic first (most urgent), then merge rest
       const merged = mergeNotifications(localNotifs, normDB);
-      const final  = chatNotif ? [chatNotif, ...merged.filter(n => n.id !== 'synthetic-chat-unread')] : merged;
+      const final = chatNotif ? [chatNotif, ...merged.filter(n => n.id !== 'synthetic-chat-unread')] : merged;
 
       setNotifications(final);
 
@@ -284,23 +284,23 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     loadUser();
     loadNotifications();
 
-    const onUserUpdated     = () => loadUser();
+    const onUserUpdated = () => loadUser();
     const onNotificationAdd = () => loadNotifications();
-    const onChatRead        = () => {
+    const onChatRead = () => {
       // Remove the synthetic chat notification immediately
       setNotifications(prev => prev.filter(n => n.id !== 'synthetic-chat-unread'));
     };
 
-    window.addEventListener('userUpdated',      onUserUpdated);
-    window.addEventListener('notificationAdded',onNotificationAdd);
-    window.addEventListener('chatRead',         onChatRead);
+    window.addEventListener('userUpdated', onUserUpdated);
+    window.addEventListener('notificationAdded', onNotificationAdd);
+    window.addEventListener('chatRead', onChatRead);
 
     const poll = setInterval(loadNotifications, POLL_MS);
 
     return () => {
-      window.removeEventListener('userUpdated',      onUserUpdated);
-      window.removeEventListener('notificationAdded',onNotificationAdd);
-      window.removeEventListener('chatRead',         onChatRead);
+      window.removeEventListener('userUpdated', onUserUpdated);
+      window.removeEventListener('notificationAdded', onNotificationAdd);
+      window.removeEventListener('chatRead', onChatRead);
       clearInterval(poll);
     };
   }, [loadUser, loadNotifications]);
@@ -308,7 +308,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
   // ── Click outside ────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
-      if (menuRef.current  && !menuRef.current.contains(e.target))  setShowProfileMenu(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) setShowProfileMenu(false);
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
     };
     document.addEventListener('mousedown', handler);
@@ -350,7 +350,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     if (!token || user.role !== 'student') return;
     try {
       await fetch(`${API}/notifications/clear`, {
-        method:  'DELETE',
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
@@ -380,17 +380,17 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       const token = getToken();
       if (token) {
         fetch(`${API}/notifications/${notif._id}/read`, {
-          method:  'PUT',
+          method: 'PUT',
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
 
     // 4. Navigate to relevant page
     const dest = notif.link ||
-      (notif.type === 'message'     ? '/messages'             :
-       notif.type === 'connection'  ? '/pending-connections'  :
-       notif.type === 'achievement' ? '/gamification'         : null);
+      (notif.type === 'message' ? '/messages' :
+        notif.type === 'connection' ? '/pending-connections' :
+          notif.type === 'achievement' ? '/gamification' : null);
 
     if (dest) navigate(dest);
   };
@@ -409,7 +409,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     try {
       if (token) {
         await fetch(`${API}/auth/logout`, {
-          method:  'POST',
+          method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
       }
@@ -433,11 +433,11 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       return `${API}/auth/student/${user._id}/picture?t=${imgCacheKey}`;
     }
     const gender = user.gender?.toLowerCase() === 'female' ? 'female' : 'male';
-    const level  = Math.min(Math.max(user.level || 1, 1), 7);
+    const level = Math.min(Math.max(user.level || 1, 1), 7);
     return avatars[gender]?.[level] || avatars.male[1];
   };
 
-  const avatarSrc   = getAvatarSrc();
+  const avatarSrc = getAvatarSrc();
   const fallbackSrc = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.fullName || 'ST')}`;
 
   // ── Derived counts ────────────────────────────────────────────────────────
@@ -447,11 +447,11 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
   const getNotifIcon = (type) => {
     switch (type) {
       case 'achievement':
-      case 'success':    return <Award        size={18} className={styles.iconSuccess} />;
-      case 'message':    return <MessageSquare size={18} className={styles.iconMessage} />;
-      case 'connection': return <UserIcon      size={18} className={styles.iconDefault} />;
-      case 'reminder':   return <AlertCircle  size={18} className={styles.iconWarning} />;
-      default:           return <Bell         size={18} className={styles.iconDefault} />;
+      case 'success': return <Award size={18} className={styles.iconSuccess} />;
+      case 'message': return <MessageSquare size={18} className={styles.iconMessage} />;
+      case 'connection': return <UserIcon size={18} className={styles.iconDefault} />;
+      case 'reminder': return <AlertCircle size={18} className={styles.iconWarning} />;
+      default: return <Bell size={18} className={styles.iconDefault} />;
     }
   };
 
@@ -460,9 +460,9 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     const d = new Date(iso);
     const now = Date.now();
     const diff = Math.floor((now - d.getTime()) / 1000);
-    if (diff < 60)   return 'Just now';
+    if (diff < 60) return 'Just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
@@ -472,9 +472,9 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       className={styles.header}
       style={isFullWidth ? { left: 0, width: '100vw', maxWidth: '100vw', marginLeft: 0, borderRadius: 0 } : {}}
     >
-      {/* Mobile hamburger */}
-      <button className={styles.mobileMenuBtn} onClick={toggleSidebar}>
-        <Menu size={24} />
+      {/* 🟢 A11Y FIX: Added aria-label */}
+      <button className={styles.mobileMenuBtn} onClick={toggleSidebar} aria-label="Open mobile menu">
+        <Menu size={24} aria-hidden="true" />
       </button>
 
       {/* User greeting */}
@@ -482,7 +482,8 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
         <div className={styles.avatar}>
           <img
             src={avatarSrc}
-            alt="User"
+            alt="User Profile"
+            fetchpriority="high" /* 🟢 PERFORMANCE FIX: Force load the main LCP image */
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
           />
         </div>
@@ -496,13 +497,14 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
 
       {/* Search */}
       <div className={styles.searchBar}>
-        <Search className={styles.searchIcon} size={18} />
+        <Search className={styles.searchIcon} size={18} aria-hidden="true" />
         <input
           type="text"
           placeholder="Search..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className={styles.searchInput}
+          aria-label="Search platform" /* 🟢 A11Y FIX: Added aria-label to input */
         />
       </div>
 
@@ -510,8 +512,8 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       <div className={styles.actions}>
 
         {/* Theme toggle */}
-        <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle theme">
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+        <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle theme" aria-label="Toggle dark mode">
+          {isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
         </button>
 
         {/* Notifications */}
@@ -521,7 +523,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
             onClick={() => setShowNotifications(v => !v)}
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
           >
-            <Bell size={18} />
+            <Bell size={18} aria-hidden="true" />
             {unreadCount > 0 && (
               <span className={styles.notifBadge}>
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -534,8 +536,8 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
               <motion.div
                 className={styles.notificationDropdown}
                 initial={{ opacity: 0, y: -10, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0,   scale: 1     }}
-                exit={{   opacity: 0, y: -10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.97 }}
                 transition={{ duration: 0.18 }}
               >
                 {/* Header */}
@@ -559,7 +561,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
                         onClick={markAllAsRead}
                         title="Mark all as read"
                       >
-                        <Check size={13} /> All read
+                        <Check size={13} aria-hidden="true" /> All read
                       </button>
                     )}
                     {(user.role === 'student') && notifications.length > 0 && (
@@ -569,7 +571,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
                         title="Clear all"
                         style={{ color: '#ef4444' }}
                       >
-                        <Trash2 size={13} /> Clear
+                        <Trash2 size={13} aria-hidden="true" /> Clear
                       </button>
                     )}
                   </div>
@@ -612,12 +614,12 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
 
         {/* Start Timer */}
         <button className={styles.startTimer} onClick={() => navigate('/study-time')}>
-          <Play size={16} fill="currentColor" /> Start Timer
+          <Play size={16} fill="currentColor" aria-hidden="true" /> Start Timer
         </button>
 
         {/* Refer */}
         <button className={styles.referBtn} onClick={() => navigate('/refer')}>
-          <Gift size={16} /> Refer
+          <Gift size={16} aria-hidden="true" /> Refer
         </button>
 
         {/* Profile menu */}
@@ -629,7 +631,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
           >
             <img
               src={avatarSrc}
-              alt="Profile"
+              alt="Profile Toggle"
               onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
             />
           </button>
@@ -639,14 +641,15 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
               <motion.div
                 className={styles.profileMenu}
                 initial={{ opacity: 0, y: -10, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0,   scale: 1     }}
-                exit={{   opacity: 0, y: -10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.97 }}
                 transition={{ duration: 0.18 }}
               >
                 <div className={styles.menuHeader}>
                   <img
                     src={avatarSrc}
-                    alt="Profile"
+                    alt="Profile Menu Avatar"
+                    loading="lazy" /* 🟢 PERFORMANCE FIX: Lazy load the hidden dropdown image */
                     onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
                   />
                   <div className={styles.menuUserInfo}>
@@ -667,20 +670,20 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
                   className={styles.menuItem}
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  <UserIcon size={15} /> Profile
+                  <UserIcon size={15} aria-hidden="true" /> Profile
                 </Link>
                 <Link
                   to="/settings"
                   className={styles.menuItem}
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  <Settings size={15} /> Settings
+                  <Settings size={15} aria-hidden="true" /> Settings
                 </Link>
 
                 <div className={styles.menuDivider} />
 
                 <button className={styles.menuItemLogout} onClick={handleLogout}>
-                  <LogOut size={15} /> Log out
+                  <LogOut size={15} aria-hidden="true" /> Log out
                 </button>
               </motion.div>
             )}

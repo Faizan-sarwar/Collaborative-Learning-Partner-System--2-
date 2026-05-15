@@ -45,7 +45,7 @@ const Connections = () => {
 
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token')) || localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/auth/connections/${id}/remove`, {
+      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/connections/${id}/remove`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -180,7 +180,7 @@ const Connections = () => {
                   <div className={styles.cardHeader}>
                     <div className={styles.avatar}>
                         <img 
-                            src={`http://localhost:5000/api/auth/student/${conn._id}/picture`} 
+                            src={`http://${window.location.hostname}:5000/api/auth/student/${conn._id}/picture`} 
                             onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${conn.fullName}`}
                             alt={conn.fullName} 
                             style={{width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover'}}
