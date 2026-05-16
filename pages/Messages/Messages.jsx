@@ -14,26 +14,36 @@ const avatars = {
     1: '/gamification/male-level-1.png',
     2: '/gamification/male-level-2.png',
     3: '/gamification/male-level-3.png',
-    /* ... */
+    4: '/gamification/male-level-4.png',
+    5: '/gamification/male-level-5.png',
+    6: '/gamification/male-level-6.png',
+    7: '/gamification/male-level-7.png'
   },
   female: {
     1: '/gamification/female-level-1.png',
     2: '/gamification/female-level-2.png',
-    /* ... */
+    3: '/gamification/female-level-3.png',
+    4: '/gamification/female-level-4.png',
+    5: '/gamification/female-level-5.png',
+    6: '/gamification/female-level-6.png',
+    7: '/gamification/female-level-7.png'
   }
 };
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_MESSAGE_LENGTH = 4000;
 const POLL_INTERVAL_MS = 3000;
 const API = `http://${window.location.hostname}:5000/api`;
 
-// 🟢 ONLINE WINDOW: Matches exactly what backend validates (auth.js login)
 const ONLINE_WINDOW_MS = 15 * 60 * 1000; // 15 min
+
+// 🟢 FIX: Smart Avatar Logic
 const getAvatarSrc = (userObj) => {
-  if (userObj?.settings?.showAvatar === false) {
-    const id = userObj._id || userObj.id;
-    return id ? `${API}/auth/student/${id}/picture` : null;
+  // If user turned off cartoon avatar AND has a real picture
+  if (userObj?.settings?.showAvatar === false && userObj.hasPicture) {
+    return `${API}/auth/student/${userObj.id}/picture`;
   }
+  // Otherwise, use gamified cartoon
   const gender = userObj?.gender?.toLowerCase() === 'female' ? 'female' : 'male';
   const level = Math.min(Math.max(parseInt(userObj?.level) || 1, 1), 7);
   return avatars[gender]?.[level] || avatars.male[1];
@@ -45,7 +55,6 @@ const getInitials = (name = '') =>
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
 // ─── DATE PARSING ──────────────────────────────────────────────────────────────
-// Handles: ms (number), ISO string, stringified ms/seconds
 const parseDate = (val) => {
   if (val == null || val === '') return null;
   if (typeof val === 'number') {
@@ -63,46 +72,27 @@ const parseDate = (val) => {
   return null;
 };
 
-// 🟢 RESOLVE ONLINE STATUS: Check isOnline flag AND lastLogin window
 const resolveOnline = (userOrConv) => {
   if (!userOrConv) return false;
-
-  // Must have isOnline=true OR online=true
   const isOnlineFlag = userOrConv.isOnline === true || userOrConv.online === true;
   if (!isOnlineFlag) return false;
-
-  // Must have lastLogin/lastActive/lastSeen within 15 min
   const loginTime = userOrConv.lastLogin ?? userOrConv.lastActive ?? userOrConv.lastSeen;
   if (!loginTime) return false;
-
   const d = parseDate(loginTime);
   if (!d) return false;
-
-  const isRecent = (Date.now() - d.getTime()) <= ONLINE_WINDOW_MS;
-  return isRecent;
+  return (Date.now() - d.getTime()) <= ONLINE_WINDOW_MS;
 };
 
-// 🟢 FORMAT LAST SEEN: Never returns "Invalid Date"
 const formatLastSeen = (val) => {
   if (!val) return 'Offline';
-
   const d = parseDate(val);
   if (!d) return 'Offline';
-
   const diff = Date.now() - d.getTime();
   if (diff < 60_000) return 'just now';
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
-
   return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
-};
-
-const formatTime = (val) => {
-  if (!val) return '';
-  const d = parseDate(val);
-  if (!d) return '';
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const formatDateSeparator = (val) => {
@@ -125,7 +115,6 @@ const isSameDay = (a, b) => {
 
 const sanitize = (str) => String(str ?? '').replace(/</g, '\u003c').replace(/>/g, '\u003e');
 
-// ─── DEBOUNCE ──────────────────────────────────────────────────────────────────
 function useDebounce(value, delay = 220) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -136,31 +125,33 @@ function useDebounce(value, delay = 220) {
 }
 
 // ─── AVATAR COMPONENT ───────────────────────────────────────────────────────────
-const Avatar = ({ src, name, size = 42, online = false }) => (
-  <div style={{ position: 'relative', flexShrink: 0 }}>
-    <div style={{
-      width: size, height: size, borderRadius: '50%', overflow: 'hidden',
-      background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.35, color: 'white', fontWeight: '700', flexShrink: 0
-    }}>
-      {src
-        ? <img src={src} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={e => { e.target.style.display = 'none'; }} />
-        : getInitials(name)}
+const Avatar = ({ src, name, size = 42, online = false }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div style={{
+        width: size, height: size, borderRadius: '50%', overflow: 'hidden',
+        background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.35, color: 'white', fontWeight: '700', flexShrink: 0
+      }}>
+        {src && !imgFailed
+          ? <img src={src} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={() => setImgFailed(true)} />
+          : getInitials(name)}
+      </div>
+      {online && (
+        <span style={{
+          position: 'absolute', bottom: 1, right: 1,
+          width: size * 0.28, height: size * 0.28,
+          borderRadius: '50%', background: '#10b981',
+          border: `2px solid var(--bg-primary, #0f172a)`,
+          boxShadow: '0 0 8px rgba(16,185,129,0.6)'
+        }} />
+      )}
     </div>
-    {/* 🟢 GREEN DOT: Only when truly online */}
-    {online && (
-      <span style={{
-        position: 'absolute', bottom: 1, right: 1,
-        width: size * 0.28, height: size * 0.28,
-        borderRadius: '50%', background: '#10b981',
-        border: `2px solid var(--bg-primary, #0f172a)`,
-        boxShadow: '0 0 8px rgba(16,185,129,0.6)'
-      }} />
-    )}
-  </div>
-);
+  );
+};
 
 // ─── TYPING INDICATOR ───────────────────────────────────────────────────────────
 const TypingIndicator = () => (
@@ -274,13 +265,9 @@ const Toast = ({ message, type }) => (
   </motion.div>
 );
 
-// Find this specific block inside your Messages.jsx file and replace it:
-
 // ─── MESSAGE BUBBLE ─────────────────────────────────────────────────────────────
 const MessageBubble = ({ message, onRetry, isFirst, isLast }) => {
   const isOwn = message.isOwn;
-
-  // Format the raw ISO date strictly on the frontend
   const msgTime = new Date(message.createdAt || message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -330,13 +317,10 @@ const MessageBubble = ({ message, onRetry, isFirst, isLast }) => {
                   <RefreshCw size={11} color="#fca5a5" />
                 </button>
               ) : message.status === 'sending' ? (
-                // Single Tick = Sending
                 <Check size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
               ) : message.isRead ? (
-                // Double Blue Tick = Read
                 <CheckCheck size={13} style={{ color: '#38bdf8' }} />
               ) : (
-                // Double Grey Tick = Delivered to Server
                 <CheckCheck size={13} style={{ color: 'rgba(255,255,255,0.6)' }} />
               )}
             </span>
@@ -374,53 +358,40 @@ const Messages = () => {
   const debouncedSearch = useDebounce(searchQuery);
   const debouncedNewChatSearch = useDebounce(newChatSearch);
 
-  // ── Toast helper ──────────────────────────────────────────────────────────
   const showToast = useCallback((message, type = 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // ── Fetch conversations from chat API ─────────────────────────────────────
-  // 🟢 FALLBACK: If chat API unavailable, fetch from /auth/connections
   const fetchConversations = useCallback(async () => {
     const token = getToken();
     if (!token) return;
     try {
-      // Try chat API first
       let res = await fetch(`${API}/chat/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 🟢 FALLBACK to connections if chat API doesn't exist
       if (!res.ok && res.status === 404) {
-        console.log('[Messages] Chat API not found, falling back to connections...');
         res = await fetch(`${API}/auth/connections`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-
         if (data.success) {
-          // Convert connections to conversation format
-          const conversations = data.connections.map(u => ({
-            id: u._id,
-            otherUserId: u._id,
-            name: u.fullName,
-            avatar: getAvatarSrc(u),
-            lastMessage: '',
-            lastMessageAt: u.lastLogin,
-            lastSeen: u.lastLogin,
-            lastLogin: u.lastLogin,
-            isOnline: u.isOnline,
-            unread: 0,
-            // 🟢 Validate online status
-            online: resolveOnline({
-              isOnline: u.isOnline,
-              lastLogin: u.lastLogin
-            })
+          const validated = data.connections.map(c => ({
+            ...c,
+            avatar: getAvatarSrc({
+              id: c._id,
+              gender: c.gender,
+              level: c.level,
+              settings: c.settings,
+              hasPicture: !!c.picture
+            }),
+            online: resolveOnline(c),
+            lastLogin: c.lastLogin ?? null,
+            lastSeen: c.lastLogin ?? null,
           }));
-          setConversations(conversations);
+          setConversations(validated);
         }
         setLoading(false);
         return;
@@ -430,9 +401,16 @@ const Messages = () => {
       const data = await res.json();
 
       if (data.success) {
-        // 🟢 Validate online status for each conversation
+        // 🟢 FIX: Map the data using our proper avatar function
         const validated = data.conversations.map(c => ({
           ...c,
+          avatar: getAvatarSrc({
+            id: c.otherUserId,
+            gender: c.gender,
+            level: c.level,
+            settings: c.settings,
+            hasPicture: c.hasPicture
+          }),
           online: resolveOnline(c),
           lastLogin: c.lastLogin ?? c.otherUserLastLogin ?? null,
           lastSeen: c.lastSeen ?? c.otherUserLastSeen ?? c.lastMessageAt ?? null,
@@ -453,7 +431,6 @@ const Messages = () => {
     return () => clearInterval(id);
   }, [fetchConversations]);
 
-  // ── Fetch messages ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!selectedConversation?.id) return;
     const convId = selectedConversation.id;
@@ -467,11 +444,7 @@ const Messages = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {
-          if (res.status === 404) {
-            // Chat API doesn't exist yet, just skip
-            console.log('[Messages] Chat API not ready');
-            return;
-          }
+          if (res.status === 404) return;
           throw new Error(`HTTP ${res.status}`);
         }
         const data = await res.json();
@@ -491,13 +464,11 @@ const Messages = () => {
     };
   }, [selectedConversation?.id]);
 
-  // ── Active conversation (always fresh) ────────────────────────────────────
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === selectedConversation?.id) || selectedConversation,
     [conversations, selectedConversation]
   );
 
-  // ── Mark as read ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!activeConversation?.id || !activeConversation?.unread) return;
     setConversations(prev => prev.map(c =>
@@ -513,19 +484,16 @@ const Messages = () => {
     }).catch(err => console.error('[Messages] markRead:', err));
   }, [activeConversation?.id, activeConversation?.unread]);
 
-  // ── Scroll to bottom ──────────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, selectedConversation]);
 
-  // ── Focus input ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (activeConversation) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [activeConversation?.id]);
 
-  // ── Send message ──────────────────────────────────────────────────────────
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const messageText = newMessage.trim();
@@ -541,20 +509,13 @@ const Messages = () => {
     const tempId = `temp-${crypto.randomUUID()}`;
     const currentConvId = selectedConversation.id || 'temp';
     const tempMessage = {
-      id: tempId,
-      text: messageText,
-      senderId: 'me',
-      isOwn: true,
-      status: 'sending',
-      read: false,
-      _retryText: messageText,
-      timestamp: new Date().toISOString(),
-      createdAt: new Date().toISOString()
+      id: tempId, text: messageText, senderId: 'me', isOwn: true,
+      status: 'sending', read: false, _retryText: messageText,
+      timestamp: new Date().toISOString(), createdAt: new Date().toISOString()
     };
 
     setMessages(prev => ({
-      ...prev,
-      [currentConvId]: [...(prev[currentConvId] || []), tempMessage]
+      ...prev, [currentConvId]: [...(prev[currentConvId] || []), tempMessage]
     }));
 
     try {
@@ -580,7 +541,6 @@ const Messages = () => {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Send failed');
 
-      // New conversation created
       if (!selectedConversation.id && data.conversationId) {
         setSelectedConversation(prev => ({ ...prev, id: data.conversationId }));
         setMessages(prev => {
@@ -591,8 +551,7 @@ const Messages = () => {
       }
 
       setMessages(prev => ({
-        ...prev,
-        [currentConvId]: (prev[currentConvId] || []).map(m =>
+        ...prev, [currentConvId]: (prev[currentConvId] || []).map(m =>
           m.id === tempId ? { ...m, status: 'delivered' } : m
         )
       }));
@@ -606,8 +565,7 @@ const Messages = () => {
       console.error('[Messages] sendMessage:', err);
       showToast('Failed to send. Tap ↺ to retry.');
       setMessages(prev => ({
-        ...prev,
-        [currentConvId]: (prev[currentConvId] || []).map(m =>
+        ...prev, [currentConvId]: (prev[currentConvId] || []).map(m =>
           m.id === tempId ? { ...m, status: 'error' } : m
         )
       }));
@@ -616,24 +574,20 @@ const Messages = () => {
     }
   };
 
-  // ── Retry failed message ──────────────────────────────────────────────────
   const handleRetry = useCallback((failedMsg) => {
     if (!failedMsg._retryText || !selectedConversation) return;
     const key = selectedConversation.id || 'temp';
     setMessages(prev => ({
-      ...prev,
-      [key]: (prev[key] || []).filter(m => m.id !== failedMsg.id)
+      ...prev, [key]: (prev[key] || []).filter(m => m.id !== failedMsg.id)
     }));
     setNewMessage(failedMsg._retryText);
     setTimeout(() => inputRef.current?.focus(), 50);
   }, [selectedConversation]);
 
-  // ── Input change ─────────────────────────────���────────────────────────────
   const handleInputChange = (e) => {
     if (e.target.value.length <= MAX_MESSAGE_LENGTH) setNewMessage(e.target.value);
   };
 
-  // ── Open new chat modal ───────────────────────────────────────────────────
   const handleOpenNewChat = async () => {
     setShowNewChatModal(true);
     setConnectionsLoading(true);
@@ -645,17 +599,12 @@ const Messages = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
-        // 🟢 Validate online status for connections
         setConnections(data.connections.map(u => ({
           ...u,
-          isOnline: resolveOnline({
-            isOnline: u.isOnline,
-            lastLogin: u.lastLogin
-          })
+          isOnline: resolveOnline({ isOnline: u.isOnline, lastLogin: u.lastLogin })
         })));
       }
     } catch (err) {
-      console.error('[Messages] fetchConnections:', err);
       showToast('Could not load connections.');
     } finally {
       setConnectionsLoading(false);
@@ -671,14 +620,17 @@ const Messages = () => {
         id: null,
         otherUserId: user._id,
         name: user.fullName,
-        avatar: getAvatarSrc(user),
+        avatar: getAvatarSrc({
+          id: user._id,
+          gender: user.gender,
+          level: user.level,
+          settings: user.settings,
+          hasPicture: !!user.picture
+        }),
         lastMessage: '',
         lastSeen: user.lastLogin || null,
         unread: 0,
-        online: resolveOnline({
-          isOnline: user.isOnline,
-          lastLogin: user.lastLogin
-        }),
+        online: resolveOnline({ isOnline: user.isOnline, lastLogin: user.lastLogin }),
         lastLogin: user.lastLogin
       });
     }
@@ -686,25 +638,16 @@ const Messages = () => {
     setNewChatSearch('');
   };
 
-  // ── Clear chat ────────────────────────────────────────────────────────────
   const handleClearChat = async () => {
     if (!selectedConversation?.id) return;
     const convId = selectedConversation.id;
-
-    // Create backups in case the API fails
     const backupMessages = messages[convId] || [];
     const backupConvs = [...conversations];
 
-    // 1. Optimistic UI: Empty the chat window
     setMessages(prev => ({ ...prev, [convId]: [] }));
-
-    // 2. Optimistic UI: Clear the preview text in the sidebar
     setConversations(prev => prev.map(c =>
-      c.id === convId
-        ? { ...c, lastMessage: '', lastSender: null }
-        : c
+      c.id === convId ? { ...c, lastMessage: '', lastSender: null } : c
     ));
-
     setShowConfirmModal(null);
     setShowChatMenu(false);
 
@@ -716,24 +659,23 @@ const Messages = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('Chat cleared.', 'success');
     } catch (err) {
-      console.error('[Messages] clearChat:', err);
-      // Revert UI on failure
       setMessages(prev => ({ ...prev, [convId]: backupMessages }));
       setConversations(backupConvs);
       showToast('Failed to clear chat.');
     }
   };
 
-  // ── Delete chat ───────────────────────────────────────────────────────────
   const handleDeleteChat = async () => {
     if (!selectedConversation?.id) return;
     const convId = selectedConversation.id;
     const backupConvs = [...conversations];
     const backupSelected = selectedConversation;
+
     setConversations(prev => prev.filter(c => c.id !== convId));
     setSelectedConversation(null);
     setShowConfirmModal(null);
     setShowChatMenu(false);
+
     try {
       const token = getToken();
       const res = await fetch(`${API}/chat/conversations/${convId}`, {
@@ -742,19 +684,15 @@ const Messages = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('Conversation deleted.', 'success');
     } catch (err) {
-      console.error('[Messages] deleteChat:', err);
       setConversations(backupConvs);
       setSelectedConversation(backupSelected);
       showToast('Failed to delete chat.');
     }
   };
 
-  // ── Block user ────────────────────────────────────────────────────────────
   const handleBlockUser = async () => {
     if (!selectedConversation) return;
     const targetId = selectedConversation.otherUserId;
-
-    // Optimistic UI Update: Keep chat in list, just mark as blocked
     setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, didIBlock: true } : c));
     setSelectedConversation(prev => ({ ...prev, didIBlock: true }));
     setShowConfirmModal(null);
@@ -768,20 +706,15 @@ const Messages = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('User blocked successfully.', 'success');
     } catch (err) {
-      console.error('[Messages] blockUser:', err);
-      // Revert on failure
       setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, didIBlock: false } : c));
       setSelectedConversation(prev => ({ ...prev, didIBlock: false }));
       showToast('Failed to block user.');
     }
   };
 
-  // ── Unblock user ──────────────────────────────────────────────────────────
   const handleUnblockUser = async () => {
     if (!selectedConversation) return;
     const targetId = selectedConversation.otherUserId;
-
-    // Optimistic UI Update
     setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, didIBlock: false } : c));
     setSelectedConversation(prev => ({ ...prev, didIBlock: false }));
     setShowConfirmModal(null);
@@ -795,58 +728,42 @@ const Messages = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('User unblocked successfully.', 'success');
     } catch (err) {
-      console.error('[Messages] unblockUser:', err);
-      // Revert on failure
       setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, didIBlock: true } : c));
       setSelectedConversation(prev => ({ ...prev, didIBlock: true }));
       showToast('Failed to unblock user.');
     }
   };
 
-  // ── Click outside & Escape ────────────────────────────────────────────────
   useEffect(() => {
     const onMouse = (e) => {
-      if (newChatModalRef.current && !newChatModalRef.current.contains(e.target))
-        setShowNewChatModal(false);
-      if (chatMenuRef.current && !chatMenuRef.current.contains(e.target))
-        setShowChatMenu(false);
+      if (newChatModalRef.current && !newChatModalRef.current.contains(e.target)) setShowNewChatModal(false);
+      if (chatMenuRef.current && !chatMenuRef.current.contains(e.target)) setShowChatMenu(false);
     };
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        setShowNewChatModal(false);
-        setShowConfirmModal(null);
-        setShowChatMenu(false);
+        setShowNewChatModal(false); setShowConfirmModal(null); setShowChatMenu(false);
       }
     };
     document.addEventListener('mousedown', onMouse);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onMouse);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onMouse); document.removeEventListener('keydown', onKey);
     };
   }, []);
 
-  // ── Derived state ─────────────────────────────────────────────────────────
-  const filteredConversations = useMemo(
-    () => conversations.filter(c =>
-      c.name?.toLowerCase().includes(debouncedSearch.toLowerCase())
-    ),
-    [conversations, debouncedSearch]
-  );
+  const filteredConversations = useMemo(() => conversations.filter(c =>
+    c.name?.toLowerCase().includes(debouncedSearch.toLowerCase())
+  ), [conversations, debouncedSearch]);
 
-  const filteredAvailableUsers = useMemo(
-    () => connections.filter(u =>
-      u.fullName?.toLowerCase().includes(debouncedNewChatSearch.toLowerCase())
-    ),
-    [connections, debouncedNewChatSearch]
-  );
+  const filteredAvailableUsers = useMemo(() => connections.filter(u =>
+    u.fullName?.toLowerCase().includes(debouncedNewChatSearch.toLowerCase())
+  ), [connections, debouncedNewChatSearch]);
 
   const currentMessages = useMemo(() => {
     if (!selectedConversation) return [];
     return messages[selectedConversation.id || 'temp'] || [];
   }, [messages, selectedConversation]);
 
-  // 🟢 Group messages with date separators
   const renderedMessages = useMemo(() => {
     const result = [];
     let lastDate = null;
@@ -854,9 +771,7 @@ const Messages = () => {
       const msgDate = msg.createdAt || msg.timestamp;
       if (msgDate && (!lastDate || !isSameDay(lastDate, msgDate))) {
         const label = formatDateSeparator(msgDate);
-        if (label) {
-          result.push({ type: 'date', label, key: `date-${i}` });
-        }
+        if (label) result.push({ type: 'date', label, key: `date-${i}` });
         lastDate = msgDate;
       }
       const prev = currentMessages[i - 1];
@@ -871,7 +786,6 @@ const Messages = () => {
   const charsLeft = MAX_MESSAGE_LENGTH - newMessage.length;
   const charsWarning = charsLeft < 200;
 
-  // 🟢 STATUS TEXT: Never returns "Invalid Date"
   const statusText = useMemo(() => {
     if (!activeConversation) return '';
     if (activeConversation.online) return 'Online';
@@ -883,7 +797,6 @@ const Messages = () => {
     return ago && ago !== 'Offline' ? `Last seen ${ago}` : 'Offline';
   }, [activeConversation]);
 
-  // ── RENDER ────────────────────────────────────────────────────────────────
   return (
     <DashboardLayout title="Messages">
       <style>{`
@@ -901,9 +814,6 @@ const Messages = () => {
         transition={{ duration: 0.25 }}
       >
         <div className={styles.messagesWrapper}>
-          {/* ══════════════════════════════════════════════════════════
-              SIDEBAR
-          ══════════════════════════════════════════════════════════ */}
           <div className={styles.conversationsSidebar}>
             <div className={styles.sidebarHeader}>
               <h2 className={styles.sidebarTitle}>Messages</h2>
@@ -937,9 +847,8 @@ const Messages = () => {
               {loading ? (
                 <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   <div style={{
-                    width: 20, height: 20, border: '2px solid #6366f1',
-                    borderTopColor: 'transparent', borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite', margin: '0 auto 8px'
+                    width: 20, height: 20, border: '2px solid #6366f1', borderTopColor: 'transparent',
+                    borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 8px'
                   }} />
                   Loading...
                 </div>
@@ -952,9 +861,8 @@ const Messages = () => {
                   {!searchQuery && (
                     <button onClick={handleOpenNewChat}
                       style={{
-                        marginTop: 12, background: 'rgba(99,102,241,0.12)',
-                        border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8,
-                        color: '#6366f1', padding: '6px 14px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600'
+                        marginTop: 12, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
+                        borderRadius: 8, color: '#6366f1', padding: '6px 14px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600'
                       }}>
                       Start a conversation
                     </button>
@@ -969,12 +877,7 @@ const Messages = () => {
                       className={`${styles.conversationItem} ${isActive ? styles.selected : ''}`}
                       onClick={() => setSelectedConversation(conv)}
                     >
-                      <Avatar
-                        src={conv.avatar}
-                        name={conv.name}
-                        size={46}
-                        online={conv.online}
-                      />
+                      <Avatar src={conv.avatar} name={conv.name} size={46} online={conv.online} />
                       <div className={styles.conversationInfo}>
                         <div className={styles.conversationHeader}>
                           <span className={styles.conversationName}>{conv.name}</span>
@@ -1004,8 +907,7 @@ const Messages = () => {
                           </span>
                           {conv.unread > 0 && (
                             <span className={styles.unreadBadge} style={{
-                              background: '#6366f1', color: 'white',
-                              fontSize: '0.68rem', fontWeight: '700',
+                              background: '#6366f1', color: 'white', fontSize: '0.68rem', fontWeight: '700',
                               padding: '2px 7px', borderRadius: '99px', flexShrink: 0
                             }}>
                               {conv.unread > 99 ? '99+' : conv.unread}
@@ -1020,38 +922,19 @@ const Messages = () => {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════════
-              CHAT AREA
-          ══════════════════��═══════════════════════════════════════ */}
           <div className={styles.chatArea} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {activeConversation ? (
               <>
-                {/* Chat Header */}
                 <div className={styles.chatHeader}>
                   <div className={styles.chatUserInfo}>
-                    <button
-                      onClick={() => setSelectedConversation(null)}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--text-secondary)', display: 'none', padding: '4px'
-                      }}
-                      className={styles.mobileBack}
-                    >
+                    <button onClick={() => setSelectedConversation(null)} className={styles.mobileBack}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'none', padding: '4px' }}>
                       <ArrowLeft size={20} />
                     </button>
-
-                    <Avatar
-                      src={activeConversation.avatar}
-                      name={activeConversation.name}
-                      size={40}
-                      online={activeConversation.online}
-                    />
+                    <Avatar src={activeConversation.avatar} name={activeConversation.name} size={40} online={activeConversation.online} />
                     <div className={styles.chatUserDetails} style={{ marginLeft: 10 }}>
                       <h3 className={styles.chatUserName}>{activeConversation.name}</h3>
-                      <span className={styles.chatUserStatus} style={{
-                        fontSize: '0.75rem',
-                        color: activeConversation.online ? '#22c55e' : 'var(--text-secondary)'
-                      }}>
+                      <span className={styles.chatUserStatus} style={{ fontSize: '0.75rem', color: activeConversation.online ? '#22c55e' : 'var(--text-secondary)' }}>
                         {statusText}
                       </span>
                     </div>
@@ -1059,8 +942,7 @@ const Messages = () => {
 
                   <div className={styles.chatHeaderActions}>
                     <div className={styles.chatMenuWrapper} ref={chatMenuRef}>
-                      <button className={styles.chatMenuBtn}
-                        onClick={() => setShowChatMenu(v => !v)}>
+                      <button className={styles.chatMenuBtn} onClick={() => setShowChatMenu(v => !v)}>
                         <MoreVertical size={20} />
                       </button>
                       <AnimatePresence>
@@ -1072,28 +954,21 @@ const Messages = () => {
                             exit={{ opacity: 0, scale: 0.9, y: -8 }}
                             transition={{ duration: 0.15 }}
                           >
-                            <button className={styles.chatMenuItem}
-                              onClick={() => { setShowConfirmModal('clear'); setShowChatMenu(false); }}>
+                            <button className={styles.chatMenuItem} onClick={() => { setShowConfirmModal('clear'); setShowChatMenu(false); }}>
                               <Trash2 size={14} /> Clear Chat
                             </button>
-                            <button className={styles.chatMenuItem}
-                              onClick={() => { setShowConfirmModal('delete'); setShowChatMenu(false); }}>
+                            <button className={styles.chatMenuItem} onClick={() => { setShowConfirmModal('delete'); setShowChatMenu(false); }}>
                               <X size={14} /> Delete Chat
                             </button>
                             <div style={{ height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
 
-                            {/* 🟢 DYNAMIC BLOCK / UNBLOCK TOGGLE */}
                             {activeConversation.didIBlock ? (
-                              <button
-                                className={styles.chatMenuItem}
-                                onClick={() => { setShowConfirmModal('unblock'); setShowChatMenu(false); }}>
+                              <button className={styles.chatMenuItem} onClick={() => { setShowConfirmModal('unblock'); setShowChatMenu(false); }}>
                                 <ShieldAlert size={14} style={{ color: '#10b981' }} />
                                 <span style={{ color: '#10b981' }}>Unblock User</span>
                               </button>
                             ) : (
-                              <button
-                                className={`${styles.chatMenuItem} ${styles.dangerItem}`}
-                                onClick={() => { setShowConfirmModal('block'); setShowChatMenu(false); }}>
+                              <button className={`${styles.chatMenuItem} ${styles.dangerItem}`} onClick={() => { setShowConfirmModal('block'); setShowChatMenu(false); }}>
                                 <Ban size={14} /> Block User
                               </button>
                             )}
@@ -1101,29 +976,18 @@ const Messages = () => {
                         )}
                       </AnimatePresence>
                     </div>
-                    <button className={styles.closeChat}
-                      onClick={() => setSelectedConversation(null)}>
+                    <button className={styles.closeChat} onClick={() => setSelectedConversation(null)}>
                       <X size={20} />
                     </button>
                   </div>
                 </div>
 
-                {/* Messages Container */}
                 <div className={styles.messagesContainer} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
                   {currentMessages.length === 0 && (
                     <div className={styles.noMessages} style={{ textAlign: 'center', padding: '40px 20px' }}>
-                      <Avatar
-                        src={activeConversation.avatar}
-                        name={activeConversation.name}
-                        size={64}
-                        online={activeConversation.online}
-                      />
-                      <h4 style={{ margin: '12px 0 4px', color: 'var(--text-primary)' }}>
-                        {activeConversation.name}
-                      </h4>
-                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                        Send a message to start the conversation 👋
-                      </p>
+                      <Avatar src={activeConversation.avatar} name={activeConversation.name} size={64} online={activeConversation.online} />
+                      <h4 style={{ margin: '12px 0 4px', color: 'var(--text-primary)' }}>{activeConversation.name}</h4>
+                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Send a message to start the conversation 👋</p>
                     </div>
                   )}
 
@@ -1131,102 +995,30 @@ const Messages = () => {
                     item.type === 'date' ? (
                       <DateSeparator key={item.key} label={item.label} />
                     ) : (
-                      <MessageBubble
-                        key={item.msg.id}
-                        message={item.msg}
-                        onRetry={handleRetry}
-                        isFirst={item.isFirst}
-                        isLast={item.isLast}
-                      />
+                      <MessageBubble key={item.msg.id} message={item.msg} onRetry={handleRetry} isFirst={item.isFirst} isLast={item.isLast} />
                     )
                   )}
 
-                  {isTyping && (
-                    <div style={{ paddingLeft: 4 }}>
-                      <TypingIndicator />
-                    </div>
-                  )}
-
+                  {isTyping && <div style={{ paddingLeft: 4 }}><TypingIndicator /></div>}
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area / Blocked Warning */}
-                <div style={{
-                  padding: '12px 16px',
-                  borderTop: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  flexShrink: 0
-                }}>
+                <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)', flexShrink: 0 }}>
                   {activeConversation.didIBlock ? (
-                    <div className={styles.blockedNotice}>
-                      <Ban size={16} />
-                      You blocked this contact. Unblock them in settings to send a message.
-                    </div>
+                    <div className={styles.blockedNotice}><Ban size={16} />You blocked this contact. Unblock them in settings to send a message.</div>
                   ) : activeConversation.amIBlocked ? (
-                    <div className={styles.blockedNotice}>
-                      <ShieldAlert size={16} />
-                      You cannot reply to this conversation.
-                    </div>
+                    <div className={styles.blockedNotice}><ShieldAlert size={16} />You cannot reply to this conversation.</div>
                   ) : (
                     <>
                       {charsWarning && (
-                        <div style={{
-                          fontSize: '0.68rem', color: charsLeft < 50 ? '#ef4444' : 'var(--text-secondary)',
-                          textAlign: 'right', marginBottom: '4px'
-                        }}>
+                        <div style={{ fontSize: '0.68rem', color: charsLeft < 50 ? '#ef4444' : 'var(--text-secondary)', textAlign: 'right', marginBottom: '4px' }}>
                           {charsLeft} characters left
                         </div>
                       )}
-                      <form
-                        onSubmit={handleSendMessage}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '10px',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '16px', padding: '6px 6px 6px 16px'
-                        }}
-                      >
-                        <input
-                          ref={inputRef}
-                          type="text"
-                          placeholder="Type a message..."
-                          value={newMessage}
-                          onChange={handleInputChange}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && !e.shiftKey) handleSendMessage(e);
-                          }}
-                          disabled={isSending}
-                          maxLength={MAX_MESSAGE_LENGTH}
-                          autoComplete="off"
-                          style={{
-                            flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                            color: 'var(--text-primary)', fontSize: '0.92rem',
-                            padding: '6px 0', minWidth: 0
-                          }}
-                        />
-                        <button
-                          type="submit"
-                          disabled={!newMessage.trim() || isSending}
-                          title="Send (Enter)"
-                          style={{
-                            width: 40, height: 40, borderRadius: '12px', border: 'none',
-                            background: newMessage.trim()
-                              ? 'linear-gradient(135deg,#6366f1,#7c3aed)'
-                              : 'rgba(99,102,241,0.15)',
-                            color: newMessage.trim() ? 'white' : '#6366f1',
-                            cursor: newMessage.trim() ? 'pointer' : 'not-allowed',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0, transition: 'background 0.2s',
-                            boxShadow: newMessage.trim() ? '0 2px 8px rgba(99,102,241,0.4)' : 'none'
-                          }}
-                        >
-                          {isSending
-                            ? <div style={{
-                              width: 15, height: 15, border: '2px solid white',
-                              borderTopColor: 'transparent', borderRadius: '50%',
-                              animation: 'spin 0.7s linear infinite'
-                            }} />
-                            : <Send size={16} />}
+                      <form onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '6px 6px 6px 16px' }}>
+                        <input ref={inputRef} type="text" placeholder="Type a message..." value={newMessage} onChange={handleInputChange} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSendMessage(e); }} disabled={isSending} maxLength={MAX_MESSAGE_LENGTH} autoComplete="off" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '0.92rem', padding: '6px 0', minWidth: 0 }} />
+                        <button type="submit" disabled={!newMessage.trim() || isSending} title="Send (Enter)" style={{ width: 40, height: 40, borderRadius: '12px', border: 'none', background: newMessage.trim() ? 'linear-gradient(135deg,#6366f1,#7c3aed)' : 'rgba(99,102,241,0.15)', color: newMessage.trim() ? 'white' : '#6366f1', cursor: newMessage.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.2s', boxShadow: newMessage.trim() ? '0 2px 8px rgba(99,102,241,0.4)' : 'none' }}>
+                          {isSending ? <div style={{ width: 15, height: 15, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <Send size={16} />}
                         </button>
                       </form>
                     </>
@@ -1235,26 +1027,12 @@ const Messages = () => {
               </>
             ) : (
               <div className={styles.noConversation} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
-                <div style={{
-                  width: 72, height: 72, borderRadius: '50%',
-                  background: 'rgba(99,102,241,0.1)', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center'
-                }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MessageSquare size={32} style={{ color: '#6366f1', opacity: 0.7 }} />
                 </div>
-                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: '700' }}>
-                  Your messages
-                </h3>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center' }}>
-                  Select a conversation or start a new one
-                </p>
-                <button onClick={handleOpenNewChat} style={{
-                  background: 'linear-gradient(135deg,#6366f1,#7c3aed)',
-                  border: 'none', borderRadius: 12, color: 'white',
-                  padding: '10px 22px', cursor: 'pointer', fontWeight: '700',
-                  fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8,
-                  boxShadow: '0 4px 16px rgba(99,102,241,0.35)'
-                }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: '700' }}>Your messages</h3>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', textAlign: 'center' }}>Select a conversation or start a new one</p>
+                <button onClick={handleOpenNewChat} style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', border: 'none', borderRadius: 12, color: 'white', padding: '10px 22px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}>
                   <MessageSquarePlus size={16} /> New Message
                 </button>
               </div>
@@ -1265,117 +1043,32 @@ const Messages = () => {
         {/* NEW CHAT MODAL */}
         <AnimatePresence>
           {showNewChatModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowNewChatModal(false)}
-              style={{
-                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                zIndex: 2000, backdropFilter: 'blur(6px)'
-              }}
-            >
-              <motion.div
-                ref={newChatModalRef}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                onClick={e => e.stopPropagation()}
-                style={{
-                  background: 'var(--bg-secondary)', borderRadius: '20px', padding: '24px',
-                  width: '400px', maxHeight: '560px', display: 'flex', flexDirection: 'column', gap: '16px',
-                  boxShadow: '0 24px 80px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)'
-                }}
-              >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowNewChatModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, backdropFilter: 'blur(6px)' }}>
+              <motion.div ref={newChatModalRef} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 26 }} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-secondary)', borderRadius: '20px', padding: '24px', width: '400px', maxHeight: '560px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: '700' }}>
-                    New Message
-                  </h3>
-                  <button onClick={() => setShowNewChatModal(false)}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--text-secondary)', display: 'flex', padding: 4,
-                      borderRadius: 8
-                    }}>
-                    <X size={20} />
-                  </button>
+                  <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: '700' }}>New Message</h3>
+                  <button onClick={() => setShowNewChatModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', padding: 4, borderRadius: 8 }}><X size={20} /></button>
                 </div>
 
                 <div style={{ position: 'relative' }}>
-                  <Search size={14} style={{
-                    position: 'absolute', left: 12,
-                    top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none'
-                  }} />
-                  <input
-                    type="text"
-                    placeholder="Search your connections..."
-                    value={newChatSearch}
-                    onChange={e => setNewChatSearch(e.target.value)}
-                    autoFocus
-                    style={{
-                      width: '100%', padding: '10px 10px 10px 36px', borderRadius: '10px',
-                      border: '1px solid var(--border-color)', background: 'var(--bg-primary)',
-                      color: 'var(--text-primary)', fontSize: '0.88rem', boxSizing: 'border-box', outline: 'none'
-                    }}
-                  />
+                  <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
+                  <input type="text" placeholder="Search your connections..." value={newChatSearch} onChange={e => setNewChatSearch(e.target.value)} autoFocus style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '0.88rem', boxSizing: 'border-box', outline: 'none' }} />
                 </div>
 
                 <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {connectionsLoading ? (
-                    <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                      <div style={{
-                        width: 20, height: 20, border: '2px solid #6366f1',
-                        borderTopColor: 'transparent', borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite', margin: '0 auto 8px'
-                      }} />
-                      Loading connections...
-                    </div>
+                    <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}><div style={{ width: 20, height: 20, border: '2px solid #6366f1', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 8px' }} />Loading connections...</div>
                   ) : filteredAvailableUsers.length === 0 ? (
-                    <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                        {newChatSearch ? 'No connections match your search.' : 'No connections yet.'}
-                      </p>
-                    </div>
+                    <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}><p style={{ margin: 0, fontSize: '0.85rem' }}>{newChatSearch ? 'No connections match your search.' : 'No connections yet.'}</p></div>
                   ) : (
                     filteredAvailableUsers.map(user => (
-                      <button
-                        key={user._id}
-                        onClick={() => handleStartNewChat(user)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '12px',
-                          padding: '10px 12px', borderRadius: '12px', border: 'none',
-                          background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%',
-                          transition: 'background 0.15s'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
+                      <button key={user._id} onClick={() => handleStartNewChat(user)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <Avatar src={getAvatarSrc(user)} name={user.fullName} size={42} online={user.isOnline} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{
-                            margin: 0, color: 'var(--text-primary)', fontWeight: '600',
-                            fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                          }}>
-                            {user.fullName}
-                          </p>
-                          <p style={{
-                            margin: 0, color: user.isOnline ? '#22c55e' : 'var(--text-secondary)',
-                            fontSize: '0.75rem', fontWeight: user.isOnline ? '600' : '400'
-                          }}>
-                            {user.isOnline ? 'Online' : (user.department || '')}
-                          </p>
+                          <p style={{ margin: 0, color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.fullName}</p>
+                          <p style={{ margin: 0, color: user.isOnline ? '#22c55e' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: user.isOnline ? '600' : '400' }}>{user.isOnline ? 'Online' : (user.department || '')}</p>
                         </div>
-                        {conversations.some(c => c.otherUserId === user._id) && (
-                          <span style={{
-                            fontSize: '0.68rem', color: '#6366f1',
-                            background: 'rgba(99,102,241,0.1)', borderRadius: 99, padding: '2px 8px',
-                            fontWeight: '600', flexShrink: 0
-                          }}>
-                            Existing
-                          </span>
-                        )}
+                        {conversations.some(c => c.otherUserId === user._id) && (<span style={{ fontSize: '0.68rem', color: '#6366f1', background: 'rgba(99,102,241,0.1)', borderRadius: 99, padding: '2px 8px', fontWeight: '600', flexShrink: 0 }}>Existing</span>)}
                       </button>
                     ))
                   )}
@@ -1385,24 +1078,19 @@ const Messages = () => {
           )}
         </AnimatePresence>
 
-        {/* CONFIRM MODALS */}
         <AnimatePresence>
           {showConfirmModal && (
-            <ConfirmModal
-              type={showConfirmModal}
-              onCancel={() => setShowConfirmModal(null)}
+            <ConfirmModal type={showConfirmModal} onCancel={() => setShowConfirmModal(null)}
               onConfirm={
                 showConfirmModal === 'clear' ? handleClearChat :
                   showConfirmModal === 'delete' ? handleDeleteChat :
-                    showConfirmModal === 'block' ? handleBlockUser :
-                      handleUnblockUser
+                    showConfirmModal === 'block' ? handleBlockUser : handleUnblockUser
               }
             />
           )}
         </AnimatePresence>
       </motion.div>
 
-      {/* TOAST */}
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} />}
       </AnimatePresence>

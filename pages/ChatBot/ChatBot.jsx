@@ -79,7 +79,7 @@ const ChatBot = () => {
 
             apiMessages.push({ role: 'user', content: userMessage });
 
-            const response = await fetch('http://localhost:3000/api/chat', {
+            const response = await fetch(`http://${window.location.hostname}:3000/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

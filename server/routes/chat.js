@@ -23,14 +23,14 @@ const verifyToken = (req, res, next) => {
 router.get('/conversations', verifyToken, async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId).select('blockedUsers');
-    if (!currentUser) return res.status(401).json({ message: 'User not found' });
     const myBlockedList = currentUser.blockedUsers?.map(id => id.toString()) || [];
 
     const conversations = await Conversation.find({
       participants: req.userId,
       deletedBy: { $ne: req.userId }
     })
-      .populate('participants', 'fullName picture isOnline lastLogin blockedUsers')
+      // ⚡ Exclude massive binary data, but keep the fields needed for avatars!
+      .populate({ path: 'participants', select: '-picture.data' })
       .sort({ updatedAt: -1 });
 
     const formattedConversations = conversations.map(conv => {
@@ -45,22 +45,23 @@ router.get('/conversations', verifyToken, async (req, res) => {
       const didIBlock = myBlockedList.includes(otherUser._id.toString());
       const amIBlocked = theirBlockedList.includes(req.userId);
 
-      // 🟢 CRITICAL FIX: Check if the chat was cleared AFTER the last message was sent
       const clearTime = conv.clearedAt?.get(req.userId);
       let displayLastMessage = conv.lastMessage?.text || conv.lastMessage || '';
 
       if (clearTime && conv.lastMessageAt && new Date(clearTime) > new Date(conv.lastMessageAt)) {
-        displayLastMessage = ''; // Hide the preview if cleared
+        displayLastMessage = '';
       }
 
       return {
         id: conv._id,
         otherUserId: otherUser._id,
         name: otherUser.fullName,
-        avatar: (otherUser.picture && otherUser.picture.data)
-          ? `http://localhost:5000/api/auth/student/${otherUser._id}/picture`
-          : null,
-        lastMessage: displayLastMessage, // 🟢 Use the calculated display string
+        // ⚡ FIX: Pass the gamification fields to the frontend!
+        gender: otherUser.gender,
+        level: otherUser.level,
+        settings: otherUser.settings,
+        hasPicture: !!otherUser.picture,
+        lastMessage: displayLastMessage,
         lastMessageAt: conv.updatedAt,
         online: isActuallyOnline,
         lastSeen: otherUser.lastLogin,

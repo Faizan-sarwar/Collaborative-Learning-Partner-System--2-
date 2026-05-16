@@ -841,18 +841,19 @@ router.get('/connections', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    // ⚡ FIX: Use select: '-picture.data' to stop pulling massive images into RAM
+    res.json({ success: true, connections: (await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id).populate({ path: 'connections', select: '-picture.data' })).connections || [] });
+  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
-    const user = await User.findById(decoded.id).populate('connections', 'fullName department picture email level isOnline lastSeen reliability');
-
-    // 🟢 FIX: If the token belongs to a deleted user or wrong DB, kick them out safely!
-    if (!user) return res.status(401).json({ message: 'User not found in this database. Please log out.' });
-
-    // 🟢 FIX: .filter(Boolean) ensures if a connection was deleted, it doesn't send 'null' to the frontend
-    res.json({ success: true, connections: user.connections.filter(Boolean) });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+router.get('/requests/:type', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    // ⚡ FIX: Use select: '-picture.data' for friend requests too!
+    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id).populate({ path: req.params.type === 'sent' ? 'sentRequests' : 'receivedRequests', select: '-picture.data' });
+    res.json({ success: true, requests: req.params.type === 'sent' ? user?.sentRequests : user?.receivedRequests || [] });
+  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
 
 
