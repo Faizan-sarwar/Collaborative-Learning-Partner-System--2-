@@ -753,76 +753,79 @@ router.get('/matches/:userId', async (req, res) => {
     const currentUser = await User.findById(req.params.userId);
     if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // 1. Normalize subjects to ignore case/spacing typos (e.g., "Web Develpoment" vs "web development")
-    const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const myDifficulties = (currentUser.subjectsOfDifficulty || []).map(normalize);
+    // 1. Normalize subjects safely
+    const normalize = (str) => (typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
 
-    // 2. Fetch all other students
+    const diffs = Array.isArray(currentUser.subjectsOfDifficulty) ? currentUser.subjectsOfDifficulty : [];
+    const myDifficulties = diffs.map(normalize);
+
+    // 2. Fetch candidates safely 
+    // ⚡ FIX: Use $nin to ensure we find ALL students even if their role string got capitalized by accident!
     const candidates = await User.find({
       _id: { $ne: currentUser._id },
-      role: 'student'
-    });
+      role: { $nin: ['admin', 'super-admin', 'moderator'] }
+    }).select('-picture'); // ⚡ Exclude massive binary data
 
-    const connections = (currentUser.connections || []).map(id => id.toString());
-    const sentReqs = (currentUser.sentRequests || []).map(id => id.toString());
-    const receivedReqs = (currentUser.receivedRequests || []).map(id => id.toString());
+    // ⚡ FIX: Safe mapping prevents crashes if a user's arrays are null or corrupted
+    const safeToString = (id) => id ? id.toString() : '';
+    const connections = Array.isArray(currentUser.connections) ? currentUser.connections.map(safeToString) : [];
+    const sentReqs = Array.isArray(currentUser.sentRequests) ? currentUser.sentRequests.map(safeToString) : [];
+    const receivedReqs = Array.isArray(currentUser.receivedRequests) ? currentUser.receivedRequests.map(safeToString) : [];
 
     // 3. Score every candidate
     const matches = candidates.map(u => {
-      const theirStrengthsRaw = u.academicStrengths || [];
+      const theirStrengthsRaw = Array.isArray(u.academicStrengths) ? u.academicStrengths : [];
       const theirStrengthsNorm = theirStrengthsRaw.map(normalize);
 
       let matchCount = 0;
       let matchedSubjects = [];
 
-      // Check for exact intersections
       theirStrengthsRaw.forEach((strength, index) => {
         if (myDifficulties.includes(theirStrengthsNorm[index])) {
           matchCount++;
-          matchedSubjects.push(strength); // Keep original casing for the UI
+          matchedSubjects.push(strength);
         }
       });
 
       const isExpertMatch = matchCount > 0;
 
-      // 🟢 THE MATH:
-      // If they possess a skill you need: Base 75% + 10% per match + Reliability bonus
-      // If they DO NOT possess a skill you need: Max 50% match
       let matchAccuracy = 0;
       if (isExpertMatch) {
         matchAccuracy = 75 + (matchCount * 10) + ((u.reliability || 0) * 0.1);
-        matchAccuracy = Math.min(99, Math.round(matchAccuracy)); // Cap at 99%
+        matchAccuracy = Math.min(99, Math.round(matchAccuracy));
       } else {
-        matchAccuracy = Math.round((u.reliability || 0) * 0.5); // Cap at 50%
+        matchAccuracy = Math.round((u.reliability || 0) * 0.5);
       }
 
-      // matchScore is used purely for sorting so experts ALWAYS float to the top
       const matchScore = isExpertMatch ? 1000 + matchAccuracy : matchAccuracy;
 
       let connectionStatus = 'none';
-      const targetId = u._id.toString();
+      const targetId = u._id ? u._id.toString() : '';
       if (connections.includes(targetId)) connectionStatus = 'connected';
       else if (sentReqs.includes(targetId)) connectionStatus = 'pending';
       else if (receivedReqs.includes(targetId)) connectionStatus = 'received';
 
       return {
-        id: u._id,
-        fullName: u.fullName,
-        rollNumber: u.rollNumber,
-        department: u.department,
-        semester: u.semester,
-        academicStrengths: u.academicStrengths,
+        id: targetId,
+        _id: targetId,
+        fullName: u.fullName || 'Unknown Student',
+        rollNumber: u.rollNumber || 'N/A',
+        department: u.department || 'N/A',
+        semester: u.semester || '1',
+        studyStyle: u.studyStyle || 'Individual Study', // ⚡ FIX: Added so the Frontend UI filters actually work
+        academicStrengths: theirStrengthsRaw,
         reliability: u.reliability || 0,
         level: u.level || 1,
         studyHours: u.studyHours || 0,
         xp: u.xp || 0,
         plan: u.plan || 'free',
-        gender: u.gender,
-        settings: u.settings, // Required for Avatar toggling!
-        isExpertMatch,       // Tells UI whether to show the Gold Ribbon
-        matchedSubjects,     // Tells UI which specific tags to highlight green
-        matchAccuracy,       // The actual percentage (e.g., 94%)
-        matchScore,          // Hidden score for strict sorting
+        gender: u.gender || 'male',
+        settings: u.settings || {},
+        hasPicture: !!u.picture,
+        isExpertMatch,
+        matchedSubjects,
+        matchAccuracy,
+        matchScore,
         connectionStatus
       };
     });
@@ -833,10 +836,9 @@ router.get('/matches/:userId', async (req, res) => {
     res.json({ success: true, matches });
   } catch (error) {
     console.error("Matchmaking Error:", error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
-
 router.get('/connections', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
