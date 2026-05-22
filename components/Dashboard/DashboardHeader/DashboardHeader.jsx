@@ -120,19 +120,17 @@ const buildWelcomeNotifications = (user) => {
   return notes;
 };
 
-// ─── localStorage helpers (only for local/client-side notifications) ──────────
-const LOCAL_KEY = 'local_notifications';
+const getLocalKey = (userId) => `local_notifs_${userId}`;
 
-const readLocalNotifs = () => {
-  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+const readLocalNotifs = (userId) => {
+  if (!userId) return [];
+  try { return JSON.parse(localStorage.getItem(getLocalKey(userId)) || '[]'); }
   catch { return []; }
 };
 
-const writeLocalNotifs = (arr) => {
-  // Only persist locally-created notifications (_local: true).
-  // DB notifications are always re-fetched fresh — storing them locally
-  // causes stale read-state bugs.
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(arr.filter(n => n._local)));
+const writeLocalNotifs = (userId, arr) => {
+  if (!userId) return;
+  localStorage.setItem(getLocalKey(userId), JSON.stringify(arr.filter(n => n._local)));
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

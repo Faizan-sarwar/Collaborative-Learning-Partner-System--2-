@@ -276,7 +276,9 @@ const Settings = () => {
     settings: {
       notifications: { email: true, push: true, studyReminders: true, messages: true },
       privacy: { showProfile: true, showActivity: true },
-      theme: 'dark', language: 'en', showAvatar: true
+      // 🟢 Initialize from localStorage (the source of truth ThemeToggle uses)
+      theme: localStorage.getItem('theme') || document.documentElement.getAttribute('data-theme') || 'dark',
+      language: 'en', showAvatar: true
     }
   });
 
@@ -305,9 +307,10 @@ const Settings = () => {
           if (data.user._id) {
             setPreviewImage(`http://${window.location.hostname}:5000/api/auth/student/${data.user._id}/picture?t=${Date.now()}`);
           }
-          if (data.user.settings?.theme) {
-            document.documentElement.setAttribute('data-theme', data.user.settings.theme);
-          }
+          // 🟢 IMPORTANT: We do NOT call setAttribute('data-theme', ...) from
+          //    the backend value here. That would override the user's
+          //    localStorage choice every time they open Settings.
+          //    Source-of-truth order: localStorage > data-theme attr > 'dark'.
         }
       } catch (err) {
         console.error("Error loading settings:", err);
@@ -335,6 +338,8 @@ const Settings = () => {
   const handleThemeChange = (value) => {
     setFormData(prev => ({ ...prev, settings: { ...prev.settings, theme: value } }));
     document.documentElement.setAttribute('data-theme', value);
+    // 🟢 Write to localStorage so ThemeToggle (the floating button) stays in sync
+    localStorage.setItem('theme', value);
   };
 
   const handleImageChange = (e) => {

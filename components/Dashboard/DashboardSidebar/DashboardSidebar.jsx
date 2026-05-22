@@ -70,12 +70,12 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
     };
   }, []);
 
-  const sidebarWidgets = [
-    { id: 'weekly-progress', title: 'Study Progress', subtitle: `${widgetData.hours.toFixed(1)}h logged`, icon: <TrendingUp size={20} />, color: 'purple' },
-    { id: 'study-streak', title: 'Study Streak', subtitle: `${widgetData.streak} days active`, icon: <Flame size={20} />, color: 'green' },
-    { id: 'study-partners', title: 'Network', subtitle: `${widgetData.connections} connections`, icon: <Users size={20} />, color: 'yellow' },
-    { id: 'next-deadline', title: 'Deadlines', subtitle: 'Check calendar', icon: <CalendarDays size={20} />, color: 'red' },
-  ];
+  // const sidebarWidgets = [
+  //   { id: 'weekly-progress', title: 'Study Progress', subtitle: `${widgetData.hours.toFixed(1)}h logged`, icon: <TrendingUp size={20} />, color: 'purple' },
+  //   { id: 'study-streak', title: 'Study Streak', subtitle: `${widgetData.streak} days active`, icon: <Flame size={20} />, color: 'green' },
+  //   { id: 'study-partners', title: 'Network', subtitle: `${widgetData.connections} connections`, icon: <Users size={20} />, color: 'yellow' },
+  //   { id: 'next-deadline', title: 'Deadlines', subtitle: 'Check calendar', icon: <CalendarDays size={20} />, color: 'red' },
+  // ];
 
   return (
     <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}> {/* 🟢 Apply dynamic class */}
@@ -124,7 +124,7 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
         })}
       </nav>
 
-      <div className={styles.widgets}>
+      {/* <div className={styles.widgets}>
         {sidebarWidgets.map((widget) => (
           <div
             key={widget.id}
@@ -138,7 +138,7 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => { // 🟢 Accept props
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
 
       <div className={styles.footer}>
         <span className={styles.versionText}>v1.0.0</span>

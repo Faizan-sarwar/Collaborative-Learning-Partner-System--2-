@@ -94,11 +94,11 @@ const WelcomeBanner = () => {
 
       {/* 🟢 EXECUTIVE STATS GRID */}
       <div className={styles.statsGrid}>
-        
+
         {/* Trust Score Card */}
         <div className={styles.statCard} style={{ borderColor: tier.color, background: `linear-gradient(135deg, var(--bg-tertiary) 0%, ${tier.bg} 100%)` }}>
           <div className={styles.statHeader}>
-            <span className={styles.statLabel}><Shield size={16} color={tier.color}/> Trust Score</span>
+            <span className={styles.statLabel}><Shield size={16} color={tier.color} /> Trust Score</span>
             <span className={styles.tierBadge} style={{ color: tier.color, backgroundColor: tier.bg }}>{tier.label}</span>
           </div>
           <div className={styles.statBody}>
@@ -109,10 +109,13 @@ const WelcomeBanner = () => {
           </div>
         </div>
 
-        {/* Level & XP Card */}
-        <div className={styles.statCard}>
+        {/* Level & XP Card (Purple Tint) */}
+        <div className={styles.statCard} style={{
+          borderColor: 'rgba(139, 92, 246, 0.3)',
+          background: `linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(139, 92, 246, 0.08) 100%)`
+        }}>
           <div className={styles.statHeader}>
-            <span className={styles.statLabel}><Zap size={16} color="#8b5cf6"/> Current Level</span>
+            <span className={styles.statLabel}><Zap size={16} color="#8b5cf6" /> Current Level</span>
           </div>
           <div className={styles.statBody}>
             <span className={styles.statValue}>Lvl {currentLevel}</span>
@@ -120,10 +123,13 @@ const WelcomeBanner = () => {
           </div>
         </div>
 
-        {/* Study Time Card */}
-        <div className={styles.statCard}>
+        {/* Study Time Card (Blue Tint) */}
+        <div className={styles.statCard} style={{
+          borderColor: 'rgba(59, 130, 246, 0.3)',
+          background: `linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(59, 130, 246, 0.08) 100%)`
+        }}>
           <div className={styles.statHeader}>
-            <span className={styles.statLabel}><Clock size={16} color="#3b82f6"/> Lifetime Focus</span>
+            <span className={styles.statLabel}><Clock size={16} color="#3b82f6" /> Lifetime Focus</span>
           </div>
           <div className={styles.statBody}>
             <span className={styles.statValue}>{currentHours.toFixed(1)}h</span>
@@ -131,13 +137,16 @@ const WelcomeBanner = () => {
           </div>
         </div>
 
-        {/* Streak Card */}
-        <div className={styles.statCard}>
+        {/* Streak Card (Orange Tint) */}
+        <div className={styles.statCard} style={{
+          borderColor: 'rgba(245, 158, 11, 0.3)',
+          background: `linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(245, 158, 11, 0.08) 100%)`
+        }}>
           <div className={styles.statHeader}>
-            <span className={styles.statLabel}><Flame size={16} color="#f59e0b"/> Active Streak</span>
+            <span className={styles.statLabel}><Flame size={16} color="#f59e0b" /> Active Streak</span>
           </div>
           <div className={styles.statBody}>
-            <span className={styles.statValue}>{currentStreak} <span style={{fontSize:'1rem', color:'var(--text-muted)'}}>Days</span></span>
+            <span className={styles.statValue}>{currentStreak} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Days</span></span>
             <span className={styles.statSubtext}>Log in daily to grow!</span>
           </div>
         </div>
@@ -147,7 +156,7 @@ const WelcomeBanner = () => {
       {/* 🟢 HOW TO IMPROVE TRUST SCORE (Collapsible or always visible based on logic) */}
       <AnimatePresence>
         {showTips && (
-          <motion.div 
+          <motion.div
             className={styles.improvementSection}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -157,18 +166,18 @@ const WelcomeBanner = () => {
               <h3>Path to Elite Scholar</h3>
               <p>Your Trust Score determines where you rank in Study Matches. Here is how the algorithm works:</p>
             </div>
-            
+
             <div className={styles.tipsGrid}>
               <div className={styles.tipCard}>
-                <div className={styles.tipIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}><TrendingUp size={20}/></div>
+                <div className={styles.tipIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}><TrendingUp size={20} /></div>
                 <div>
                   <h4>Maintain Streaks</h4>
                   <p>Hitting a 7-day login streak automatically awards a <strong>+2% Reliability Bonus</strong>.</p>
                 </div>
               </div>
-              
+
               <div className={styles.tipCard}>
-                <div className={styles.tipIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><Users size={20}/></div>
+                <div className={styles.tipIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><Users size={20} /></div>
                 <div>
                   <h4>Connect & Network</h4>
                   <p>Successfully accepting a study request gives both users a <strong>+0.5% Reliability Boost</strong>.</p>
@@ -176,7 +185,7 @@ const WelcomeBanner = () => {
               </div>
 
               <div className={styles.tipCard}>
-                <div className={styles.tipIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}><CheckCircle2 size={20}/></div>
+                <div className={styles.tipIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}><CheckCircle2 size={20} /></div>
                 <div>
                   <h4>Complete Assessments</h4>
                   <p>Taking skill quizzes accurately places you in the matchmaking algorithm.</p>

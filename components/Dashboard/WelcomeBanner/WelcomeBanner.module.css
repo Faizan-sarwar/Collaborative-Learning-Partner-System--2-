@@ -15,7 +15,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 32px;
-  background: linear-gradient(to right, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 0.4) 100%);
+  background: linear-gradient(
+    to right,
+    var(--bg-tertiary, #1e293b) 0%,
+    var(--bg-secondary, #0f172a) 100%
+  );
   border-bottom: 1px solid var(--border-color, #1e293b);
   flex-wrap: wrap;
   gap: 20px;
@@ -100,6 +104,11 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+.statCard:hover {
+  transform: translateY(-2px);
 }
 
 .statHeader {
@@ -163,14 +172,14 @@
 }
 
 .insightBtn:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
 
 /* 🟢 Path to Elite Section (Tips) */
 .improvementSection {
-  background: #0b1120;
-  padding: 0 32px; /* Vertically animated, so padding is managed carefully */
+  background: var(--bg-primary, #020617);
+  padding: 0 32px;
   border-bottom: 1px solid var(--border-color, #1e293b);
   overflow: hidden;
 }
@@ -181,13 +190,13 @@
 }
 
 .improvementHeader h3 {
-  color: #f8fafc;
+  color: var(--text-primary, #f8fafc);
   font-size: 1.25rem;
   margin: 0 0 8px 0;
 }
 
 .improvementHeader p {
-  color: #94a3b8;
+  color: var(--text-secondary, #94a3b8);
   margin: 0;
   font-size: 0.95rem;
 }
@@ -220,20 +229,20 @@
 }
 
 .tipCard h4 {
-  color: #f8fafc;
+  color: var(--text-primary, #f8fafc);
   font-size: 1rem;
   margin: 0 0 6px 0;
 }
 
 .tipCard p {
-  color: #94a3b8;
+  color: var(--text-secondary, #94a3b8);
   font-size: 0.85rem;
   line-height: 1.5;
   margin: 0;
 }
 
 .tipCard strong {
-  color: #e2e8f0;
+  color: var(--text-primary, #e2e8f0);
 }
 
 /* 🟢 Navigation Tabs */
@@ -291,7 +300,8 @@
   .heroActions {
     width: 100%;
   }
-  .primaryBtn, .secondaryBtn {
+  .primaryBtn,
+  .secondaryBtn {
     flex: 1;
     justify-content: center;
   }

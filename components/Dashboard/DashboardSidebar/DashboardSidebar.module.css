@@ -42,13 +42,14 @@
 }
 
 .logoText {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.2;
   opacity: 0;
   transition: opacity 0.2s ease 0.1s;
 }
@@ -293,11 +294,11 @@
     height: 100vh;
     height: 100dvh; /* Better full-height support for mobile browsers */
   }
-  
+
   .sidebar.open {
     left: 0; /* Slides in when opened */
   }
-  
+
   .mobileCloseBtn {
     display: block;
     position: absolute;

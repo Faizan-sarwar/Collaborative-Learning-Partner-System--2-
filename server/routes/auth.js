@@ -229,6 +229,7 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' });
 
       await Notification.create({
+        recipient: newUser._id, // 🟢 FIX: Added recipient to satisfy Mongoose Schema!
         type: 'registration',
         title: 'New Student Registration',
         message: `${newUser.fullName} has joined the platform.`,
