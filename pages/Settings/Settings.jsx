@@ -529,8 +529,6 @@ const Settings = () => {
                     <label>Department</label>
                     <select value={formData.department} onChange={(e) => handleInputChange('department', e.target.value)}>
                       <option value="Information Technology">Information Technology</option>
-                      <option value="Computer Science">Computer Science</option>
-                      <option value="Electronics">Electronics</option>
                     </select>
                   </div>
                   <div className={styles.formGroup}>
@@ -706,8 +704,6 @@ const Settings = () => {
           </div>
         </div>
       </div>
-
-      {/* ── WhatsApp-style Photo Adjuster ── */}
       <AnimatePresence>
         {showAdjuster && rawImageSrc && pendingFile && (
           <PhotoAdjuster

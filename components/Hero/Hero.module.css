@@ -70,11 +70,20 @@
 }
 
 .gradientBlue {
-  color: #ffffff;
+  /* FIX: Replaced hardcoded white with a dynamic blue gradient */
+  background: linear-gradient(
+    135deg,
+    var(--accent-cyan, #06b6d4),
+    var(--accent-blue, #3b82f6)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .gradientPurple {
-  background: var(--accent-blue);
+  /* FIX: Added a true purple gradient that pops on both light and dark backgrounds */
+  background: linear-gradient(135deg, var(--accent-purple, #8b5cf6), #d946ef);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -83,8 +92,8 @@
 .gradientPink {
   background: linear-gradient(
     135deg,
-    var(--accent-yellow),
-    var(--accent-amber)
+    var(--accent-yellow, #eab308),
+    var(--accent-amber, #f59e0b)
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -109,9 +118,6 @@
   margin-bottom: 48px;
 }
 
-.right {
-  /* animation removed — Framer slideInRight */
-}
 
 .imageWrapper {
   position: relative;

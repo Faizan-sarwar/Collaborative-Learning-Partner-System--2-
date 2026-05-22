@@ -10,6 +10,7 @@ import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
 import PageTransition from "../components/PageTransition/PageTransition";
 import ProtectedRoute from "../pages/ProtectedRoutes";
 import FAQ from "../components/FAQ/FAQ";
+import Footer from "../components/Footer/Footer";
 
 // 🟢 DashboardLayout is now a PERSISTENT layout route — import eagerly (it's always needed once logged in)
 import DashboardLayout from "../components/Dashboard/DashboardLayout/DashboardLayout.jsx";
@@ -178,17 +179,7 @@ const AnimatedRoutes = () => {
 
   return (
     <>
-      {/* Theme toggle only on public/non-dashboard routes */}
       {!isDashboardRoute && <ThemeToggle />}
-
-      {/*
-        🟢 IMPORTANT CHANGE: We REMOVED the `key={location.pathname}` from <Routes>.
-        That key was forcing the entire route tree (including the layout) to remount
-        on every navigation. The DashboardLayout itself now handles page transitions
-        via AnimatePresence + key={location.pathname} on the inner <Outlet /> motion.div.
-
-        AnimatePresence is still needed for public-page transitions.
-      */}
       <AnimatePresence mode="wait">
         <Suspense fallback={<PageLoader />}>
           <Routes location={location}>
@@ -213,17 +204,6 @@ const AnimatedRoutes = () => {
                 <p style={{ fontSize: '1.2rem', color: '#666' }}>The platform is currently undergoing scheduled maintenance. Please check back later.</p>
               </div>
             } />
-
-            {/*
-              ─── STUDENT routes ───
-              🟢 KEY FIX: DashboardLayout is now a parent layout route.
-              It mounts ONCE on first login and stays mounted across navigations.
-              Only the <Outlet /> content (the page) swaps.
-
-              ⚠️ ACTION REQUIRED in each child page (Dashboard.jsx, StudyTime.jsx, etc):
-              REMOVE the <DashboardLayout> wrapper from inside the page.
-              The page should just return its own content directly.
-            */}
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -244,12 +224,6 @@ const AnimatedRoutes = () => {
                 <Route path="/chatbot" element={<ChatBot />} />
                 <Route path="/xp" element={<XP />} />
               </Route>
-
-              {/*
-                🟢 These routes likely want a full-width layout (no sidebar) — e.g. study room
-                while in a live session, and the quiz onboarding page.
-                If you DON'T want hideSidebar for some of these, just move them up.
-              */}
               <Route element={<DashboardLayout hideSidebar />}>
                 <Route path="/study-room/waiting/:roomId" element={<StudyRoomWaiting />} />
                 <Route path="/study-room/active/:roomId" element={<StudyRoomActive />} />
@@ -257,7 +231,7 @@ const AnimatedRoutes = () => {
               </Route>
             </Route>
 
-            {/* ─── ADMIN routes (already used Outlet pattern — left alone) ─── */}
+            {/* ─── ADMIN routes */}
             <Route element={<ProtectedRoute allowedRoles={['admin', 'super-admin']} />}>
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />

@@ -1,8 +1,3 @@
-// src/components/Hero/Hero.jsx
-// =============================================================================
-// Hero — fully orchestrated entry, parallax floating cards, magnetic CTA.
-// =============================================================================
-
 import React from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import styles from './Hero.module.css';

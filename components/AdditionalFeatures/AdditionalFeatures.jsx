@@ -5,16 +5,16 @@ import { staggerContainer, fadeUpItem, scaleInItem, viewportRise, springs } from
 
 const AdditionalFeatures = () => {
   const miniFeatures = [
-    { icon: '🎯', text: 'Goal Setting' },
-    { icon: '📊', text: 'Analytics Dashboard' },
-    { icon: '🔔', text: 'Smart Notifications' },
-    { icon: '📱', text: 'Mobile App' },
-    { icon: '🎮', text: 'Gamification' },
-    { icon: '📚', text: 'Resource Library' },
-    { icon: '🏆', text: 'Achievements' },
-    { icon: '🔐', text: 'Privacy Controls' },
-    { icon: '💬', text: 'Voice Chat' },
-    { icon: '📝', text: 'Note Taking' },
+    { icon: '', text: 'Goal Setting' },
+    { icon: '', text: 'Analytics Dashboard' },
+    { icon: '', text: 'Smart Notifications' },
+    { icon: '', text: 'Mobile App' },
+    { icon: '', text: 'Gamification' },
+    { icon: '', text: 'Resource Library' },
+    { icon: '', text: 'Achievements' },
+    { icon: '', text: 'Privacy Controls' },
+    { icon: '', text: 'Voice Chat' },
+    { icon: '', text: 'Note Taking' },
   ];
 
   return (
