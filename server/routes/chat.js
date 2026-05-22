@@ -147,6 +147,21 @@ router.post('/messages', verifyToken, async (req, res) => {
       $pull: { deletedBy: { $in: [req.userId, targetUserId] } }
     });
 
+    // 🟢 PUSH LIVE MESSAGE & NOTIFICATION
+    const io = req.app.get('io');
+    const connectedUsers = req.app.get('connectedUsers');
+    const targetSocketId = connectedUsers?.get(targetUserId.toString());
+
+    if (io && targetSocketId) {
+      // 1. Inject into their active chat window
+      io.to(targetSocketId).emit('receiveMessage', {
+        conversationId: convId,
+        message: { id: newMessage._id, text: newMessage.text, senderId: req.userId, isOwn: false, isRead: false, createdAt: newMessage.createdAt }
+      });
+      // 2. Ring the notification bell
+      io.to(targetSocketId).emit('newNotification', { type: 'message', title: 'New Message', message: text });
+    }
+
     res.json({
       success: true,
       message: {

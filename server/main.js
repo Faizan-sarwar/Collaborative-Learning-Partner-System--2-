@@ -2,14 +2,18 @@ import cron from 'node-cron';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import jwt from 'jsonwebtoken'; 
+import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+// 🟢 1. IMPORT HTTP & SOCKET.IO
+import http from 'http';
+import { Server } from 'socket.io';
+
 import auth from '../server/routes/auth.js';
 import StudyGroup from '../server/models/StudyGroup.js';
 import ActivityLog from '../server/models/ActivityLog.js';
 import ChatRoutes from '../server/routes/chat.js';
 import User from '../server/models/User.js';
-import Settings from '../server/models/Settings.js'; 
+import Settings from '../server/models/Settings.js';
 import gamificationRoutes from '../server/routes/gamification.js';
 import activityLogsRoutes from '../server/routes/activitylogs.js';
 import notificationRoutes from '../server/routes/notification.js';
@@ -18,14 +22,44 @@ import referralRoutes from '../server/routes/referrals.js';
 dotenv.config();
 const app = express();
 
+// 🟢 2. CREATE HTTP SERVER & ATTACH SOCKET.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  }
+});
+
+// 🟢 3. GLOBAL SOCKET REGISTRY
+// This Map tracks exactly which user ID belongs to which active socket connection
+const connectedUsers = new Map();
+app.set('io', io); // Makes 'io' available inside your routes!
+app.set('connectedUsers', connectedUsers);
+
+io.on('connection', (socket) => {
+  // When a user logs in, the frontend tells the backend who they are
+  socket.on('registerUser', (userId) => {
+    connectedUsers.set(userId, socket.id);
+    console.log(`🔗 User connected: ${userId}`);
+  });
+
+  socket.on('disconnect', () => {
+    for (let [userId, socketId] of connectedUsers.entries()) {
+      if (socketId === socket.id) {
+        connectedUsers.delete(userId);
+        break;
+      }
+    }
+  });
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🟢 FIX 1: DYNAMIC CORS
-// 'origin: true' tells the server to allow whatever IP address the request is coming from.
-// This allows your friends to access it via your IPv4 address during your presentation.
 app.use(cors({
-  origin: true, 
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -300,8 +334,8 @@ cron.schedule('0 0 * * *', async () => {
 
     let shouldBackup = false;
     if (settings.autoBackup === 'daily') shouldBackup = true;
-    if (settings.autoBackup === 'weekly' && dayOfWeek === 0) shouldBackup = true; 
-    if (settings.autoBackup === 'monthly' && dateOfMonth === 1) shouldBackup = true; 
+    if (settings.autoBackup === 'weekly' && dayOfWeek === 0) shouldBackup = true;
+    if (settings.autoBackup === 'monthly' && dateOfMonth === 1) shouldBackup = true;
 
     if (shouldBackup) {
       console.log(`💾 [CRON] Auto Backup Triggered (${settings.autoBackup} schedule).`);
@@ -312,10 +346,8 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
+// 🟢 4. CHANGE APP.LISTEN TO SERVER.LISTEN
 const PORT = process.env.PORT || 5000;
-
-// 🟢 FIX 2: BIND TO 0.0.0.0
-// This explicitly tells Node.js to accept requests from your local Wi-Fi network
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT} (Network Accessible)`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Real-Time Server running on port ${PORT}`);
 });

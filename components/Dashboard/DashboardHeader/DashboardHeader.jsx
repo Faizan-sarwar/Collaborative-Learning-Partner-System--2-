@@ -7,15 +7,29 @@ import {
   MessageSquare, AlertCircle, Award, Menu, Check, Trash2
 } from 'lucide-react';
 import styles from './DashboardHeader.module.css';
-
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 const API = `http://${window.location.hostname}:5000/api`;
 const POLL_MS = 8000; // poll every 8s — not 5s, reduces server load
 
 const avatars = {
-  male: { 1: maleLevel1, 2: maleLevel2, 3: maleLevel3, 4: maleLevel4, 5: maleLevel5, 6: maleLevel6, 7: maleLevel7 },
-  female: { 1: femaleLevel1, 2: femaleLevel2, 3: femaleLevel3, 4: femaleLevel4, 5: femaleLevel5, 6: femaleLevel6, 7: femaleLevel7 }
+  male: {
+    1: '/gamification/male-level-1.png',
+    2: '/gamification/male-level-2.png',
+    3: '/gamification/male-level-3.png',
+    4: '/gamification/male-level-4.png',
+    5: '/gamification/male-level-5.png',
+    6: '/gamification/male-level-6.png',
+    7: '/gamification/male-level-7.png'
+  },
+  female: {
+    1: '/gamification/female-level-1.png',
+    2: '/gamification/female-level-2.png',
+    3: '/gamification/female-level-3.png',
+    4: '/gamification/female-level-4.png',
+    5: '/gamification/female-level-5.png',
+    6: '/gamification/female-level-6.png',
+    7: '/gamification/female-level-7.png'
+  }
 };
 
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -114,8 +128,8 @@ const readLocalNotifs = (userId) => {
   catch { return []; }
 };
 
-const writeLocalNotifs = (userId, arr) => {
-  if (!userId) return;
+const writeLocalNotifs = (userId, arr) => { 
+  if (!userId || !Array.isArray(arr)) return;
   localStorage.setItem(getLocalKey(userId), JSON.stringify(arr.filter(n => n._local)));
 };
 

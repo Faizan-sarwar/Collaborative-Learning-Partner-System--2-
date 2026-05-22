@@ -10,6 +10,27 @@ import {
   springs,
 } from '../../src/motion/motion';
 
+// 🟢 THE FIX: Moved this OUTSIDE of the Footer component!
+// Now React won't destroy and recreate it on every page navigation.
+const LinksColumn = ({ title, links }) => (
+  <motion.div className={styles.linksColumn} variants={fadeUpItem}>
+    <h4 className={styles.columnTitle}>{title}</h4>
+    <motion.ul
+      className={styles.linksList}
+      variants={staggerContainer}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.3 }}
+    >
+      {links.map((link, i) => (
+        <motion.li key={i} variants={fadeUpItem}>
+          <Link to={link.to} className={styles.link}>{link.name}</Link>
+        </motion.li>
+      ))}
+    </motion.ul>
+  </motion.div>
+);
+
 const Footer = () => {
   const { settings } = useSettings();
 
@@ -59,9 +80,9 @@ const Footer = () => {
       href: 'https://www.linkedin.com/in/faizan--sarwar/',
       icon: (
         <svg viewBox="0 0 24 24" fill="none">
-          <path d="M16 8C17.5913 8 19.1174 8.63214 20.2426 9.75736C21.3679 10.8826 22 12.4087 22 14V21H18V14C18 13.4696 17.7893 12.9609 17.4142 12.5858C17.0391 12.2107 16.5304 12 16 12C15.4696 12 14.9609 12.2107 14.5858 12.5858C14.2107 12.9609 14 13.4696 14 14V21H10V14C10 12.4087 10.632１ １０.８８２６ １１.７５７４ ９．７５７３６C１２．８８２６ ８．６３２１４ １４．４０８７ ８ １６ ８Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <rect x="2" y="9" width="4" height="₁₂" stroke="currentColor" strokeWidth="₂" />
-          <circle cx="₄" cy="₄" r="₂" stroke="currentColor" strokeWidth="₂" />
+          <path d="M16 8C17.5913 8 19.1174 8.63214 20.2426 9.75736C21.3679 10.8826 22 12.4087 22 14V21H18V14C18 13.4696 17.7893 12.9609 17.4142 12.5858C17.0391 12.2107 16.5304 12 16 12C15.4696 12 14.9609 12.2107 14.5858 12.5858C14.2107 12.9609 14 13.4696 14 14V21H10V14C10 12.4087 10.6321 10.8826 11.7574 9.75736C12.8826 8.63214 14.4087 8 16 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="2" y="9" width="4" height="12" stroke="currentColor" strokeWidth="2" />
+          <circle cx="4" cy="4" r="2" stroke="currentColor" strokeWidth="2" />
         </svg>
       )
     },
@@ -75,26 +96,6 @@ const Footer = () => {
       )
     }
   ];
-
-  // Renders one of the link columns with staggered children
-  const LinksColumn = ({ title, links }) => (
-    <motion.div className={styles.linksColumn} variants={fadeUpItem}>
-      <h4 className={styles.columnTitle}>{title}</h4>
-      <motion.ul
-        className={styles.linksList}
-        variants={staggerContainer}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.3 }}
-      >
-        {links.map((link, i) => (
-          <motion.li key={i} variants={fadeUpItem}>
-            <Link to={link.to} className={styles.link}>{link.name}</Link>
-          </motion.li>
-        ))}
-      </motion.ul>
-    </motion.div>
-  );
 
   return (
     <motion.footer

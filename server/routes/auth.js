@@ -4,11 +4,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv'; //  1. IMPORT DOTENV
+import dotenv from 'dotenv';
 import Groq from 'groq-sdk';
 
-
-dotenv.config(); //  2. RUN IT IMMEDIATELY so the credentials load
+dotenv.config();
 
 import User from '../models/User.js';
 import StudyGroup from '../models/StudyGroup.js';
@@ -20,7 +19,6 @@ const router = express.Router();
 
 const otpStore = new Map();
 
-//  3. ADD A CHECK to warn you if credentials are still missing
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   console.error("⚠️ WARNING: EMAIL_USER or EMAIL_PASS is missing in your .env file!");
 }
@@ -33,6 +31,17 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// 🟢 HELPER: INSTANTLY PUSH A NOTIFICATION TO A USER'S SCREEN
+const pushLiveNotification = (req, userId, notificationPayload) => {
+  const io = req.app.get('io');
+  const connectedUsers = req.app.get('connectedUsers');
+  const targetSocketId = connectedUsers?.get(userId.toString());
+
+  if (io && targetSocketId) {
+    io.to(targetSocketId).emit('newNotification', notificationPayload);
+  }
+};
+
 // --- Helpers ---
 const getClientIp = (req) => {
   let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
@@ -44,7 +53,7 @@ const getClientIp = (req) => {
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 🟢 BUMPED TO 10MB FOR MOBILE PHOTOS
+  limits: { fileSize: 50 * 1024 * 1024 }, // 10MB FOR MOBILE PHOTOS
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
 });
 
@@ -136,7 +145,7 @@ router.post('/reset-password', async (req, res) => {
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    user.password = newPassword; // Mongoose 'pre-save' hook will hash this automatically if set up
+    user.password = newPassword;
     await user.save();
 
     res.json({ success: true, message: 'Password updated successfully' });
@@ -146,10 +155,8 @@ router.post('/reset-password', async (req, res) => {
 // --- Core Auth Routes ---
 router.post('/signup', upload.single('profilePicture'), async (req, res) => {
   try {
-    // 🟢 SECURITY CHECK: Are registrations allowed?
     const settings = await Settings.findOne();
     if (settings && settings.allowRegistrations === false) {
-      // If an admin turned off registrations, block the request at the database level!
       try {
         await ActivityLog.create({
           action: 'Blocked Registration Attempt',
@@ -166,7 +173,6 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       });
     }
 
-    // 🟢 Notice we grab `referredByCode` from the frontend request body here
     const { fullName, email, password, rollNumber, gender, department, semester, academicStrengths, subjectsOfDifficulty, studyStyle, availability, referredByCode } = req.body;
 
     const validationErrors = validateSignupData(req.body);
@@ -178,7 +184,6 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     try { parsedStrengths = JSON.parse(academicStrengths); } catch { }
     try { parsedDifficulties = JSON.parse(subjectsOfDifficulty); } catch { }
 
-    // 🟢 Generate a unique referral code for this new user
     const generatedReferralCode = 'STUDY' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
     const role = email.toLowerCase().trim() === 'faizan@admin.com' ? 'super-admin' : 'student';
@@ -187,17 +192,15 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       gender, department, semester, academicStrengths: parsedStrengths, subjectsOfDifficulty: parsedDifficulties,
       studyStyle: studyStyle || 'Individual Study', availability: availability?.trim() || '', role,
       xp: 10,
-      referralCode: generatedReferralCode // 🟢 Assign their new code
+      referralCode: generatedReferralCode
     };
     if (req.file) {
       userData.picture = { data: req.file.buffer, contentType: req.file.mimetype };
-      // 🟢 User uploaded a photo — show it in the header instead of the cartoon avatar
       userData.settings = { showAvatar: false };
     }
 
     const newUser = await User.create(userData);
 
-    // 🟢 --- START REFERRAL MAGIC ---
     if (referredByCode) {
       const referrer = await User.findOne({ referralCode: referredByCode });
 
@@ -221,15 +224,17 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
           message: `${newUser.fullName} joined using your link! You earned 100 XP.`,
           unread: true
         });
+
+        // 🟢 PUSH LIVE NOTIFICATION
+        pushLiveNotification(req, referrer._id, { type: 'achievement', title: 'Successful Referral! 🎉', message: `${newUser.fullName} joined using your link! You earned 100 XP.` });
       }
     }
-    // 🟢 --- END REFERRAL MAGIC ---
 
     try {
       await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' });
 
       await Notification.create({
-        recipient: newUser._id, // 🟢 FIX: Added recipient to satisfy Mongoose Schema!
+        recipient: newUser._id,
         type: 'registration',
         title: 'New Student Registration',
         message: `${newUser.fullName} has joined the platform.`,
@@ -248,7 +253,6 @@ router.post('/login', async (req, res) => {
     const { email, password, rememberMe } = req.body;
     const user = await User.findOne({ email }).select('+password');
 
-    // 🟢 1. Password Check (Failed Login)
     if (!user || !(await user.matchPassword(password))) {
       try {
         await ActivityLog.create({
@@ -263,7 +267,6 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // 🟢 2. MAINTENANCE MODE FIX
     const settings = await Settings.findOne();
     if (settings && settings.maintenanceMode) {
       if (user.role !== 'admin' && user.role !== 'super-admin') {
@@ -274,7 +277,6 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // 🟢 3. Successful login log
     try {
       await ActivityLog.create({
         action: 'Successful Login',
@@ -285,9 +287,8 @@ router.post('/login', async (req, res) => {
       });
     } catch (logErr) { console.error('Logging failed:', logErr); }
 
-    // 🟢 CRITICAL FIX: Set isOnline and lastLogin EVERY login
     user.isOnline = true;
-    user.lastLogin = Date.now(); // 🟢 Update IMMEDIATELY before any other logic
+    user.lastLogin = Date.now();
 
     let xpMessage = '';
     const today = new Date(), lastLogin = new Date(user.lastLogin || 0);
@@ -313,7 +314,6 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // 🟢 Save user with updated online status
     await user.save();
 
     const tokenExpiry = rememberMe ? '30d' : '1d';
@@ -382,8 +382,6 @@ router.post("/google-login", async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: "Server error", error: err.message }); }
 });
 
-// --- Profile & Current User ---
-// --- Profile & Current User ---
 router.get('/me', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -392,16 +390,14 @@ router.get('/me', async (req, res) => {
     const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'test_key').id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // 🟢 THE FIX: Auto-generate a referral code for older users who don't have one yet
     if (!user.referralCode) {
       user.referralCode = 'STUDY' + Math.random().toString(36).substring(2, 8).toUpperCase();
-      await user.save(); // Save it to the database permanently
+      await user.save();
     }
 
     const safeUser = user.toSafeObject();
     safeUser.reliability = user.reliability || 0;
     safeUser.quizCompleted = user.quizCompleted || false;
-    // Always include settings so the frontend can read showAvatar preference
     safeUser.settings = user.settings
       ? (typeof user.settings.toObject === 'function' ? user.settings.toObject() : user.settings)
       : {};
@@ -433,13 +429,11 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
 
     user.isProfileComplete = true;
 
-    // 🟢 MONGOOSE CRASH FIX: Extract the RAW object first so we don't destroy nested data!
     let currentSettings = {};
     if (user.settings) {
       currentSettings = typeof user.settings.toObject === 'function' ? user.settings.toObject() : user.settings;
     }
 
-    // Safely merge incoming settings
     if (settings) {
       try {
         const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : settings;
@@ -449,16 +443,13 @@ router.put('/profile', upload.single('profilePicture'), async (req, res) => {
       }
     }
 
-    // Process profile picture
     if (req.file) {
       user.picture = { data: req.file.buffer, contentType: req.file.mimetype };
-      // Only auto-switch to Photo Mode if user hasn't explicitly set a preference yet
       if (typeof currentSettings.showAvatar === 'undefined') {
         currentSettings.showAvatar = false;
       }
     }
 
-    // Apply the safely merged object back to Mongoose
     user.settings = currentSettings;
     user.markModified('settings');
 
@@ -513,14 +504,13 @@ router.get('/admin/analytics', async (req, res) => {
       { $sort: { "date": 1 } }
     ]);
 
-    // NEW: Count occurrences of each subject inside students' academicStrengths arrays
     const courseStats = await User.aggregate([
       { $match: { role: 'student' } },
       { $unwind: { path: "$academicStrengths", preserveNullAndEmptyArrays: false } },
       { $group: { _id: "$academicStrengths", count: { $sum: 1 } } },
       { $project: { name: "$_id", count: 1, _id: 0 } },
-      { $sort: { count: -1 } }, // Sort by most popular first
-      { $limit: 6 } // Top 6 subjects
+      { $sort: { count: -1 } },
+      { $limit: 6 }
     ]);
 
     const inactiveDate = new Date();
@@ -643,11 +633,10 @@ router.put('/admin/settings', async (req, res) => {
     const settings = await Settings.findOneAndUpdate({}, req.body, { new: true, upsert: true });
 
     if (req.headers.authorization) {
-      // 🟢 NEW: Added userType and IP address to the log
       await ActivityLog.create({
         action: 'Platform Settings Updated',
         user: 'Admin',
-        userType: 'admin', // <-- This fixes the "Visitor" bug
+        userType: 'admin',
         ip: getClientIp(req),
         status: 'success'
       });
@@ -663,7 +652,6 @@ router.get('/admin/notifications', async (req, res) => {
   try {
     res.json({
       success: true,
-      // 🟢 Ensure Admin strictly ONLY pulls System, Admin, and Registration notifications
       notifications: await Notification.find({ type: { $in: ['system', 'registration', 'admin'] } })
         .sort({ createdAt: -1 })
         .limit(20)
@@ -726,12 +714,11 @@ router.post('/submit-quiz', async (req, res) => {
     const score = parseInt(req.body.score) || 0;
     const totalQuestions = parseInt(req.body.totalQuestions) || 10;
 
-    // 🟢 PROFESSIONAL ALGORITHM — scales with however many questions were available
     const baseScore = 40;
     const earnedScore = totalQuestions > 0
       ? Math.round((score / totalQuestions) * 58)
       : 0;
-    const finalReliability = Math.min(baseScore + earnedScore, 98); // Max 98% initially
+    const finalReliability = Math.min(baseScore + earnedScore, 98);
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -752,32 +739,26 @@ router.post('/submit-quiz', async (req, res) => {
   }
 });
 
-// 🟢 ENTERPRISE MATCHMAKING ROUTE (Add this to server/routes/auth.js)
 router.get('/matches/:userId', async (req, res) => {
   try {
     const currentUser = await User.findById(req.params.userId);
     if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // 1. Normalize subjects safely
     const normalize = (str) => (typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
 
     const diffs = Array.isArray(currentUser.subjectsOfDifficulty) ? currentUser.subjectsOfDifficulty : [];
     const myDifficulties = diffs.map(normalize);
 
-    // 2. Fetch candidates safely 
-    // ⚡ FIX: Use $nin to ensure we find ALL students even if their role string got capitalized by accident!
     const candidates = await User.find({
       _id: { $ne: currentUser._id },
       role: { $nin: ['admin', 'super-admin', 'moderator'] }
-    }).select('-picture'); // ⚡ Exclude massive binary data
+    }).select('-picture');
 
-    // ⚡ FIX: Safe mapping prevents crashes if a user's arrays are null or corrupted
     const safeToString = (id) => id ? id.toString() : '';
     const connections = Array.isArray(currentUser.connections) ? currentUser.connections.map(safeToString) : [];
     const sentReqs = Array.isArray(currentUser.sentRequests) ? currentUser.sentRequests.map(safeToString) : [];
     const receivedReqs = Array.isArray(currentUser.receivedRequests) ? currentUser.receivedRequests.map(safeToString) : [];
 
-    // 3. Score every candidate
     const matches = candidates.map(u => {
       const theirStrengthsRaw = Array.isArray(u.academicStrengths) ? u.academicStrengths : [];
       const theirStrengthsNorm = theirStrengthsRaw.map(normalize);
@@ -817,7 +798,7 @@ router.get('/matches/:userId', async (req, res) => {
         rollNumber: u.rollNumber || 'N/A',
         department: u.department || 'N/A',
         semester: u.semester || '1',
-        studyStyle: u.studyStyle || 'Individual Study', // ⚡ FIX: Added so the Frontend UI filters actually work
+        studyStyle: u.studyStyle || 'Individual Study',
         academicStrengths: theirStrengthsRaw,
         reliability: u.reliability || 0,
         level: u.level || 1,
@@ -835,7 +816,6 @@ router.get('/matches/:userId', async (req, res) => {
       };
     });
 
-    // 4. Sort strictly by highest score
     matches.sort((a, b) => b.matchScore - a.matchScore);
 
     res.json({ success: true, matches });
@@ -844,11 +824,11 @@ router.get('/matches/:userId', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
 router.get('/connections', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    // ⚡ FIX: Use select: '-picture.data' to stop pulling massive images into RAM
     res.json({ success: true, connections: (await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id).populate({ path: 'connections', select: '-picture.data' })).connections || [] });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
@@ -857,7 +837,6 @@ router.get('/requests/:type', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    // ⚡ FIX: Use select: '-picture.data' for friend requests too!
     const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key').id).populate({ path: req.params.type === 'sent' ? 'sentRequests' : 'receivedRequests', select: '-picture.data' });
     res.json({ success: true, requests: req.params.type === 'sent' ? user?.sentRequests : user?.receivedRequests || [] });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
@@ -873,21 +852,17 @@ router.post('/connect/:targetId', async (req, res) => {
 
     const senderUser = await User.findByIdAndUpdate(senderId, { $addToSet: { sentRequests: targetId } });
     await User.findByIdAndUpdate(targetId, { $addToSet: { receivedRequests: senderId } });
+
     await Notification.create({ recipient: targetId, sender: senderId, type: 'connection', title: 'New Connection Request', message: `${senderUser.fullName} wants to connect.`, link: '/requests', unread: true });
+
+    // 🟢 PUSH LIVE NOTIFICATION
+    pushLiveNotification(req, targetId, { type: 'connection', title: 'New Connection Request', message: `${senderUser.fullName} wants to connect.` });
 
     res.json({ success: true, message: 'Request sent' });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
 
-router.get('/requests/:type', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const user = await User.findById(jwt.verify(token, process.env.JWT_SECRET || 'test_key').id).populate(req.params.type === 'sent' ? 'sentRequests' : 'receivedRequests', 'fullName email department picture level');
-    res.json({ success: true, requests: req.params.type === 'sent' ? user?.sentRequests : user?.receivedRequests || [] });
-  } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
-});
-
+// Single route for accepting/declining requests
 router.post('/requests/:senderId/:action', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -895,12 +870,14 @@ router.post('/requests/:senderId/:action', async (req, res) => {
     const userId = jwt.verify(token, process.env.JWT_SECRET || 'test_key').id, { senderId, action } = req.params;
 
     if (action === 'accept') {
-      // 🟢 Add $inc: { xp: 75 } to instantly award the points to both users
       const receiver = await User.findByIdAndUpdate(userId, { $addToSet: { connections: senderId }, $pull: { receivedRequests: senderId }, $inc: { xp: 75 } });
       const sender = await User.findByIdAndUpdate(senderId, { $addToSet: { connections: userId }, $pull: { sentRequests: userId }, $inc: { xp: 75 } });
 
       await Notification.create({ recipient: senderId, sender: userId, type: 'achievement', title: 'Request Accepted', message: `${receiver.fullName} accepted your request! +75 XP`, link: '/messages', unread: true });
       await Notification.create({ recipient: userId, sender: senderId, type: 'achievement', title: 'New Connection', message: `You are now connected with ${sender.fullName}. +75 XP`, link: '/messages', unread: true });
+
+      // 🟢 PUSH LIVE NOTIFICATION
+      pushLiveNotification(req, senderId, { type: 'achievement', title: 'Request Accepted', message: `${receiver.fullName} accepted your request! +75 XP` });
 
       return res.json({ success: true, message: 'Connected successfully' });
 
@@ -910,6 +887,51 @@ router.post('/requests/:senderId/:action', async (req, res) => {
       return res.json({ success: true, message: 'Request declined' });
     }
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
+
+// Duplicate Accept route (Included and updated for safety based on your previous code)
+router.post('/requests/:id/accept', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
+    const receiverId = decoded.id;
+    const senderId = req.params.id;
+
+    const receiver = await User.findById(receiverId);
+    const sender = await User.findById(senderId);
+
+    if (!receiver || !sender) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!receiver.connections.includes(senderId)) receiver.connections.push(senderId);
+    if (!sender.connections.includes(receiverId)) sender.connections.push(receiverId);
+
+    receiver.receivedRequests.pull(senderId);
+    sender.sentRequests.pull(receiverId);
+
+    if (typeof receiver.awardXP === 'function') await receiver.awardXP(75);
+    else receiver.xp = (receiver.xp || 0) + 75;
+
+    if (typeof sender.awardXP === 'function') await sender.awardXP(75);
+    else sender.xp = (sender.xp || 0) + 75;
+
+    if (typeof receiver.adjustReliability === 'function') await receiver.adjustReliability(0.5);
+    if (typeof sender.adjustReliability === 'function') await sender.adjustReliability(0.5);
+
+    await receiver.save();
+    await sender.save();
+
+    // 🟢 PUSH LIVE NOTIFICATION
+    pushLiveNotification(req, senderId, { type: 'connection', title: 'Request Accepted 🎉', message: `${receiver.fullName} accepted your connection request! +75 XP` });
+
+    res.json({ success: true, message: 'Connection accepted successfully!' });
+  } catch (err) {
+    console.error('Accept Request Error:', err);
+    res.status(500).json({ success: false, message: 'Server error while accepting request' });
+  }
 });
 
 router.post('/connections/:targetId/remove', async (req, res) => {
@@ -922,7 +944,7 @@ router.post('/connections/:targetId/remove', async (req, res) => {
     res.json({ success: true, message: 'Connection removed' });
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
-// 🟢 1. Define Milestones Securely on the Server
+
 const MILESTONES = [
   { level: 1, xp: 0, hours: 0, name: 'Newcomer' },
   { level: 2, xp: 200, hours: 5, name: 'Novice Learner' },
@@ -933,7 +955,6 @@ const MILESTONES = [
   { level: 7, xp: 8000, hours: 200, name: 'Legendary Scholar' },
 ];
 
-// 🟢 2. The Universal XP Route
 router.post('/award-xp', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -944,22 +965,17 @@ router.post('/award-xp', async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // 1. Add the XP
     user.xp = (user.xp || 0) + Number(amount);
 
-    // 2. Check Milestones for Level Up
-    // It finds the highest level where the user meets BOTH the XP and Study Hours requirements
     const qualifiedLevelObj = [...MILESTONES].reverse().find(m => user.xp >= m.xp && (user.studyHours || 0) >= m.hours);
     const newLevel = qualifiedLevelObj ? qualifiedLevelObj.level : 1;
 
     let leveledUp = false;
 
-    // 3. Handle Level Up!
     if (newLevel > (user.level || 1)) {
       user.level = newLevel;
       leveledUp = true;
 
-      // Send a massive Level Up Notification
       await Notification.create({
         recipient: user._id,
         type: 'achievement',
@@ -967,9 +983,11 @@ router.post('/award-xp', async (req, res) => {
         message: `You reached Level ${newLevel}: ${qualifiedLevelObj.name}`,
         unread: true
       });
+
+      // 🟢 PUSH LIVE NOTIFICATION
+      pushLiveNotification(req, user._id, { type: 'achievement', title: 'Level Up! 🚀', message: `You reached Level ${newLevel}: ${qualifiedLevelObj.name}` });
     }
 
-    // 4. Send the standard XP Notification
     await Notification.create({
       recipient: user._id,
       type: 'achievement',
@@ -977,6 +995,9 @@ router.post('/award-xp', async (req, res) => {
       message: `+${amount} XP for: ${activityTitle}`,
       unread: true
     });
+
+    // 🟢 PUSH LIVE NOTIFICATION
+    pushLiveNotification(req, user._id, { type: 'achievement', title: 'XP Earned! ⚡', message: `+${amount} XP for: ${activityTitle}` });
 
     await user.save();
 
@@ -992,7 +1013,6 @@ router.post('/award-xp', async (req, res) => {
   }
 });
 
-// 🟢 GROQ AI CHAT TOPICS GENERATOR
 router.post('/ai/chat-topics', async (req, res) => {
   try {
     const { subject } = req.body;
@@ -1012,13 +1032,12 @@ router.post('/ai/chat-topics', async (req, res) => {
     Return ONLY a raw JSON object in this exact format: 
     { "icon": "emoji", "color": "#hexcode", "topics": ["topic 1", "topic 2", "topic 3", "topic 4"], "tip": "The study tip" }`;
 
-    // 🟢 Groq Fetch Call
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         { role: "system", content: "You output strict JSON only. No markdown formatting." },
         { role: "user", content: prompt }
       ],
-      model: "llama-3.1-8b-instant", // Lightning fast free-tier model
+      model: "llama-3.1-8b-instant",
       response_format: { type: "json_object" },
       temperature: 0.7,
     });
@@ -1037,7 +1056,7 @@ router.post('/ai/chat-topics', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-// 🟢 ADMIN: BROADCAST NOTIFICATION TO STUDENTS
+
 router.post('/admin/send-notification', async (req, res) => {
   try {
     const { title, message, category, icon, targetType, departments, semesters } = req.body;
@@ -1046,21 +1065,18 @@ router.post('/admin/send-notification', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Title and message are required' });
     }
 
-    // 1. Build the database query to find the right students
     let query = { role: 'student' };
     if (targetType === 'selected') {
       if (departments && departments.length > 0) query.department = { $in: departments };
       if (semesters && semesters.length > 0) query.semester = { $in: semesters };
     }
 
-    // 2. Find all matching students
     const students = await User.find(query).select('_id');
 
     if (students.length === 0) {
       return res.status(404).json({ success: false, message: 'No students matched your selected filters.' });
     }
 
-    // 3. Create a notification for EVERY matched student!
     const notificationsToInsert = students.map(student => ({
       recipient: student._id,
       type: category || 'system',
@@ -1073,7 +1089,11 @@ router.post('/admin/send-notification', async (req, res) => {
 
     await Notification.insertMany(notificationsToInsert);
 
-    // 4. Log the action so it appears in your Recent Activity chart
+    // 🟢 PUSH LIVE TO EVERYONE ONLINE
+    students.forEach(student => {
+      pushLiveNotification(req, student._id, { type: category || 'system', title: title, message: message });
+    });
+
     const targetLabel = targetType === 'all' ? 'All Students' : 'Selected Students';
     await ActivityLog.create({
       action: `Broadcasted "${title}"`,
@@ -1082,7 +1102,6 @@ router.post('/admin/send-notification', async (req, res) => {
       status: 'success'
     });
 
-    // 5. Send success response back to the frontend
     res.json({
       success: true,
       message: `Successfully sent to ${students.length} student(s)!`,
@@ -1102,39 +1121,31 @@ router.post('/admin/send-notification', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-// ==========================================
-// 🟢 ENTERPRISE DATA MANAGEMENT ROUTES
-// ==========================================
 
-// 1. Export All Data
 router.get('/admin/export-data', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    // Verify admin
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
     const user = await User.findById(decoded.id);
     if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Gather the entire platform's state
     const exportData = {
       timestamp: new Date().toISOString(),
       platform: "Collaborative Learning Partner System",
       data: {
-        users: await User.find().select('-password'), // EXCLUDE PASSWORDS FOR SECURITY!
+        users: await User.find().select('-password'),
         groups: await StudyGroup.find(),
-        logs: await ActivityLog.find().sort({ createdAt: -1 }).limit(1000), // Cap at 1000 to prevent massive files
+        logs: await ActivityLog.find().sort({ createdAt: -1 }).limit(1000),
         settings: await Settings.findOne()
       }
     };
 
-    // Log the export
     await ActivityLog.create({ action: 'Exported Platform Data', user: user.fullName, userType: 'admin', ip: getClientIp(req), status: 'success' });
 
-    // Send as a downloadable JSON file
     res.setHeader('Content-disposition', `attachment; filename=platform_backup_${Date.now()}.json`);
     res.setHeader('Content-type', 'application/json');
     res.status(200).send(JSON.stringify(exportData, null, 2));
@@ -1144,7 +1155,6 @@ router.get('/admin/export-data', async (req, res) => {
   }
 });
 
-// 2. Clear Cache
 router.post('/admin/clear-cache', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -1156,7 +1166,6 @@ router.post('/admin/clear-cache', async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Clear server RAM stores (like OTPs from password resets that might be stuck)
     otpStore.clear();
 
     await ActivityLog.create({ action: 'Cleared Server Cache', user: user.fullName, userType: 'admin', ip: getClientIp(req), status: 'success' });
@@ -1166,7 +1175,7 @@ router.post('/admin/clear-cache', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-// 🟢 CONTACT FORM SUBMISSION ROUTE
+
 router.post('/contact', async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
@@ -1175,15 +1184,13 @@ router.post('/contact', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
-    // 1. Get the support email from Admin Settings
     const settings = await Settings.findOne();
     const supportEmail = settings?.supportEmail || process.env.EMAIL_USER;
 
-    // 2. Prepare the Email Content
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: supportEmail, // The message goes TO the admin/support team
-      replyTo: email,    // So the admin can just click "Reply" to answer the user
+      to: supportEmail,
+      replyTo: email,
       subject: `[Contact Form] ${subject || 'New Inquiry'} from ${name}`,
       text: `You received a new message from your platform contact form:\n\n` +
         `Name: ${name}\n` +
@@ -1201,10 +1208,8 @@ router.post('/contact', async (req, res) => {
       `
     };
 
-    // 3. Send the email
     await transporter.sendMail(mailOptions);
 
-    // 4. Log the activity for the admin to see
     try {
       await ActivityLog.create({
         action: 'Contact Form Submitted',
@@ -1222,7 +1227,7 @@ router.post('/contact', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to send message. Please try again later.' });
   }
 });
-// 🟢 DATABASE MIGRATION: Retroactively update Reliability Scores
+
 router.post('/admin/migrate-reliability', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -1232,7 +1237,6 @@ router.post('/admin/migrate-reliability', async (req, res) => {
 
     const token = authHeader.split(' ')[1];
 
-    // Verify Admin safely
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
@@ -1245,7 +1249,6 @@ router.post('/admin/migrate-reliability', async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Get all students who have completed the quiz
     const students = await User.find({ role: 'student', quizCompleted: true });
     let updatedCount = 0;
 
@@ -1257,8 +1260,6 @@ router.post('/admin/migrate-reliability', async (req, res) => {
       const earnedScore = Math.round(rawScore * 5.8);
       const newReliability = Math.min(baseScore + earnedScore, 98);
 
-      // 🟢 SAFEST METHOD: Using updateOne bypasses Mongoose validation 
-      // so old test users don't crash the migration!
       await User.updateOne(
         { _id: student._id },
         { $set: { reliability: newReliability } }
@@ -1266,11 +1267,10 @@ router.post('/admin/migrate-reliability', async (req, res) => {
       updatedCount++;
     }
 
-    // Log the system action
     await ActivityLog.create({
       action: `Migrated Reliability Scores for ${updatedCount} users`,
       user: adminUser.fullName,
-      userType: adminUser.role, // Dynamically use admin or super-admin
+      userType: adminUser.role,
       ip: getClientIp(req),
       status: 'success'
     });
@@ -1281,55 +1281,7 @@ router.post('/admin/migrate-reliability', async (req, res) => {
     res.status(500).json({ success: false, message: 'Migration failed. Check server console for details.' });
   }
 });
-// 🟢 POST: Accept a Connection Request
-router.post('/requests/:id/accept', async (req, res) => {
-  try {
-    // 1. Verify who is accepting the request
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
-    const receiverId = decoded.id; // The logged-in user
-    const senderId = req.params.id; // The user who sent the request
-
-    // 2. Fetch both users from the database
-    const receiver = await User.findById(receiverId);
-    const sender = await User.findById(senderId);
-
-    if (!receiver || !sender) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // 3. Connect them! Add to connections, remove from pending requests
-    if (!receiver.connections.includes(senderId)) receiver.connections.push(senderId);
-    if (!sender.connections.includes(receiverId)) sender.connections.push(receiverId);
-
-    receiver.receivedRequests.pull(senderId);
-    sender.sentRequests.pull(receiverId);
-
-    // 4. Award XP for networking
-    if (typeof receiver.awardXP === 'function') await receiver.awardXP(75);
-    else receiver.xp = (receiver.xp || 0) + 75;
-
-    if (typeof sender.awardXP === 'function') await sender.awardXP(75);
-    else sender.xp = (sender.xp || 0) + 75;
-
-    // 🟢 5. THE PROFESSIONAL RELIABILITY BUMP! (+0.5% for both)
-    if (typeof receiver.adjustReliability === 'function') await receiver.adjustReliability(0.5);
-    if (typeof sender.adjustReliability === 'function') await sender.adjustReliability(0.5);
-
-    // 6. Save changes to the database
-    await receiver.save();
-    await sender.save();
-
-    res.json({ success: true, message: 'Connection accepted successfully!' });
-  } catch (err) {
-    console.error('Accept Request Error:', err);
-    res.status(500).json({ success: false, message: 'Server error while accepting request' });
-  }
-});
-
-// Add this to server/routes/auth.js
 router.put('/track-time', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -1337,11 +1289,9 @@ router.put('/track-time', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_key');
 
-    // The frontend will send minutes. We convert to hours for the DB.
     const minutesToAdd = parseFloat(req.body.minutes) || 0;
     const hoursToAdd = minutesToAdd / 60;
 
-    // 🟢 $inc safely ADDS to the total, preventing multi-tab overwrites!
     const updatedUser = await User.findByIdAndUpdate(
       decoded.id,
       { $inc: { studyHours: hoursToAdd } },
