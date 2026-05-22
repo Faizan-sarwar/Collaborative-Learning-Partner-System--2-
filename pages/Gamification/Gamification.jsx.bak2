@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Zap, Flame, Lock, User as UserIcon, Camera, Trophy, Medal, Crown, Target, Users, BookOpen } from 'lucide-react';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Gamification.module.css';
 
 // Import avatars
@@ -278,10 +279,10 @@ const Gamification = () => {
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
-  if (loading) return <><div style={{ color: 'var(--text-secondary)', padding: '20px' }}>Loading progress...</div></>;
+  if (loading) return <DashboardLayout title="Gamification"><div style={{ color: 'var(--text-secondary)', padding: '20px' }}>Loading progress...</div></DashboardLayout>;
 
   return (
-    <>
+    <DashboardLayout title="Gamification">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
 
         <motion.div className={styles.header} variants={itemVariants}>
@@ -424,7 +425,7 @@ const Gamification = () => {
           </div>
         </div>
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Shield, Star, Clock, BookOpen, Calendar, Award, MessageSquare, UserPlus, Check, X, Zap } from 'lucide-react';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './UserProfile.module.css';
 
 // 🟢 PROFESSIONAL TRUST TIER HELPER
@@ -161,13 +162,13 @@ const UserProfile = () => {
     }
   };
 
-  if (loading) return <><div className={styles.container}>Loading profile...</div></>;
-  if (error || !user) return <><div className={styles.container}><h3>{error || "User not found"}</h3></div></>;
+  if (loading) return <DashboardLayout><div className={styles.container}>Loading profile...</div></DashboardLayout>;
+  if (error || !user) return <DashboardLayout><div className={styles.container}><h3>{error || "User not found"}</h3></div></DashboardLayout>;
 
   const trustTier = getTrustTier(user.reliability);
 
   return (
-    <>
+    <DashboardLayout title={`${user.fullName}'s Profile`}>
       <div className={styles.container} style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
         
         {/* 🟢 ENTERPRISE HERO BANNER */}
@@ -339,7 +340,7 @@ const UserProfile = () => {
         </div>
 
       </div>
-    </>
+    </DashboardLayout>
   );
 };
 

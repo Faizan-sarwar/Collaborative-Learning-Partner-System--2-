@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserCheck, UserX, UserSearch, Inbox, Send, Check, X, User as UserIcon } from 'lucide-react';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './PendingConnections.module.css';
 
 // 🟢 IMPORT ALL AVATARS
@@ -204,10 +205,10 @@ const PendingConnections = () => {
     }
   };
 
-  if (loading) return <><div className={styles.loadingState}>Loading network...</div></>;
+  if (loading) return <DashboardLayout title="Pending Connections"><div className={styles.loadingState}>Loading network...</div></DashboardLayout>;
 
   return (
-    <>
+    <DashboardLayout title="Pending Connections">
       <div className={styles.container}>
         
         {/* Header */}
@@ -347,7 +348,7 @@ const PendingConnections = () => {
           </div>
         </div>
       </div>
-    </>
+    </DashboardLayout>
   );
 };
 

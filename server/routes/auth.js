@@ -189,7 +189,11 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
       xp: 10,
       referralCode: generatedReferralCode // 🟢 Assign their new code
     };
-    if (req.file) userData.picture = { data: req.file.buffer, contentType: req.file.mimetype };
+    if (req.file) {
+      userData.picture = { data: req.file.buffer, contentType: req.file.mimetype };
+      // 🟢 User uploaded a photo — show it in the header instead of the cartoon avatar
+      userData.settings = { showAvatar: false };
+    }
 
     const newUser = await User.create(userData);
 

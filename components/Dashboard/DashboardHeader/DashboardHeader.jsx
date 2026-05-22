@@ -483,7 +483,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
           <img
             src={avatarSrc}
             alt="User Profile"
-            fetchpriority="high" /* 🟢 PERFORMANCE FIX: Force load the main LCP image */
+            fetchPriority="high" /* 🟢 PERFORMANCE FIX: Force load the main LCP image */
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
           />
         </div>

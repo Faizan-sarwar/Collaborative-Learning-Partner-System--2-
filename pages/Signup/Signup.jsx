@@ -5,9 +5,11 @@ const profanityFilter = new Filter();
 import { ChevronDown, X, Eye, EyeOff } from 'lucide-react';
 import styles from './Signup.module.css';
 import Alert from '../../components/Alert/Alert';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import PageWrapper from '../../src/motion/PageWrapper';
 import { staggerContainer, fadeUpItem, springs } from '../../src/motion/motion';
+import PhotoAdjuster from '../../components/PhotoAdjuster/PhotoAdjuster';
+import { Camera } from 'lucide-react';
 
 const departments = [
     'Information Technology',
@@ -98,6 +100,13 @@ const Signup = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [alertError, setAlertError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // 🟢 Photo adjuster state
+    const [previewImage, setPreviewImage] = useState(null);  // object URL of cropped photo for preview
+    const [showAdjuster, setShowAdjuster] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState(null);  // raw uploaded file as object URL
+    const [pendingFile, setPendingFile] = useState(null);  // original File passed to adjuster
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -241,18 +250,49 @@ const Signup = () => {
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                setErrors((prev) => ({ ...prev, profilePicture: 'Please upload an image file' }));
-                return;
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                setErrors((prev) => ({ ...prev, profilePicture: 'Image must be less than 5MB' }));
-                return;
-            }
-            setErrors((prev) => ({ ...prev, profilePicture: '' }));
+        // Reset the input so the same file can be re-picked later
+        e.target.value = '';
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setErrors((prev) => ({ ...prev, profilePicture: 'Please upload an image file' }));
+            return;
         }
-        setFormData((prev) => ({ ...prev, profilePicture: file }));
+        if (file.size > 5 * 1024 * 1024) {
+            setErrors((prev) => ({ ...prev, profilePicture: 'Image must be less than 5MB' }));
+            return;
+        }
+        setErrors((prev) => ({ ...prev, profilePicture: '' }));
+
+        // Open the WhatsApp-style adjuster; the file is NOT stored until user confirms
+        setPendingFile(file);
+        setRawImageSrc(URL.createObjectURL(file));
+        setShowAdjuster(true);
+    };
+
+    // Called when the user confirms their crop in PhotoAdjuster
+    const handleAdjusterConfirm = (croppedFile, croppedUrl) => {
+        setFormData((prev) => ({ ...prev, profilePicture: croppedFile }));
+        // Replace any old preview URL so we don't leak object URLs
+        if (previewImage) URL.revokeObjectURL(previewImage);
+        setPreviewImage(croppedUrl);
+        setShowAdjuster(false);
+        if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+        setRawImageSrc(null);
+        setPendingFile(null);
+    };
+
+    const handleAdjusterCancel = () => {
+        setShowAdjuster(false);
+        if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+        setRawImageSrc(null);
+        setPendingFile(null);
+    };
+
+    const handleRemovePhoto = () => {
+        if (previewImage) URL.revokeObjectURL(previewImage);
+        setPreviewImage(null);
+        setFormData((prev) => ({ ...prev, profilePicture: null }));
     };
 
     const handleSubjectToggle = (field, subjectName) => {
@@ -455,13 +495,70 @@ const Signup = () => {
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Profile Picture</label>
-                                        <input
-                                            type="file"
-                                            name="profilePicture"
-                                            className={styles.fileInput}
-                                            accept="image/*"
-                                            onChange={handleFileChange}
-                                        />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                style={{
+                                                    width: '56px', height: '56px',
+                                                    borderRadius: '50%',
+                                                    border: '2px dashed var(--border-color, #334155)',
+                                                    background: 'var(--bg-tertiary, #1e293b)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    cursor: 'pointer', overflow: 'hidden', flexShrink: 0,
+                                                    position: 'relative'
+                                                }}
+                                                title={previewImage ? 'Change photo' : 'Upload photo'}
+                                            >
+                                                {previewImage ? (
+                                                    <img
+                                                        src={previewImage}
+                                                        alt="Preview"
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                ) : (
+                                                    <Camera size={20} color="var(--text-secondary, #94a3b8)" />
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    style={{
+                                                        padding: '8px 14px',
+                                                        background: 'var(--bg-tertiary, #1e293b)',
+                                                        border: '1px solid var(--border-color, #334155)',
+                                                        borderRadius: '6px',
+                                                        color: 'var(--text-primary, #f8fafc)',
+                                                        fontSize: '0.85rem', fontWeight: '500',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {previewImage ? 'Change Photo' : 'Choose Photo'}
+                                                </button>
+                                                {previewImage && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRemovePhoto}
+                                                        style={{
+                                                            padding: 0, background: 'none', border: 'none',
+                                                            color: '#ef4444', fontSize: '0.75rem',
+                                                            cursor: 'pointer', textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                name="profilePicture"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </div>
+                                        {errors.profilePicture && <span className={styles.errorMessage}>{errors.profilePicture}</span>}
                                     </div>
 
                                     <div className={styles.inputGroup}>
@@ -857,6 +954,18 @@ const Signup = () => {
                     </motion.div>
                 </main>
             </div>
+
+            {/* 🟢 Photo Adjuster modal */}
+            <AnimatePresence>
+                {showAdjuster && rawImageSrc && pendingFile && (
+                    <PhotoAdjuster
+                        imageSrc={rawImageSrc}
+                        originalFile={pendingFile}
+                        onConfirm={handleAdjusterConfirm}
+                        onCancel={handleAdjusterCancel}
+                    />
+                )}
+            </AnimatePresence>
         </PageWrapper>
     );
 };

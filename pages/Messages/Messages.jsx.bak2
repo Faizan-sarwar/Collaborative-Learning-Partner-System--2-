@@ -5,6 +5,7 @@ import {
   Trash2, Ban, ShieldAlert, Check, CheckCheck, AlertTriangle, RefreshCw,
   Phone, Video, ArrowLeft, Smile
 } from 'lucide-react';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import ChatBot from '../ChatBot/ChatBot';
 import styles from './Messages.module.css';
 
@@ -797,7 +798,7 @@ const Messages = () => {
   }, [activeConversation]);
 
   return (
-    <>
+    <DashboardLayout title="Messages">
       <style>{`
         @keyframes typingBounce {
           0%,60%,100% { transform: translateY(0); opacity:0.4; }
@@ -1095,7 +1096,7 @@ const Messages = () => {
       </AnimatePresence>
 
       <ChatBot />
-    </>
+    </DashboardLayout>
   );
 };
 

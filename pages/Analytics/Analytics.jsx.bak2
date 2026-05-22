@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Analytics.module.css';
 import sessionTracker from './sessionTracker.js';
 
@@ -193,16 +194,16 @@ const Analytics = () => {
   const item = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
   if (loading) return (
-    <>
+    <DashboardLayout title="Analytics">
       <div style={{ padding: '40px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{ width: '20px', height: '20px', border: '2px solid #6366f1', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         Loading your analytics...
       </div>
-    </>
+    </DashboardLayout>
   );
 
   return (
-    <>
+    <DashboardLayout title="Analytics">
       <motion.div className={styles.container} variants={container} initial="hidden" animate="visible">
 
         {/* ── HEADER ── */}
@@ -331,7 +332,7 @@ const Analytics = () => {
         </div>
 
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 

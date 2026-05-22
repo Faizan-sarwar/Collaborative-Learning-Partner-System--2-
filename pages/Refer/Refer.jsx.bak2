@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import { useNotification } from '../../src/context/NotificationContext';
 import styles from './Refer.module.css';
 
@@ -140,16 +141,16 @@ const Refer = () => {
 
   if (isLoading) {
     return (
-      <>
+      <DashboardLayout>
         <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
           <h2>Loading your rewards...</h2>
         </div>
-      </>
+      </DashboardLayout>
     );
   }
 
   return (
-    <>
+    <DashboardLayout>
       <div className={styles.container}>
         <motion.div className={styles.heroSection} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className={styles.heroContent}>
@@ -307,7 +308,7 @@ const Refer = () => {
           </div>
         </motion.div>
       </div>
-    </>
+    </DashboardLayout>
   );
 };
 

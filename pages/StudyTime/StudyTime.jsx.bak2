@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Square, AlertTriangle, Clock, Calendar, Zap, Flame } from 'lucide-react';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './StudyTime.module.css';
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 Minutes of no activity = Auto-Pause
@@ -223,7 +224,7 @@ const StudyTime = () => {
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
   return (
-    <>
+    <DashboardLayout title="Study Time">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
         
         <motion.div className={styles.header} variants={itemVariants}>
@@ -320,7 +321,7 @@ const StudyTime = () => {
             </div>
         </div>
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 

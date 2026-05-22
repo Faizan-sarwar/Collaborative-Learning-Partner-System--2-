@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Social.module.css';
 
 const studyGroups = [
@@ -23,7 +24,7 @@ const Social = () => {
   };
 
   return (
-    <>
+    <DashboardLayout title="Social">
       <motion.div
         className={styles.container}
         variants={containerVariants}
@@ -90,7 +91,7 @@ const Social = () => {
           </div>
         </motion.div>
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 

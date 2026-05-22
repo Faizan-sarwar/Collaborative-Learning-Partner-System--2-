@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './XP.module.css';
 
 const xpActivities = [
@@ -118,10 +119,10 @@ const XP = () => {
     if (action) navigate(action);
   };
 
-  if (loading) return <><div style={{color:'white', padding:'20px'}}>Loading...</div></>;
+  if (loading) return <DashboardLayout title="XP & Rewards"><div style={{color:'white', padding:'20px'}}>Loading...</div></DashboardLayout>;
 
   return (
-    <>
+    <DashboardLayout title="XP & Rewards">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
         
         {/* XP Overview Card */}
@@ -298,7 +299,7 @@ const XP = () => {
           </div>
         </div>
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 

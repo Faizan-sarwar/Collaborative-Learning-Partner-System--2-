@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Quiz.module.css';
 
 // IMPORT THE QUESTION BANK
@@ -241,7 +242,7 @@ const Quiz = () => {
     };
 
     return (
-      <>
+      <DashboardLayout title="Quiz">
         <div className={styles.container}>
           <motion.div className={styles.resultCard} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
             <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -261,7 +262,7 @@ const Quiz = () => {
             </div>
           </motion.div>
         </div>
-      </>
+      </DashboardLayout>
     );
   }
 
@@ -276,7 +277,7 @@ const Quiz = () => {
     const tier = getTrustTier(finalReliability);
 
     return (
-      <>
+      <DashboardLayout title="Results">
         <div className={styles.container}>
           <motion.div className={styles.resultCard} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
 
@@ -319,13 +320,13 @@ const Quiz = () => {
             </motion.button>
           </motion.div>
         </div>
-      </>
+      </DashboardLayout>
     );
   }
 
   // RENDER QUIZ VIEW
   return (
-    <>
+    <DashboardLayout hideSidebar={true}>
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
@@ -401,7 +402,7 @@ const Quiz = () => {
           </div>
         </div>
       </div>
-    </>
+    </DashboardLayout>
   );
 };
 

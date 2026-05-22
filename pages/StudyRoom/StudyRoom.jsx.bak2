@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './StudyRoom.module.css';
 
 const StudyRoom = () => {
@@ -94,7 +95,7 @@ const StudyRoom = () => {
   const subjectIcons = { 'Mathematics': '📐', 'Physics': '⚛️', 'Chemistry': '🧪', 'Biology': '🧬', 'Computer Science': '💻' };
 
   return (
-    <>
+    <DashboardLayout>
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
@@ -184,7 +185,7 @@ const StudyRoom = () => {
           </motion.div>
         )}
       </div>
-    </>
+    </DashboardLayout>
   );
 };
 

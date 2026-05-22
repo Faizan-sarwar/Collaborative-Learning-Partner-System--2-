@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, Check, Clock, UserPlus, Shield, X, Info } from 'lucide-react';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './StudyMatches.module.css';
 
 // 🟢 FIX: Completed the avatar dictionary so it doesn't crash on high-level users
@@ -165,7 +166,7 @@ const StudyMatches = () => {
   const hasExpertMatches = sortedUsers.some(u => u.isExpertMatch);
 
   return (
-    <>
+    <DashboardLayout title="Study Matches">
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
@@ -288,7 +289,7 @@ const StudyMatches = () => {
           </div>
         )}
       </div>
-    </>
+    </DashboardLayout>
   );
 };
 

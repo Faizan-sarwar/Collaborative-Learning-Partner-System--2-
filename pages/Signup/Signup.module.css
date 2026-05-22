@@ -277,8 +277,75 @@
     transform: scale(1);
   }
 }
+/* 🟢 Gender radio group — styled to match form's pill aesthetic */
+.radioGroup {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
 .radioLabel {
-  padding: 1rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 120px;
+  padding: 0.75rem 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.radioLabel:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--text-primary);
+}
+
+/* Hide the native radio dot */
+.radioInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+/* Custom circle drawn before the label text */
+.radioLabel::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--input-border);
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+/* Filled inner dot when checked — uses the native :checked state */
+.radioLabel:has(.radioInput:checked) {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.radioLabel:has(.radioInput:checked)::before {
+  border-color: #6366f1;
+  background: radial-gradient(circle, #6366f1 0%, #6366f1 38%, transparent 42%);
+}
+
+/* Keyboard focus ring */
+.radioLabel:has(.radioInput:focus-visible) {
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
 }
 .fileInput {
   width: 100%;

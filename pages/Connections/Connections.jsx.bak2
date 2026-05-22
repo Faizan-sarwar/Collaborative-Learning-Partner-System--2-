@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import styles from './Connections.module.css';
 
 const Connections = () => {
@@ -79,10 +80,10 @@ const Connections = () => {
     visible: { opacity: 1, transition: { duration: 0.3 } }
   };
 
-  if (loading) return <><div style={{padding:'20px'}}>Loading connections...</div></>;
+  if (loading) return <DashboardLayout title="Your Connections"><div style={{padding:'20px'}}>Loading connections...</div></DashboardLayout>;
 
   return (
-    <>
+    <DashboardLayout title="Your Connections">
       <motion.div
         className={styles.container}
         variants={containerVariants}
@@ -261,7 +262,7 @@ const Connections = () => {
           )}
         </div>
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 

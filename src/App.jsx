@@ -11,7 +11,10 @@ import PageTransition from "../components/PageTransition/PageTransition";
 import ProtectedRoute from "../pages/ProtectedRoutes";
 import FAQ from "../components/FAQ/FAQ";
 
-// 🟢 ADDED: Lazy Loading for Public & Student Pages
+// 🟢 DashboardLayout is now a PERSISTENT layout route — import eagerly (it's always needed once logged in)
+import DashboardLayout from "../components/Dashboard/DashboardLayout/DashboardLayout.jsx";
+
+// 🟢 Lazy Loading for Public Pages
 const Index = lazy(() => import("../pages/Index"));
 const Login = lazy(() => import("../pages/Login/Login"));
 const Signup = lazy(() => import("../pages/Signup/Signup"));
@@ -25,6 +28,7 @@ const About = lazy(() => import("../pages/About/About"));
 const Contact = lazy(() => import("../pages/Contact/Contact"));
 const NotFound = lazy(() => import("../pages/NotFound/NotFound"));
 
+// 🟢 Student Pages
 const Dashboard = lazy(() => import("../pages/Dashboard/Dashboard"));
 const StudyTime = lazy(() => import("../pages/StudyTime/StudyTime"));
 const Courses = lazy(() => import("../pages/Courses/Courses"));
@@ -45,7 +49,7 @@ const Settings = lazy(() => import("../pages/Settings/Settings"));
 const ChatBot = lazy(() => import("../pages/ChatBot/ChatBot"));
 const XP = lazy(() => import("../pages/XP/Xp"));
 
-// 🟢 ADDED: Lazy Loading for Admin Pages
+// 🟢 Admin Pages
 const AdminLayout = lazy(() => import("../pages/Admin/AdminLayout/AdminLayout"));
 const AdminDashboard = lazy(() => import("../pages/Admin/AdminDashboard/AdminDashboard"));
 const StudentManagement = lazy(() => import("../pages/Admin/StudentManagement/StudentManagement"));
@@ -59,10 +63,10 @@ const SettingsPage = lazy(() => import("../pages/Admin/SettingsPage/SettingsPage
 const dashboardRoutes = [
   '/dashboard', '/study-time', '/courses', '/social', '/analytics', '/study-room',
   '/profile', '/messages', '/quiz', '/gamification', '/study-matches', '/user-profile',
-  '/pending-connections', '/connections', '/settings', '/chatbot', '/admin'
+  '/pending-connections', '/connections', '/settings', '/chatbot', '/admin', '/refer', '/xp'
 ];
 
-// 🟢 ADDED: Fallback Spinner for lazy-loaded pages
+// 🟢 Fallback Spinner for lazy-loaded pages
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
     <div style={{ width: '40px', height: '40px', border: '3px solid transparent', borderTop: '3px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -80,7 +84,7 @@ const AnimatedRoutes = () => {
 
   const apiUrl = `http://${window.location.hostname}:5000`;
 
-  // 🟢 RESTORED: Your original logic!
+  // 🟢 PRESERVED: Original auth + maintenance check logic, untouched
   useEffect(() => {
     const checkStatus = async () => {
       if (!settings) return;
@@ -174,14 +178,22 @@ const AnimatedRoutes = () => {
 
   return (
     <>
-      {/* 🟢 RESTORED: Your original Theme Toggle Logic! */}
+      {/* Theme toggle only on public/non-dashboard routes */}
       {!isDashboardRoute && <ThemeToggle />}
 
-      <AnimatePresence mode="wait">
-        {/* 🟢 ADDED: Suspense wrapper so React can safely load the chunks */}
-        <Suspense fallback={<PageLoader />}>
-          <Routes location={location} key={location.pathname}>
+      {/*
+        🟢 IMPORTANT CHANGE: We REMOVED the `key={location.pathname}` from <Routes>.
+        That key was forcing the entire route tree (including the layout) to remount
+        on every navigation. The DashboardLayout itself now handles page transitions
+        via AnimatePresence + key={location.pathname} on the inner <Outlet /> motion.div.
 
+        AnimatePresence is still needed for public-page transitions.
+      */}
+      <AnimatePresence mode="wait">
+        <Suspense fallback={<PageLoader />}>
+          <Routes location={location}>
+
+            {/* ─── Public routes ─── */}
             <Route path="/" element={<PageTransition><Index /></PageTransition>} />
             <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
             <Route path="/signup" element={<Signup />} />
@@ -202,29 +214,50 @@ const AnimatedRoutes = () => {
               </div>
             } />
 
+            {/*
+              ─── STUDENT routes ───
+              🟢 KEY FIX: DashboardLayout is now a parent layout route.
+              It mounts ONCE on first login and stays mounted across navigations.
+              Only the <Outlet /> content (the page) swaps.
+
+              ⚠️ ACTION REQUIRED in each child page (Dashboard.jsx, StudyTime.jsx, etc):
+              REMOVE the <DashboardLayout> wrapper from inside the page.
+              The page should just return its own content directly.
+            */}
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/study-time" element={<StudyTime />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/social" element={<Social />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/study-room" element={<StudyRoom />} />
-              <Route path="/study-room/waiting/:roomId" element={<StudyRoomWaiting />} />
-              <Route path="/study-room/active/:roomId" element={<StudyRoomActive />} />
-              <Route path="/profile" element={<UserProfile />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/quiz" element={<Quiz />} />
-              <Route path="/gamification" element={<Gamification />} />
-              <Route path="/refer" element={<Refer />} />
-              <Route path="/study-matches" element={<StudyMatches />} />
-              <Route path="/user-profile/:userId" element={<UserProfile />} />
-              <Route path="/pending-connections" element={<PendingConnections />} />
-              <Route path="/connections" element={<Connections />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/chatbot" element={<ChatBot />} />
-              <Route path="/xp" element={<XP />} />
+              <Route element={<DashboardLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/study-time" element={<StudyTime />} />
+                <Route path="/courses" element={<Courses />} />
+                <Route path="/social" element={<Social />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/study-room" element={<StudyRoom />} />
+                <Route path="/profile" element={<UserProfile />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="/gamification" element={<Gamification />} />
+                <Route path="/refer" element={<Refer />} />
+                <Route path="/study-matches" element={<StudyMatches />} />
+                <Route path="/user-profile/:userId" element={<UserProfile />} />
+                <Route path="/pending-connections" element={<PendingConnections />} />
+                <Route path="/connections" element={<Connections />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/chatbot" element={<ChatBot />} />
+                <Route path="/xp" element={<XP />} />
+              </Route>
+
+              {/*
+                🟢 These routes likely want a full-width layout (no sidebar) — e.g. study room
+                while in a live session, and the quiz onboarding page.
+                If you DON'T want hideSidebar for some of these, just move them up.
+              */}
+              <Route element={<DashboardLayout hideSidebar />}>
+                <Route path="/study-room/waiting/:roomId" element={<StudyRoomWaiting />} />
+                <Route path="/study-room/active/:roomId" element={<StudyRoomActive />} />
+                <Route path="/quiz" element={<Quiz />} />
+              </Route>
             </Route>
 
+            {/* ─── ADMIN routes (already used Outlet pattern — left alone) ─── */}
             <Route element={<ProtectedRoute allowedRoles={['admin', 'super-admin']} />}>
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />

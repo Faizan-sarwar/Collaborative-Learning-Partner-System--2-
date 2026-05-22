@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../components/Dashboard/DashboardLayout/DashboardLayout';
 import { MessageCircle, Users, Lightbulb, BookOpen, ArrowRight, Sparkles, Brain, Heart, Loader2 } from 'lucide-react';
 import styles from './Courses.module.css';
 
@@ -98,17 +99,17 @@ const Courses = () => {
 
   if (loadingProfile) {
     return (
-      <>
+      <DashboardLayout title="Study Topics">
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', color: 'var(--text-secondary)' }}>
           <Loader2 className={styles.spin} size={40} style={{ marginBottom: '15px', color: '#6366f1' }} />
           <span style={{ fontSize: '1.1rem' }}>Analyzing your learning profile...</span>
         </div>
-      </>
+      </DashboardLayout>
     );
   }
 
   return (
-    <>
+    <DashboardLayout title="Study Topics">
       <motion.div className={styles.container} variants={containerVariants} initial="hidden" animate="visible">
 
         {/* Hero */}
@@ -239,7 +240,7 @@ const Courses = () => {
         </motion.div>
 
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 };
 
