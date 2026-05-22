@@ -8,20 +8,6 @@ import {
 } from 'lucide-react';
 import styles from './DashboardHeader.module.css';
 
-import maleLevel1 from '../../../public/gamification/male-level-1.png';
-import maleLevel2 from '../../../public/gamification/male-level-2.png';
-import maleLevel3 from '../../../public/gamification/male-level-3.png';
-import maleLevel4 from '../../../public/gamification/male-level-4.png';
-import maleLevel5 from '../../../public/gamification/male-level-5.png';
-import maleLevel6 from '../../../public/gamification/male-level-6.png';
-import maleLevel7 from '../../../public/gamification/male-level-7.png';
-import femaleLevel1 from '../../../public/gamification/female-level-1.png';
-import femaleLevel2 from '../../../public/gamification/female-level-2.png';
-import femaleLevel3 from '../../../public/gamification/female-level-3.png';
-import femaleLevel4 from '../../../public/gamification/female-level-4.png';
-import femaleLevel5 from '../../../public/gamification/female-level-5.png';
-import femaleLevel6 from '../../../public/gamification/female-level-6.png';
-import femaleLevel7 from '../../../public/gamification/female-level-7.png';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const API = `http://${window.location.hostname}:5000/api`;
