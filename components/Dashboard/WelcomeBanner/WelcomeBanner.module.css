@@ -83,10 +83,9 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .secondaryBtn:hover {
-  background: #334155;
-  border-color: #475569;
+  background: var(--bg-primary);
+  border-color: var(--text-muted);
 }
 
 /* 🟢 Stats Grid */
@@ -172,7 +171,7 @@
 }
 
 .insightBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(59, 130, 246, 0.1);
   color: var(--text-primary);
 }
 
@@ -271,8 +270,8 @@
 }
 
 .tab:hover {
-  background: #334155;
-  color: var(--text-primary, #f8fafc);
+  background: var(--border-color);
+  color: var(--text-primary);
 }
 
 .tab.active {

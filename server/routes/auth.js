@@ -287,16 +287,25 @@ router.post('/login', async (req, res) => {
       });
     } catch (logErr) { console.error('Logging failed:', logErr); }
 
+    // 🟢 THE FIX: Capture their old login date BEFORE we overwrite it!
+    const today = new Date();
+    const previousLoginDate = new Date(user.lastLogin || 0);
+
+    // NOW it is safe to update their current status
     user.isOnline = true;
     user.lastLogin = Date.now();
 
     let xpMessage = '';
-    const today = new Date(), lastLogin = new Date(user.lastLogin || 0);
 
-    if (today.toDateString() !== lastLogin.toDateString()) {
+    // Check if the current day is different from their previous login day
+    if (today.toDateString() !== previousLoginDate.toDateString()) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      user.streak = yesterday.toDateString() === lastLogin.toDateString() ? (user.streak || 0) + 1 : 1;
+
+      // If their previous login was exactly yesterday, add 1. Otherwise, reset to 1.
+      user.streak = (yesterday.toDateString() === previousLoginDate.toDateString())
+        ? (user.streak || 0) + 1
+        : 1;
 
       const streakBonus = Math.min(10 + (user.streak * 10), 50);
       if (typeof user.awardXP === 'function') {
