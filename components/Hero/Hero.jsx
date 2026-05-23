@@ -66,7 +66,7 @@ const Hero = () => {
 
             <motion.div variants={fadeUpItem} className={styles.ctas}>
               <MotionButton variant="primary" magnetic glow>
-                <Link href="/login">
+                <Link to="/signup" className={styles.ctaLink}>
                   Get Started
                 </Link>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
