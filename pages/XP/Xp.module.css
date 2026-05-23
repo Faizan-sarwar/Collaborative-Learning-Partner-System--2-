@@ -6,14 +6,14 @@
 
 /* Overview Card */
 .overviewCard {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #6366f1));
+  /* 🟢 FIX: Hardcoded the gradient and added !important to protect it from Light Mode overrides */
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
   border-radius: 20px;
   padding: 2rem;
   margin-bottom: 2rem;
-  color: white;
+  color: #ffffff !important;
   box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
 }
-
 .xpHeader {
   display: flex;
   align-items: center;
@@ -377,7 +377,7 @@
   .mainGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .rightColumn {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -388,7 +388,7 @@
   .activitiesGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .rightColumn {
     grid-template-columns: 1fr;
   }
@@ -398,25 +398,25 @@
   .container {
     padding: 1rem;
   }
-  
+
   .overviewCard {
     padding: 1.5rem;
   }
-  
+
   .xpHeader {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .xpValue {
     font-size: 2rem;
   }
-  
+
   .statsRow {
     flex-wrap: wrap;
     gap: 1rem;
   }
-  
+
   .statItem {
     flex: 1;
     min-width: 80px;
@@ -430,7 +430,11 @@
 
 /* Overview Card */
 .overviewCard {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #6366f1));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary, #6366f1)
+  );
   border-radius: 20px;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -801,7 +805,7 @@
   .mainGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .rightColumn {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -812,7 +816,7 @@
   .activitiesGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .rightColumn {
     grid-template-columns: 1fr;
   }
@@ -822,25 +826,25 @@
   .container {
     padding: 1rem;
   }
-  
+
   .overviewCard {
     padding: 1.5rem;
   }
-  
+
   .xpHeader {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .xpValue {
     font-size: 2rem;
   }
-  
+
   .statsRow {
     flex-wrap: wrap;
     gap: 1rem;
   }
-  
+
   .statItem {
     flex: 1;
     min-width: 80px;

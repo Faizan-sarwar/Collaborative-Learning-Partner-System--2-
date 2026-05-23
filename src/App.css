@@ -67,15 +67,15 @@
 }
 
 [data-theme="light"] {
-  /* Colors */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --bg-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  --bg-card-hover: #f1f5f9;
-  --bg-hover: rgba(0, 0, 0, 0.04);
+  /* 🟢 PREMIUM ELEVATION: Cool grey backdrop makes white cards POP */
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #ffffff; /* Pure white for elevated cards */
+  --bg-tertiary: #f8fafc; /* Soft inner fill */
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-hover: rgba(15, 23, 42, 0.04);
 
-  /* Text */
+  /* 🟢 TEXT: Deep slate for maximum high-contrast readability */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-tertiary: #64748b;
@@ -87,39 +87,44 @@
   --btn-text-muted: rgba(15, 23, 42, 0.7);
 
   /* Input */
-  --input-bg: #ffffff;
+  --input-bg: #f8fafc;
   --input-bg-focus: #ffffff;
   --input-border: #e2e8f0;
   --border-color-hover: #cbd5e1;
 
-  /* Shadows */
+  /* 🟢 THE SECRET SAUCE: Stripe/Vercel style Multi-Layered Shadows */
   --card-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.08), 0 0 40px rgba(99, 102, 241, 0.03);
+    0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 10px rgba(15, 23, 42, 0.03),
+    0 0 0 1px rgba(15, 23, 42, 0.05); /* Optical inner border */
 
-  /* Primary Colors (Aliases for consistency) */
-  --primary-color: #6366f1;
-  --primary-light: #8b5cf6;
+  --card-shadow-hover:
+    0 4px 8px rgba(15, 23, 42, 0.04), 0 14px 24px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(15, 23, 42, 0.08);
 
-  /* Accent Colors - slightly darker for better contrast on light backgrounds */
-  --accent-blue: #4f46e5;
-  --accent-cyan: #0891b2;
-  --accent-purple: #7c3aed;
-  --accent-green: #059669;
-  --accent-pink: #db2777;
+  /* Primary Colors */
+  --primary-color: #4f46e5;
+  --primary-light: #6366f1;
+
+  /* Accent Colors - Richer, deeper hues for light mode */
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-purple: #8b5cf6;
+  --accent-green: #10b981;
+  --accent-pink: #ec4899;
   --accent-teal: #0d9488;
-  --accent-red: #dc2626;
-  --accent-orange: #ea580c;
-  --accent-yellow: #ca8a04;
+  --accent-red: #ef4444;
+  --accent-orange: #f59e0b;
+  --accent-yellow: #eab308;
 
   /* Borders */
   --border-color: #e2e8f0;
-  --border-glow: rgba(139, 92, 246, 0.15);
+  --border-glow: rgba(99, 102, 241, 0.2);
 
-  /* Glows - softer for light mode */
-  --glow-blue: 0 0 30px rgba(59, 130, 246, 0.1);
-  --glow-purple: 0 0 30px rgba(139, 92, 246, 0.1);
-  --glow-cyan: 0 0 30px rgba(6, 182, 212, 0.1);
-  --glow-green: 0 0 30px rgba(16, 185, 129, 0.1);
+  /* Soft Ambient Glows */
+  --glow-blue: 0 0 40px rgba(59, 130, 246, 0.12);
+  --glow-purple: 0 0 40px rgba(139, 92, 246, 0.12);
+  --glow-cyan: 0 0 40px rgba(6, 182, 212, 0.12);
+  --glow-green: 0 0 40px rgba(16, 185, 129, 0.12);
 }
 * {
   margin: 0;

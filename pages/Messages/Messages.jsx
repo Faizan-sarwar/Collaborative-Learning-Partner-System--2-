@@ -36,11 +36,14 @@ const API = `http://${window.location.hostname}:5000/api`;
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000; // 15 min
 
-// 🟢 FIX: Smart Avatar Logic
+// 🟢 FIX: Smart Avatar Logic checks both id formats!
 const getAvatarSrc = (userObj) => {
+  const userId = userObj?.id || userObj?._id;
+  const hasPic = userObj?.hasPicture || !!userObj?.picture;
+
   // If user turned off cartoon avatar AND has a real picture
-  if (userObj?.settings?.showAvatar === false && userObj.hasPicture) {
-    return `${API}/auth/student/${userObj.id}/picture`;
+  if (userObj?.settings?.showAvatar === false && hasPic) {
+    return `${API}/auth/student/${userId}/picture`;
   }
   // Otherwise, use gamified cartoon
   const gender = userObj?.gender?.toLowerCase() === 'female' ? 'female' : 'male';

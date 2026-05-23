@@ -1,24 +1,25 @@
+/* 🟢 The floating masterpiece container */
 .bannerContainer {
   background: var(--bg-secondary, #0f172a);
-  border: 1px solid var(--border-color, #1e293b);
-  border-radius: 20px;
+  border-radius: 24px; /* Premium soft curves */
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 2.5rem;
+  transition: box-shadow 0.4s ease;
 }
 
-/* 🟢 Hero Section */
+/* 🟢 Hero Section with a clean, subtle gradient */
 .heroSection {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32px;
+  padding: 40px 32px; /* More breathing room */
   background: linear-gradient(
-    to right,
-    var(--bg-tertiary, #1e293b) 0%,
-    var(--bg-secondary, #0f172a) 100%
+    135deg,
+    var(--bg-secondary, #0f172a) 0%,
+    var(--bg-tertiary, #1e293b) 100%
   );
   border-bottom: 1px solid var(--border-color, #1e293b);
   flex-wrap: wrap;
@@ -30,11 +31,11 @@
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: var(--text-primary, #f8fafc);
   margin: 0 0 8px 0;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.8px; /* Tighter, modern typography */
 }
 
 .subtitle {
@@ -53,20 +54,24 @@
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--primary-light)
+  );
   color: white;
   border: none;
   border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px var(--border-glow);
 }
 
 .primaryBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 20px var(--border-glow);
 }
 
 .secondaryBtn {
@@ -74,40 +79,52 @@
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: var(--bg-tertiary, #1e293b);
-  color: var(--text-primary, #f8fafc);
-  border: 1px solid var(--border-color, #334155);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-.secondaryBtn:hover {
-  background: var(--bg-primary);
-  border-color: var(--text-muted);
+  transition: all 0.3s ease;
+  box-shadow: var(--card-shadow);
 }
 
-/* 🟢 Stats Grid */
+.secondaryBtn:hover {
+  background: var(--bg-tertiary);
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* 🟢 Removing the flat grid lines */
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--border-color, #1e293b);
+  background: var(--bg-secondary, #0f172a);
   border-bottom: 1px solid var(--border-color, #1e293b);
 }
 
+/* 🟢 Stat cards with premium fluid hover lift */
 .statCard {
   background: var(--bg-secondary, #0f172a);
-  padding: 24px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border: 1px solid transparent;
-  transition: all 0.3s ease;
+  border-right: 1px solid var(--border-color, #1e293b);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
+
+.statCard:last-child {
+  border-right: none;
+}
+
 .statCard:hover {
-  transform: translateY(-2px);
+  transform: translateY(-6px); /* Floating effect */
+  box-shadow: var(--card-shadow-hover);
+  z-index: 10;
+  border-radius: 16px;
 }
 
 .statHeader {
@@ -143,11 +160,11 @@
 }
 
 .statValue {
-  font-size: 2.5rem;
+  font-size: 2.75rem;
   font-weight: 800;
   color: var(--text-primary, #f8fafc);
   line-height: 1;
-  letter-spacing: -1px;
+  letter-spacing: -1.5px;
 }
 
 .statSubtext {
@@ -175,7 +192,7 @@
   color: var(--text-primary);
 }
 
-/* 🟢 Path to Elite Section (Tips) */
+/* 🟢 Path to Elite Section */
 .improvementSection {
   background: var(--bg-primary, #020617);
   padding: 0 32px;
@@ -215,6 +232,7 @@
   padding: 20px;
   border-radius: 16px;
   border: 1px solid var(--border-color, #1e293b);
+  box-shadow: var(--card-shadow);
 }
 
 .tipIcon {
@@ -244,43 +262,44 @@
   color: var(--text-primary, #e2e8f0);
 }
 
-/* 🟢 Navigation Tabs */
+/* 🟢 Apple-Style Segmented Navigation Tabs */
 .tabs {
   display: flex;
   gap: 12px;
-  padding: 20px 32px;
-  background: var(--bg-secondary, #0f172a);
+  padding: 16px 32px;
+  background: var(--bg-tertiary, #0f172a); /* Soft grey background */
   overflow-x: auto;
 }
 
 .tab {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
-  background: var(--bg-tertiary, #1e293b);
+  padding: 10px 20px;
+  background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 99px; /* Floating Pill Shape */
   color: var(--text-secondary, #94a3b8);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   white-space: nowrap;
   text-decoration: none;
 }
 
 .tab:hover {
-  background: var(--border-color);
   color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.05);
 }
 
 .tab.active {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+  background: var(--bg-secondary); /* Pure white active pill */
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-color);
 }
 
-/* 🟢 Responsive Design */
+/* 泙 Responsive Design */
 @media (max-width: 1024px) {
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
