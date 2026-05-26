@@ -44,6 +44,12 @@ const API_HOST = `http://${window.location.hostname}:5000`;
 const API = `${API_HOST}/api`;
 const SOCKET_URL = API_HOST;
 
+// 🟢 SOCKET SINGLETON — survives React StrictMode's double-mount in dev.
+// Without this, every dev render creates two sockets, the first gets killed,
+// and the backend briefly thinks you're offline during the gap.
+// In production (no StrictMode double-invoke) this is a harmless wrapper.
+const __socketCache = { instance: null, refs: 0 };
+
 // ============================================================================
 // 🟢 HELPERS — preserved from original
 // ============================================================================
@@ -344,7 +350,7 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [loadError, setLoadError] = useState(null);
 
-  // 🟢 Re-initialize whenever src changes (e.g. live-arriving voice notes)
+  // 🟢 Re-initialize whenever src changes (live-arriving voice notes)
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -352,9 +358,7 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
     setCurrentTime(0);
     setDuration(0);
     setLoadError(null);
-    // Force the audio element to reload its source — critical for live-arrived
-    // messages whose src changes after the player has mounted.
-    a.load();
+    a.load(); // force <audio> to re-fetch the new source
   }, [src]);
 
   useEffect(() => {
@@ -364,7 +368,7 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
     const onMeta = () => setDuration(a.duration || 0);
     const onEnd = () => { setPlaying(false); setCurrentTime(0); };
     const onError = () => {
-      console.error('[VoiceNotePlayer] Failed to load audio:', src, a.error);
+      console.error('[VoiceNotePlayer] Audio load error:', src, a.error);
       setLoadError(a.error?.message || 'Cannot play this voice note');
     };
     const onCanPlay = () => setLoadError(null);
@@ -374,7 +378,6 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
     a.addEventListener('ended', onEnd);
     a.addEventListener('error', onError);
     a.addEventListener('canplay', onCanPlay);
-    // If audio is already loaded by the time we attach, populate duration manually
     if (a.readyState >= 1 && a.duration && !isNaN(a.duration)) setDuration(a.duration);
     return () => {
       a.removeEventListener('timeupdate', onTime);
@@ -395,12 +398,12 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       return;
     }
     try {
-      // 🟢 Await play() so we catch autoplay-policy rejections and codec errors
+      // Await play() so we catch autoplay-policy rejections and codec errors
       await a.play();
       setPlaying(true);
     } catch (err) {
       console.error('[VoiceNotePlayer] play() rejected:', err);
-      setLoadError(err.message || 'Playback failed. Tap to retry.');
+      setLoadError(err.message || 'Playback failed.');
       setPlaying(false);
     }
   };
@@ -432,7 +435,7 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       <span style={{ fontSize: '0.7rem', opacity: 0.85, fontVariantNumeric: 'tabular-nums', minWidth: 38, textAlign: 'right' }}>
         {formatDuration(playing || currentTime ? currentTime : duration)}
       </span>
-      {/* 🟢 preload="auto" so audio is ready as soon as it arrives via socket */}
+      {/* preload="auto" so it's buffered when arriving via socket */}
       <audio ref={audioRef} src={src} preload="auto" />
     </div>
   );
@@ -686,32 +689,37 @@ const Messages = () => {
   // ═══════════════════════════════════════════════════════════════════════════
   // 🟢 SOCKET.IO — AGGRESSIVE RECONNECTION FOR MOBILE
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 SOCKET.IO — AGGRESSIVE RECONNECTION FOR MOBILE
-  //    With StrictMode-safe guard: in dev, effects mount twice. Without the
-  //    guard below, the cleanup of mount #1 disconnects the socket and the
-  //    cleanup of mount #2 re-disconnects — leaving you with a dead connection
-  //    until the next reconnect cycle. The cancelDisconnect ref defers cleanup.
-  // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const myId = myIdRef.current;
     if (!myId) {
       console.warn('[Messages] No userId in token — socket NOT connecting');
       return;
     }
-    console.log('[Messages] 🚀 Connecting socket for user', myId, 'to', SOCKET_URL);
 
-    const socket = socketIO(SOCKET_URL, {
-      // Mobile-friendly reconnection: try forever, escalating delays
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 8000,
-      randomizationFactor: 0.5,
-      timeout: 20000,
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-      autoConnect: true,
-    });
+    // 🟢 SINGLETON — reuse the existing connection if StrictMode double-mounts
+    // us in dev. Without this, every dev render creates two sockets; the first
+    // is killed by cleanup, and the backend briefly thinks you're offline.
+    __socketCache.refs += 1;
+    let socket = __socketCache.instance;
+    if (!socket) {
+      console.log('[Messages] 🚀 Creating new socket for user', myId, 'to', SOCKET_URL);
+      socket = socketIO(SOCKET_URL, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 8000,
+        randomizationFactor: 0.5,
+        timeout: 20000,
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        autoConnect: true,
+      });
+      __socketCache.instance = socket;
+    } else {
+      console.log('[Messages] ♻️ Reusing socket', socket.id);
+      // Re-register immediately so backend knows we're still here
+      if (socket.connected) socket.emit('registerUser', myId);
+    }
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -728,19 +736,16 @@ const Messages = () => {
       }
     });
     socket.on('connect_error', (err) => {
-      console.warn('[socket] ⚠️ connect_error:', err.message);
+      console.warn('[socket] connect_error:', err.message);
     });
 
     // ─── INCOMING MESSAGE ────────────────────────────────────────────────────
     socket.on('receiveMessage', ({ conversationId, message }) => {
-      console.log('[socket] 📩 receiveMessage:', { conversationId, messageId: message?.id, fileType: message?.fileType });
       if (!message) return;
       setMessages(prev => {
         const list = prev[conversationId] || [];
-        if (list.some(m => m.id === message.id)) {
-          console.log('[socket] dedupe — message already present');
-          return prev;
-        }
+        // De-dupe if backend echo arrives after we already optimistically inserted
+        if (list.some(m => m.id === message.id)) return prev;
         return { ...prev, [conversationId]: [...list, message] };
       });
       // Bump conversation preview + unread badge
@@ -804,10 +809,10 @@ const Messages = () => {
 
     // ─── TYPING ──────────────────────────────────────────────────────────────
     socket.on('userTyping', ({ conversationId, userId }) => {
-      console.log('[socket] ⌨️ userTyping:', { conversationId, fromUser: userId, activeConv: activeConvIdRef.current, match: activeConvIdRef.current === conversationId });
       if (activeConvIdRef.current === conversationId && userId !== myId) {
         setPeerTyping(true);
         clearTimeout(peerTypingTimerRef.current);
+        // Auto-clear if no further pings (typing indicator should never get stuck)
         peerTypingTimerRef.current = setTimeout(() => setPeerTyping(false), 3500);
       }
     });
@@ -855,7 +860,36 @@ const Messages = () => {
       clearInterval(heartbeatInterval);
       clearTimeout(reconnectTimerRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
-      socket.disconnect();
+
+      // 🟢 SINGLETON CLEANUP — only fully disconnect when the last consumer
+      // unmounts. StrictMode's first cleanup just decrements the ref count;
+      // the second mount finds the socket still alive and reuses it.
+      __socketCache.refs -= 1;
+      if (__socketCache.refs <= 0) {
+        // Defer the real disconnect to survive StrictMode's
+        // mount → cleanup → mount sequence (all happens within ~50ms).
+        setTimeout(() => {
+          if (__socketCache.refs <= 0 && __socketCache.instance) {
+            console.log('[Messages] 👋 Last consumer left — fully disconnecting socket');
+            __socketCache.instance.disconnect();
+            __socketCache.instance = null;
+          }
+        }, 200);
+      }
+      // Remove only the listeners we attached so other consumers (none yet,
+      // but future-proofing) aren't affected.
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('connect_error');
+      socket.off('receiveMessage');
+      socket.off('messageSentEcho');
+      socket.off('messageEdited');
+      socket.off('messageUnsent');
+      socket.off('userTyping');
+      socket.off('userStoppedTyping');
+      socket.off('messagesRead');
+      socket.off('youWereBlocked');
+      socket.off('youWereUnblocked');
       socketRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1115,15 +1149,7 @@ const Messages = () => {
   // 🟢 TYPING — debounced socket emits (no HTTP spam)
   // ═══════════════════════════════════════════════════════════════════════════
   const emitTyping = useCallback(() => {
-    if (!socketRef.current?.connected) {
-      console.warn('[emitTyping] socket NOT connected — typing event NOT sent');
-      return;
-    }
-    if (!activeConversation?.id || !activeConversation?.otherUserId) {
-      console.warn('[emitTyping] missing conv id or otherUserId:', activeConversation?.id, activeConversation?.otherUserId);
-      return;
-    }
-    console.log('[emitTyping] →', activeConversation.otherUserId);
+    if (!socketRef.current?.connected || !activeConversation?.id || !activeConversation?.otherUserId) return;
     socketRef.current.emit('typing', {
       conversationId: activeConversation.id,
       targetUserId: activeConversation.otherUserId

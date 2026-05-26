@@ -110,16 +110,28 @@ io.on('connection', (socket) => {
   });
 
   // ─── DISCONNECT ───────────────────────────────────────────────────────────
+  // 🟢 DEFERRED CLEANUP — handles two scenarios:
+  //   1. React StrictMode (dev): cleanup runs disconnect → reconnect in <100ms
+  //   2. Mobile background tab: socket dies → frontend reconnects within ~3s
+  // We wait 1.5s and ONLY remove the user from the map if no new socket has
+  // claimed their userId in the meantime. This prevents the "I'm connected
+  // but the server says I'm offline" ghost state.
   socket.on('disconnect', (reason) => {
     const uid = socket.data.userId;
-    if (uid) {
-      // Only delete if this socket is still the registered one
-      // (prevents race condition with a quick reconnect)
+    if (!uid) return;
+    console.log(`🔌 Socket ${socket.id} disconnected: ${reason} (uid=${uid}, deferred cleanup in 1.5s)`);
+
+    setTimeout(() => {
+      // Only delete if this socket's ID is still in the map. If a fresher
+      // socket replaced it (StrictMode remount or reconnect), the value will
+      // have changed and we leave the new one alone.
       if (connectedUsers.get(uid) === socket.id) {
         connectedUsers.delete(uid);
+        console.log(`🧹 User ${uid} removed from connectedUsers (no reconnect)`);
+      } else {
+        console.log(`✨ User ${uid} reconnected with a new socket — keeping registry intact`);
       }
-      console.log(`🔌 User disconnected: ${uid} (${reason})`);
-    }
+    }, 1500);
   });
 });
 
@@ -130,10 +142,34 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 🟢 SERVE UPLOADED CHAT MEDIA (images, voice notes, files)
+// 🟢 SERVE UPLOADED CHAT MEDIA (images, voice notes, files)
+// CRITICAL: forces correct MIME types. Without this, Express defaults .webm to
+// "video/webm" — Chrome's <audio> element refuses to decode that even for
+// audio-only opus files, throwing "MEDIA_ELEMENT_ERROR: Format error" (code 4).
+const MEDIA_MIME = {
+  '.webm': 'audio/webm',  // most voice notes from Android Chrome
+  '.ogg': 'audio/ogg',
+  '.oga': 'audio/ogg',
+  '.opus': 'audio/ogg',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',   // explicit so video doesn't get caught
+  '.mov': 'video/quicktime',
+};
+
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), {
   maxAge: '7d',
-  setHeaders: (res) => {
+  setHeaders: (res, filePath) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // 🟢 Override mime for files we know are media
+    const ext = path.extname(filePath).toLowerCase();
+    if (MEDIA_MIME[ext]) {
+      res.setHeader('Content-Type', MEDIA_MIME[ext]);
+    }
+    // 🟢 Critical for <audio>/<video>: allow seeking via byte-range requests
+    res.setHeader('Accept-Ranges', 'bytes');
   }
 }));
 
