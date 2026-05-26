@@ -432,45 +432,85 @@
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
-/* 🟢 NEW: HOVER ACTION MENU (Reply, Edit, Delete) */
+/* 🟢 HOVER ACTION MENU — positioned INLINE beside the bubble, not floating above
+   so users can clearly see which message they're acting on. Other-person's
+   message: menu appears to the RIGHT of their bubble. Own message: menu
+   appears to the LEFT of own bubble. Never overlaps adjacent messages. */
+.messageWrapper {
+  align-items: center; /* Vertically center the floating menu with the bubble */
+}
+
 .messageActions {
-  position: absolute;
-  top: -15px;
-  right: 10px;
+  position: static; /* No longer absolutely positioned */
   display: flex;
-  gap: 4px;
+  gap: 2px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 999px; /* Pill shape — friendlier, more distinct */
   padding: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   opacity: 0;
   pointer-events: none;
-  transition: 0.2s;
+  transform: translateX(-8px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
   z-index: 10;
+  margin-left: 8px; /* Space between THEIR bubble and the menu (menu on right) */
+  flex-shrink: 0;
+  align-self: center;
+  order: 2; /* Place menu AFTER their bubble (i.e., on the right) */
 }
-.messageWrapper:hover .messageActions {
+
+.messageWrapper:hover .messageActions,
+.messageWrapper:focus-within .messageActions {
   opacity: 1;
   pointer-events: auto;
+  transform: translateX(0);
 }
+
+/* Own message: menu appears BEFORE the bubble in the flex row → ends up on the LEFT */
 .ownMessage .messageActions {
-  left: 10px;
-  right: auto;
+  order: 0;
+  margin-left: 0;
+  margin-right: 8px;
+  transform: translateX(8px); /* slide in from the right when revealed */
 }
+.ownMessage:hover .messageActions {
+  transform: translateX(0);
+}
+
 .actionBtn {
   background: transparent;
   border: none;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
-  color: var(--text-muted);
-  border-radius: 4px;
+  color: var(--text-secondary);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .actionBtn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+.actionBtn:hover[title="Unsend"],
+.actionBtn:hover[title="Delete for me"] {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Hide hover menu on touch devices — they use long-press instead */
+@media (hover: none) {
+  .messageActions {
+    display: none;
+  }
 }
 
 /* 🟢 NEW: REPLY BUBBLES */

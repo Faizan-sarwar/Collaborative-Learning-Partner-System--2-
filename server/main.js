@@ -4,7 +4,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-// 🟢 1. IMPORT HTTP & SOCKET.IO
+import path from 'path';
+// 🟢 IMPORT HTTP & SOCKET.IO
 import http from 'http';
 import { Server } from 'socket.io';
 
@@ -22,55 +23,138 @@ import referralRoutes from '../server/routes/referrals.js';
 dotenv.config();
 const app = express();
 
-// 🟢 2. CREATE HTTP SERVER & ATTACH SOCKET.IO
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 HTTP SERVER + SOCKET.IO (mobile-resilient config)
+// ════════════════════════════════════════════════════════════════════════════
 const server = http.createServer(app);
+
+// 🟢 CORS REFLECTION HELPER
+// Mirrors the caller's origin so localhost, 192.168.x.x, and any LAN IP all work
+// with credentials. Wildcard '*' is forbidden when credentials:true, so we MUST
+// echo the actual origin back instead.
+const corsOrigin = (origin, callback) => {
+  // No origin = same-origin request (or curl/Postman) — allow
+  if (!origin) return callback(null, true);
+  // Allow ANY origin during development. In production, replace with an
+  // allowlist (e.g. only your domain + your LAN range).
+  callback(null, origin);
+};
+
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: corsOrigin,                   // 🟢 Mirror origin (fixes LAN/phone)
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
-  }
+  },
+  pingInterval: 20000,                    // Ping every 20s
+  pingTimeout: 25000,                     // Wait 25s for pong
+  transports: ['websocket', 'polling'],   // Fallback for restrictive networks
+  allowEIO3: true                         // Compat with older mobile clients
 });
 
-// 🟢 3. GLOBAL SOCKET REGISTRY
-// This Map tracks exactly which user ID belongs to which active socket connection
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 GLOBAL SOCKET REGISTRY
+// Tracks which user ID belongs to which active socket connection.
+// ════════════════════════════════════════════════════════════════════════════
 const connectedUsers = new Map();
-app.set('io', io); // Makes 'io' available inside your routes!
+app.set('io', io);
 app.set('connectedUsers', connectedUsers);
 
 io.on('connection', (socket) => {
-  // When a user logs in, the frontend tells the backend who they are
+  console.log(`🔌 Socket connected: ${socket.id}`);
+
+  // ─── REGISTER USER (frontend emits this right after connect) ──────────────
   socket.on('registerUser', (userId) => {
-    connectedUsers.set(userId, socket.id);
-    console.log(`🔗 User connected: ${userId}`);
+    if (!userId) return;
+    connectedUsers.set(userId.toString(), socket.id);
+    socket.data.userId = userId.toString();
+    console.log(`🔗 User registered: ${userId} → ${socket.id}`);
   });
 
-  socket.on('disconnect', () => {
-    for (let [userId, socketId] of connectedUsers.entries()) {
-      if (socketId === socket.id) {
-        connectedUsers.delete(userId);
-        break;
+  // ─── TYPING RELAY (Instagram-style 3-dot indicator) ───────────────────────
+  socket.on('typing', ({ conversationId, targetUserId }) => {
+    const senderId = socket.data.userId;
+    if (!senderId || !targetUserId) return;
+    const targetSocketId = connectedUsers.get(targetUserId.toString());
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('userTyping', { conversationId, userId: senderId });
+    }
+  });
+
+  socket.on('stopTyping', ({ conversationId, targetUserId }) => {
+    const senderId = socket.data.userId;
+    if (!senderId || !targetUserId) return;
+    const targetSocketId = connectedUsers.get(targetUserId.toString());
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('userStoppedTyping', { conversationId, userId: senderId });
+    }
+  });
+
+  // ─── READ RECEIPT (lighter than HTTP roundtrip) ───────────────────────────
+  socket.on('markRead', ({ conversationId, targetUserId }) => {
+    const senderId = socket.data.userId;
+    if (!senderId || !targetUserId) return;
+    const targetSocketId = connectedUsers.get(targetUserId.toString());
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('messagesRead', {
+        conversationId,
+        readerId: senderId,
+        readAt: new Date()
+      });
+    }
+  });
+
+  // ─── HEARTBEAT (keeps mobile sockets warm) ────────────────────────────────
+  socket.on('heartbeat', () => {
+    socket.emit('heartbeat-ack', { t: Date.now() });
+  });
+
+  // ─── DISCONNECT ───────────────────────────────────────────────────────────
+  socket.on('disconnect', (reason) => {
+    const uid = socket.data.userId;
+    if (uid) {
+      // Only delete if this socket is still the registered one
+      // (prevents race condition with a quick reconnect)
+      if (connectedUsers.get(uid) === socket.id) {
+        connectedUsers.delete(uid);
       }
+      console.log(`🔌 User disconnected: ${uid} (${reason})`);
     }
   });
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 BODY PARSING + STATIC UPLOADS
+// ════════════════════════════════════════════════════════════════════════════
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 🟢 SERVE UPLOADED CHAT MEDIA (images, voice notes, files)
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), {
+  maxAge: '7d',
+  setHeaders: (res) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
+
 app.use(cors({
-  origin: true,
+  origin: corsOrigin,                     // 🟢 Same mirror function (fixes LAN/phone)
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 MONGODB CONNECTION
+// ════════════════════════════════════════════════════════════════════════════
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/studybuddy';
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
+// ════════════════════════════════════════════════════════════════════════════
 // 🟢 GLOBAL BACKEND FIREWALL (Maintenance Mode - Admin Aware)
+// ════════════════════════════════════════════════════════════════════════════
 app.use(async (req, res, next) => {
   try {
     const settings = await Settings.findOne();
@@ -112,7 +196,9 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Routes
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 ROUTES
+// ════════════════════════════════════════════════════════════════════════════
 app.use('/api/auth', auth);
 app.use('/api/activity-logs', activityLogsRoutes);
 app.use('/api/chat', ChatRoutes);
@@ -126,6 +212,10 @@ app.get('/', (req, res) => {
     version: '1.0.0'
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// STUDY GROUPS
+// ════════════════════════════════════════════════════════════════════════════
 
 // Create a new study group
 app.post('/studygroup', async (req, res) => {
@@ -304,6 +394,9 @@ app.delete('/studygroup/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 GLOBAL ERROR HANDLER
+// ════════════════════════════════════════════════════════════════════════════
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
@@ -313,9 +406,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==========================================
+// ════════════════════════════════════════════════════════════════════════════
 // 🟢 ENTERPRISE BACKGROUND WORKER (CRON JOBS)
-// ==========================================
+// ════════════════════════════════════════════════════════════════════════════
 cron.schedule('0 0 * * *', async () => {
   console.log('⏳ [CRON] Running nightly system maintenance...');
   try {
@@ -346,7 +439,9 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
-// 🟢 4. CHANGE APP.LISTEN TO SERVER.LISTEN
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 START SERVER (server.listen, NOT app.listen — needed for Socket.IO)
+// ════════════════════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Real-Time Server running on port ${PORT}`);

@@ -114,6 +114,128 @@
   animation: pulse 2s infinite;
 }
 
+/* 🟢 NEW: COUNT BADGE — when there's an actual number to display */
+.countBadge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow:
+    0 0 0 2px var(--bg-secondary, #0f172a),
+    0 0 8px rgba(239, 68, 68, 0.5);
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 🟢 NEW: INLINE COUNT CHIP — shown next to the label when sidebar is expanded */
+.inlineCount {
+  margin-left: auto;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.1s;
+}
+
+.sidebar:hover .inlineCount {
+  opacity: 1;
+}
+
+/* 🟢 NEW: GLOW STATE — applies to nav items with pending activity */
+.navItem.glowing {
+  color: var(--text-primary, #f8fafc);
+  background: linear-gradient(
+    90deg,
+    rgba(239, 68, 68, 0.08) 0%,
+    rgba(239, 68, 68, 0.03) 100%
+  );
+  position: relative;
+}
+
+.navItem.glowing::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 24px;
+  background: linear-gradient(180deg, #ef4444, #f87171);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+.navItem.glowing .navIcon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+  animation: iconGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.7);
+  }
+}
+
+@keyframes iconGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.7));
+    transform: scale(1.06);
+  }
+}
+
+/* Active nav wins over glow — once you're on the page, no more glow */
+.navItem.active.glowing::before {
+  display: none;
+}
+.navItem.active.glowing .navIcon {
+  animation: none;
+  filter: none;
+}
+
 @keyframes pulse {
   0% {
     transform: scale(0.95);
