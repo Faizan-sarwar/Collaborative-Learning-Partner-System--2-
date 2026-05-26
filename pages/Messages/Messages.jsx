@@ -342,6 +342,20 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [loadError, setLoadError] = useState(null);
+
+  // 🟢 Re-initialize whenever src changes (e.g. live-arriving voice notes)
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setLoadError(null);
+    // Force the audio element to reload its source — critical for live-arrived
+    // messages whose src changes after the player has mounted.
+    a.load();
+  }, [src]);
 
   useEffect(() => {
     const a = audioRef.current;
@@ -349,21 +363,46 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
     const onTime = () => setCurrentTime(a.currentTime);
     const onMeta = () => setDuration(a.duration || 0);
     const onEnd = () => { setPlaying(false); setCurrentTime(0); };
+    const onError = () => {
+      console.error('[VoiceNotePlayer] Failed to load audio:', src, a.error);
+      setLoadError(a.error?.message || 'Cannot play this voice note');
+    };
+    const onCanPlay = () => setLoadError(null);
     a.addEventListener('timeupdate', onTime);
     a.addEventListener('loadedmetadata', onMeta);
+    a.addEventListener('durationchange', onMeta);
     a.addEventListener('ended', onEnd);
+    a.addEventListener('error', onError);
+    a.addEventListener('canplay', onCanPlay);
+    // If audio is already loaded by the time we attach, populate duration manually
+    if (a.readyState >= 1 && a.duration && !isNaN(a.duration)) setDuration(a.duration);
     return () => {
       a.removeEventListener('timeupdate', onTime);
       a.removeEventListener('loadedmetadata', onMeta);
+      a.removeEventListener('durationchange', onMeta);
       a.removeEventListener('ended', onEnd);
+      a.removeEventListener('error', onError);
+      a.removeEventListener('canplay', onCanPlay);
     };
-  }, []);
+  }, [src]);
 
-  const toggle = () => {
+  const toggle = async () => {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play(); setPlaying(true); }
+    if (playing) {
+      a.pause();
+      setPlaying(false);
+      return;
+    }
+    try {
+      // 🟢 Await play() so we catch autoplay-policy rejections and codec errors
+      await a.play();
+      setPlaying(true);
+    } catch (err) {
+      console.error('[VoiceNotePlayer] play() rejected:', err);
+      setLoadError(err.message || 'Playback failed. Tap to retry.');
+      setPlaying(false);
+    }
   };
 
   const pct = duration ? (currentTime / duration) * 100 : 0;
@@ -375,14 +414,14 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       background: isOwn ? 'rgba(255,255,255,0.18)' : 'rgba(99,102,241,0.1)',
       minWidth: 180
     }}>
-      <button onClick={toggle} style={{
+      <button onClick={toggle} title={loadError || 'Play voice note'} style={{
         width: 32, height: 32, borderRadius: '50%', border: 'none',
-        background: isOwn ? 'rgba(255,255,255,0.9)' : '#6366f1',
-        color: isOwn ? '#6366f1' : 'white',
+        background: loadError ? '#ef4444' : (isOwn ? 'rgba(255,255,255,0.9)' : '#6366f1'),
+        color: loadError ? 'white' : (isOwn ? '#6366f1' : 'white'),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', flexShrink: 0
       }}>
-        {playing ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
+        {loadError ? <AlertTriangle size={14} /> : playing ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
       </button>
       <div style={{ flex: 1, height: 4, background: isOwn ? 'rgba(255,255,255,0.3)' : 'rgba(99,102,241,0.25)', borderRadius: 2, position: 'relative' }}>
         <div style={{
@@ -393,7 +432,8 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       <span style={{ fontSize: '0.7rem', opacity: 0.85, fontVariantNumeric: 'tabular-nums', minWidth: 38, textAlign: 'right' }}>
         {formatDuration(playing || currentTime ? currentTime : duration)}
       </span>
-      <audio ref={audioRef} src={src} preload="metadata" />
+      {/* 🟢 preload="auto" so audio is ready as soon as it arrives via socket */}
+      <audio ref={audioRef} src={src} preload="auto" />
     </div>
   );
 };
@@ -524,40 +564,10 @@ const MessageBubble = ({
             className={styles.messageMedia}
             style={{ maxHeight: 320, display: 'block' }}
             onClick={() => window.open(mediaUrl, '_blank')}
-            onError={(e) => {
-              // 🟢 Replace broken image with a diagnostic placeholder so the
-              // user (and you) can see WHY it failed. Usually means the file
-              // was never uploaded to /uploads/chat/ on the server.
-              console.error('[Messages] Image failed to load:', mediaUrl);
-              e.currentTarget.style.display = 'none';
-              if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
-            }}
           />
-        )}
-        {message.fileType === 'image' && mediaUrl && (
-          <div style={{
-            display: 'none', flexDirection: 'column', alignItems: 'center', gap: 6,
-            padding: '14px 18px', borderRadius: 10, background: 'rgba(239,68,68,0.08)',
-            border: '1px dashed rgba(239,68,68,0.4)', color: '#ef4444', fontSize: '0.78rem'
-          }}>
-            <AlertTriangle size={18} />
-            <span>Image unavailable</span>
-            <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: 220, textAlign: 'center' }}>{message.fileName || mediaUrl}</span>
-          </div>
         )}
         {message.fileType === 'audio' && mediaUrl && (
           <VoiceNotePlayer src={mediaUrl} isOwn={isOwn} />
-        )}
-        {/* 🟢 FALLBACK: media flagged but no URL — usually corrupt legacy message */}
-        {(message.fileType === 'image' || message.fileType === 'audio' || message.fileType === 'video') && !mediaUrl && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.08)',
-            border: '1px dashed rgba(239,68,68,0.4)', color: '#ef4444', fontSize: '0.78rem'
-          }}>
-            <AlertTriangle size={14} />
-            <span>{message.fileType === 'audio' ? 'Voice note' : message.fileType === 'image' ? 'Image' : 'Video'} unavailable (legacy message)</span>
-          </div>
         )}
         {message.fileType === 'video' && mediaUrl && (
           <video src={mediaUrl} controls className={styles.messageMedia} style={{ maxHeight: 320, maxWidth: '100%' }} />
@@ -676,19 +686,29 @@ const Messages = () => {
   // ═══════════════════════════════════════════════════════════════════════════
   // 🟢 SOCKET.IO — AGGRESSIVE RECONNECTION FOR MOBILE
   // ═══════════════════════════════════════════════════════════════════════════
+  // 🟢 SOCKET.IO — AGGRESSIVE RECONNECTION FOR MOBILE
+  //    With StrictMode-safe guard: in dev, effects mount twice. Without the
+  //    guard below, the cleanup of mount #1 disconnects the socket and the
+  //    cleanup of mount #2 re-disconnects — leaving you with a dead connection
+  //    until the next reconnect cycle. The cancelDisconnect ref defers cleanup.
+  // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const myId = myIdRef.current;
-    if (!myId) return;
+    if (!myId) {
+      console.warn('[Messages] No userId in token — socket NOT connecting');
+      return;
+    }
+    console.log('[Messages] 🚀 Connecting socket for user', myId, 'to', SOCKET_URL);
 
     const socket = socketIO(SOCKET_URL, {
       // Mobile-friendly reconnection: try forever, escalating delays
       reconnection: true,
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,        // start at 1s
-      reconnectionDelayMax: 8000,     // cap at 8s
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 8000,
       randomizationFactor: 0.5,
       timeout: 20000,
-      transports: ['websocket', 'polling'], // fallback for restrictive networks
+      transports: ['websocket', 'polling'],
       withCredentials: true,
       autoConnect: true,
     });
@@ -697,28 +717,30 @@ const Messages = () => {
     socket.on('connect', () => {
       setSocketConnected(true);
       socket.emit('registerUser', myId);
-      console.log('[socket] connected:', socket.id);
+      console.log('[socket] ✅ Connected:', socket.id, '| Registered userId:', myId);
     });
     socket.on('disconnect', (reason) => {
       setSocketConnected(false);
-      console.log('[socket] disconnected:', reason);
-      // Force-reconnect on mobile background-tab kill
+      console.log('[socket] ❌ Disconnected:', reason);
       if (reason === 'io server disconnect' || reason === 'transport close') {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = setTimeout(() => socket.connect(), 800);
       }
     });
     socket.on('connect_error', (err) => {
-      console.warn('[socket] connect_error:', err.message);
+      console.warn('[socket] ⚠️ connect_error:', err.message);
     });
 
     // ─── INCOMING MESSAGE ────────────────────────────────────────────────────
     socket.on('receiveMessage', ({ conversationId, message }) => {
+      console.log('[socket] 📩 receiveMessage:', { conversationId, messageId: message?.id, fileType: message?.fileType });
       if (!message) return;
       setMessages(prev => {
         const list = prev[conversationId] || [];
-        // De-dupe if backend echo arrives after we already optimistically inserted
-        if (list.some(m => m.id === message.id)) return prev;
+        if (list.some(m => m.id === message.id)) {
+          console.log('[socket] dedupe — message already present');
+          return prev;
+        }
         return { ...prev, [conversationId]: [...list, message] };
       });
       // Bump conversation preview + unread badge
@@ -782,10 +804,10 @@ const Messages = () => {
 
     // ─── TYPING ──────────────────────────────────────────────────────────────
     socket.on('userTyping', ({ conversationId, userId }) => {
+      console.log('[socket] ⌨️ userTyping:', { conversationId, fromUser: userId, activeConv: activeConvIdRef.current, match: activeConvIdRef.current === conversationId });
       if (activeConvIdRef.current === conversationId && userId !== myId) {
         setPeerTyping(true);
         clearTimeout(peerTypingTimerRef.current);
-        // Auto-clear if no further pings (typing indicator should never get stuck)
         peerTypingTimerRef.current = setTimeout(() => setPeerTyping(false), 3500);
       }
     });
@@ -1093,7 +1115,15 @@ const Messages = () => {
   // 🟢 TYPING — debounced socket emits (no HTTP spam)
   // ═══════════════════════════════════════════════════════════════════════════
   const emitTyping = useCallback(() => {
-    if (!socketRef.current?.connected || !activeConversation?.id || !activeConversation?.otherUserId) return;
+    if (!socketRef.current?.connected) {
+      console.warn('[emitTyping] socket NOT connected — typing event NOT sent');
+      return;
+    }
+    if (!activeConversation?.id || !activeConversation?.otherUserId) {
+      console.warn('[emitTyping] missing conv id or otherUserId:', activeConversation?.id, activeConversation?.otherUserId);
+      return;
+    }
+    console.log('[emitTyping] →', activeConversation.otherUserId);
     socketRef.current.emit('typing', {
       conversationId: activeConversation.id,
       targetUserId: activeConversation.otherUserId
