@@ -29,9 +29,19 @@ const ALLOWED_MIME = {
 };
 
 const detectFileType = (mime) => {
+  if (!mime) return null;
+  // 🟢 STRIP codec parameters — Firefox sends "audio/ogg;codecs=opus",
+  // Safari sometimes sends "audio/mp4;codecs=mp4a.40.2", etc.
+  // Also normalize case (some Android browsers send "image/JPEG").
+  const normalized = mime.split(';')[0].trim().toLowerCase();
   for (const [type, list] of Object.entries(ALLOWED_MIME)) {
-    if (list.includes(mime)) return type;
+    if (list.includes(normalized)) return type;
   }
+  // 🟢 LAST RESORT: prefix-based fallback so unknown mobile codecs still work.
+  // If it's clearly an audio/image/video by MIME prefix, accept it.
+  if (normalized.startsWith('image/')) return 'image';
+  if (normalized.startsWith('audio/')) return 'audio';
+  if (normalized.startsWith('video/')) return 'video';
   return null;
 };
 
@@ -58,6 +68,23 @@ const upload = multer({
     cb(new Error(`Unsupported file type: ${file.mimetype}`));
   }
 });
+
+// 🟢 MULTER WRAPPER — converts multer errors (file too large, bad MIME) into
+// proper 400 responses instead of letting them fall through to a 500.
+// Without this, the frontend just sees "Server error" and the user can't
+// tell whether their voice note was rejected or the server crashed.
+const handleUpload = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      console.error('[chat] ❌ Upload rejected:', err.message);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ success: false, message: `File too large. Max ${MAX_FILE_SIZE / 1024 / 1024}MB.` });
+      }
+      return res.status(400).json({ success: false, message: err.message || 'File upload failed' });
+    }
+    next();
+  });
+};
 
 // Serve uploaded files statically — register this in main.js too if not already:
 //   app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
@@ -268,7 +295,7 @@ router.get('/messages/:conversationId', verifyToken, async (req, res) => {
 // 🟢 3. SEND MESSAGE — accepts JSON OR multipart/form-data (image/voice)
 //      The same endpoint handles text-only, text+media, and reply.
 // ────────────────────────────────────────────────────────────────────────────
-router.post('/messages', verifyToken, upload.single('file'), async (req, res) => {
+router.post('/messages', verifyToken, handleUpload, async (req, res) => {
   try {
     // Pull fields whether they come from JSON or FormData
     const conversationId = req.body.conversationId || null;
@@ -276,6 +303,20 @@ router.post('/messages', verifyToken, upload.single('file'), async (req, res) =>
     const text = (req.body.text || '').toString();
     const replyTo = req.body.replyTo || null;
     const clientTempId = req.body.clientTempId || null;
+
+    // 🟢 DIAGNOSTIC LOG — shows in your server terminal so you can debug
+    // media uploads. Remove these console.log lines once everything is stable.
+    if (req.file) {
+      console.log('[chat] 📎 Incoming file:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        savedTo: req.file.path,
+        detectedType: detectFileType(req.file.mimetype)
+      });
+    } else {
+      console.log('[chat] 💬 Incoming text:', { from: req.userId, len: text.length, conversationId, targetUserId });
+    }
 
     // ─── Validation ───────────────────────────────────────────────────────
     if (text && text.length > MAX_TEXT_LENGTH) {
@@ -387,10 +428,12 @@ router.post('/messages', verifyToken, upload.single('file'), async (req, res) =>
     const recipientPayload = await serializeMessage(newMessage, resolvedTargetId);
 
     // ─── PUSH LIVE: recipient gets receiveMessage + notification ──────────
-    emitToUser(req, resolvedTargetId, 'receiveMessage', {
+    // 🟢 DIAGNOSTIC: log whether the recipient was actually online
+    const delivered = emitToUser(req, resolvedTargetId, 'receiveMessage', {
       conversationId: convId,
       message: recipientPayload
     });
+    console.log(`[chat] 📡 Live delivery to ${resolvedTargetId}: ${delivered ? '✅ ONLINE' : '⚠️  OFFLINE (they will see it on next refresh)'}`);
     emitToUser(req, resolvedTargetId, 'newNotification', {
       type: 'message',
       title: 'New Message',

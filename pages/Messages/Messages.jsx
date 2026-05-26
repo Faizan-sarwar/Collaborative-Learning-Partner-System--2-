@@ -524,10 +524,40 @@ const MessageBubble = ({
             className={styles.messageMedia}
             style={{ maxHeight: 320, display: 'block' }}
             onClick={() => window.open(mediaUrl, '_blank')}
+            onError={(e) => {
+              // 🟢 Replace broken image with a diagnostic placeholder so the
+              // user (and you) can see WHY it failed. Usually means the file
+              // was never uploaded to /uploads/chat/ on the server.
+              console.error('[Messages] Image failed to load:', mediaUrl);
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+            }}
           />
+        )}
+        {message.fileType === 'image' && mediaUrl && (
+          <div style={{
+            display: 'none', flexDirection: 'column', alignItems: 'center', gap: 6,
+            padding: '14px 18px', borderRadius: 10, background: 'rgba(239,68,68,0.08)',
+            border: '1px dashed rgba(239,68,68,0.4)', color: '#ef4444', fontSize: '0.78rem'
+          }}>
+            <AlertTriangle size={18} />
+            <span>Image unavailable</span>
+            <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: 220, textAlign: 'center' }}>{message.fileName || mediaUrl}</span>
+          </div>
         )}
         {message.fileType === 'audio' && mediaUrl && (
           <VoiceNotePlayer src={mediaUrl} isOwn={isOwn} />
+        )}
+        {/* 🟢 FALLBACK: media flagged but no URL — usually corrupt legacy message */}
+        {(message.fileType === 'image' || message.fileType === 'audio' || message.fileType === 'video') && !mediaUrl && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.08)',
+            border: '1px dashed rgba(239,68,68,0.4)', color: '#ef4444', fontSize: '0.78rem'
+          }}>
+            <AlertTriangle size={14} />
+            <span>{message.fileType === 'audio' ? 'Voice note' : message.fileType === 'image' ? 'Image' : 'Video'} unavailable (legacy message)</span>
+          </div>
         )}
         {message.fileType === 'video' && mediaUrl && (
           <video src={mediaUrl} controls className={styles.messageMedia} style={{ maxHeight: 320, maxWidth: '100%' }} />
