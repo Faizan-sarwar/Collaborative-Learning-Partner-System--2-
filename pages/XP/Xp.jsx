@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import styles from './XP.module.css';
+import styles from './Xp.module.css';
 
 const xpActivities = [
   { id: 1, icon: '📚', title: 'Complete a Study Session', xp: 50, description: 'Finish a 25-minute Pomodoro session', action: '/study-time' },
