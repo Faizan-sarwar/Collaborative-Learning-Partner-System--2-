@@ -16,7 +16,7 @@ import ChatRoutes from '../server/routes/chat.js';
 import User from '../server/models/User.js';
 import Settings from '../server/models/Settings.js';
 import gamificationRoutes from '../server/routes/gamification.js';
-import activityLogsRoutes from '../server/routes/activitylogs.js';
+import activityLogsRoutes from '../server/routes/activityLogs.js';
 import notificationRoutes from '../server/routes/notification.js';
 import referralRoutes from '../server/routes/referrals.js';
 
