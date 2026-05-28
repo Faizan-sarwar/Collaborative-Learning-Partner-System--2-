@@ -44,10 +44,8 @@ const API_HOST = `http://${window.location.hostname}:5000`;
 const API = `${API_HOST}/api`;
 const SOCKET_URL = API_HOST;
 
-// 🟢 SOCKET SINGLETON — survives React StrictMode's double-mount in dev.
-// Without this, every dev render creates two sockets, the first gets killed,
-// and the backend briefly thinks you're offline during the gap.
-// In production (no StrictMode double-invoke) this is a harmless wrapper.
+// 🟢 SOCKET SINGLETON — survives React StrictMode's dev double-mount so we
+// don't create two sockets (the first getting killed and confusing the backend).
 const __socketCache = { instance: null, refs: 0 };
 
 // ============================================================================
@@ -350,15 +348,12 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [loadError, setLoadError] = useState(null);
 
-  // 🟢 Re-initialize whenever src changes (live-arriving voice notes)
+  // 🟢 Re-init when src changes (live-arriving voice notes)
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    setPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setLoadError(null);
-    a.load(); // force <audio> to re-fetch the new source
+    setPlaying(false); setCurrentTime(0); setDuration(0); setLoadError(null);
+    a.load();
   }, [src]);
 
   useEffect(() => {
@@ -368,8 +363,8 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
     const onMeta = () => setDuration(a.duration || 0);
     const onEnd = () => { setPlaying(false); setCurrentTime(0); };
     const onError = () => {
-      console.error('[VoiceNotePlayer] Audio load error:', src, a.error);
-      setLoadError(a.error?.message || 'Cannot play this voice note');
+      console.error('[VoiceNotePlayer] load error:', src, a.error);
+      setLoadError(a.error?.message || 'Cannot play');
     };
     const onCanPlay = () => setLoadError(null);
     a.addEventListener('timeupdate', onTime);
@@ -392,18 +387,13 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
   const toggle = async () => {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) {
-      a.pause();
-      setPlaying(false);
-      return;
-    }
+    if (playing) { a.pause(); setPlaying(false); return; }
     try {
-      // Await play() so we catch autoplay-policy rejections and codec errors
-      await a.play();
+      await a.play();          // await so codec/autoplay errors surface
       setPlaying(true);
     } catch (err) {
       console.error('[VoiceNotePlayer] play() rejected:', err);
-      setLoadError(err.message || 'Playback failed.');
+      setLoadError(err.message || 'Playback failed');
       setPlaying(false);
     }
   };
@@ -435,7 +425,6 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       <span style={{ fontSize: '0.7rem', opacity: 0.85, fontVariantNumeric: 'tabular-nums', minWidth: 38, textAlign: 'right' }}>
         {formatDuration(playing || currentTime ? currentTime : duration)}
       </span>
-      {/* preload="auto" so it's buffered when arriving via socket */}
       <audio ref={audioRef} src={src} preload="auto" />
     </div>
   );
@@ -696,13 +685,11 @@ const Messages = () => {
       return;
     }
 
-    // 🟢 SINGLETON — reuse the existing connection if StrictMode double-mounts
-    // us in dev. Without this, every dev render creates two sockets; the first
-    // is killed by cleanup, and the backend briefly thinks you're offline.
+    // 🟢 SINGLETON: reuse existing socket across StrictMode remounts.
     __socketCache.refs += 1;
     let socket = __socketCache.instance;
     if (!socket) {
-      console.log('[Messages] 🚀 Creating new socket for user', myId, 'to', SOCKET_URL);
+      console.log('[Messages] 🚀 Creating socket for', myId);
       socket = socketIO(SOCKET_URL, {
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -716,16 +703,35 @@ const Messages = () => {
       });
       __socketCache.instance = socket;
     } else {
-      console.log('[Messages] ♻️ Reusing socket', socket.id);
-      // Re-register immediately so backend knows we're still here
-      if (socket.connected) socket.emit('registerUser', myId);
+      console.log('[Messages] ♻️ Reusing socket', socket.id, '(connected:', socket.connected, ')');
     }
     socketRef.current = socket;
+
+    // 🟢 CRITICAL: remove any handlers from a previous mount before re-adding,
+    // otherwise StrictMode/reuse stacks duplicate listeners → duplicate messages.
+    socket.off('connect');
+    socket.off('disconnect');
+    socket.off('connect_error');
+    socket.off('receiveMessage');
+    socket.off('messageSentEcho');
+    socket.off('messageEdited');
+    socket.off('messageUnsent');
+    socket.off('userTyping');
+    socket.off('userStoppedTyping');
+    socket.off('messagesRead');
+    socket.off('youWereBlocked');
+    socket.off('youWereUnblocked');
+
+    // If already connected (reused socket), sync state + re-register now.
+    if (socket.connected) {
+      setSocketConnected(true);
+      socket.emit('registerUser', myId);
+    }
 
     socket.on('connect', () => {
       setSocketConnected(true);
       socket.emit('registerUser', myId);
-      console.log('[socket] ✅ Connected:', socket.id, '| Registered userId:', myId);
+      console.log('[socket] ✅ Connected:', socket.id, '| userId:', myId);
     });
     socket.on('disconnect', (reason) => {
       setSocketConnected(false);
@@ -736,11 +742,12 @@ const Messages = () => {
       }
     });
     socket.on('connect_error', (err) => {
-      console.warn('[socket] connect_error:', err.message);
+      console.warn('[socket] ⚠️ connect_error:', err.message);
     });
 
     // ─── INCOMING MESSAGE ────────────────────────────────────────────────────
     socket.on('receiveMessage', ({ conversationId, message }) => {
+      console.log('[socket] 📩 receiveMessage', { conversationId, id: message?.id });
       if (!message) return;
       setMessages(prev => {
         const list = prev[conversationId] || [];
@@ -861,35 +868,19 @@ const Messages = () => {
       clearTimeout(reconnectTimerRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
 
-      // 🟢 SINGLETON CLEANUP — only fully disconnect when the last consumer
-      // unmounts. StrictMode's first cleanup just decrements the ref count;
-      // the second mount finds the socket still alive and reuses it.
+      // 🟢 SINGLETON CLEANUP: decrement ref. Only fully disconnect when the
+      // LAST consumer leaves — and defer it so StrictMode's instant remount
+      // finds the socket alive and reuses it.
       __socketCache.refs -= 1;
       if (__socketCache.refs <= 0) {
-        // Defer the real disconnect to survive StrictMode's
-        // mount → cleanup → mount sequence (all happens within ~50ms).
         setTimeout(() => {
           if (__socketCache.refs <= 0 && __socketCache.instance) {
-            console.log('[Messages] 👋 Last consumer left — fully disconnecting socket');
+            console.log('[Messages] 👋 Last consumer — disconnecting socket');
             __socketCache.instance.disconnect();
             __socketCache.instance = null;
           }
-        }, 200);
+        }, 300);
       }
-      // Remove only the listeners we attached so other consumers (none yet,
-      // but future-proofing) aren't affected.
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('connect_error');
-      socket.off('receiveMessage');
-      socket.off('messageSentEcho');
-      socket.off('messageEdited');
-      socket.off('messageUnsent');
-      socket.off('userTyping');
-      socket.off('userStoppedTyping');
-      socket.off('messagesRead');
-      socket.off('youWereBlocked');
-      socket.off('youWereUnblocked');
       socketRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
