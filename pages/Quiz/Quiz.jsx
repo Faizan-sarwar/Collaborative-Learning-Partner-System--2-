@@ -98,47 +98,67 @@ const Quiz = () => {
     let balancedQuestions = [];
 
     if (uniqueCategories.length > 0) {
-      // 🟢 RULE: total questions = number of strengths (e.g. 10 strengths → 10 Qs).
-      // PASS 1 — pick exactly one question from each strength that HAS a bank.
-      //           Empty-bank strengths leave a "gap" that pass 2 fills.
-      // PASS 2 — distribute leftover slots across the covered subjects so the
-      //           total still equals the strength count. We re-use covered
-      //           subjects (without duplicating an already-picked question)
-      //           until the quota is met or the bank is exhausted.
-      const targetTotal = uniqueCategories.length;
-      const pickedIds = new Set(); // tracks already-chosen questions so we don't repeat
+      // ════════════════════════════════════════════════════════════════════
+      // 🟢 QUIZ RULE — always aim for 10 questions total, evenly divided.
+      //
+      //   • The quiz targets TARGET_TOTAL (10) questions.
+      //   • EVERY selected subject that has a question bank is guaranteed at
+      //     least one question.
+      //   • The 10 slots are divided as evenly as possible across the covered
+      //     subjects (round-robin remainder), so:
+      //        10 subjects → 1 each            (10)
+      //         4 subjects → 3 + 3 + 2 + 2     (10)
+      //         3 subjects → 4 + 3 + 3         (10)
+      //         1 subject  → 10 from that one  (10)
+      //   • If fewer than 10 questions exist in total across the covered
+      //     subjects, we simply use everything available (no padding/repeats).
+      // ════════════════════════════════════════════════════════════════════
+      const TARGET_TOTAL = 10;
 
-      // ── PASS 1: one question per covered subject ────────────────────────
-      const coveredCategories = [];
-      uniqueCategories.forEach(category => {
-        const subjectQuestions = QUESTION_BANK.filter(q => q.category === category);
-        if (subjectQuestions.length === 0) return; // pass 2 will fill this gap
+      // Keep only subjects that actually have questions in the bank.
+      const coveredCategories = uniqueCategories.filter(
+        category => QUESTION_BANK.some(q => q.category === category)
+      );
 
-        const picked = subjectQuestions[Math.floor(Math.random() * subjectQuestions.length)];
-        balancedQuestions.push(picked);
-        pickedIds.add(picked.id ?? picked.question);
-        coveredCategories.push(category);
-      });
+      if (coveredCategories.length > 0) {
+        // How many questions can we actually serve? (cap at TARGET_TOTAL)
+        const totalAvailable = QUESTION_BANK.filter(q =>
+          coveredCategories.includes(q.category)
+        ).length;
+        const target = Math.min(TARGET_TOTAL, totalAvailable);
 
-      // ── PASS 2: fill gaps so total = targetTotal ─────────────────────────
-      // Cycle through covered subjects round-robin, picking the next unused
-      // question from each, until we hit the quota or run out of questions.
-      let safety = 0; // protects against infinite loops if bank is too small
-      while (balancedQuestions.length < targetTotal && coveredCategories.length > 0 && safety < 200) {
-        safety++;
-        let addedThisRound = 0;
-        for (const category of coveredCategories) {
-          if (balancedQuestions.length >= targetTotal) break;
-          const remaining = QUESTION_BANK
-            .filter(q => q.category === category && !pickedIds.has(q.id ?? q.question));
-          if (remaining.length === 0) continue;
-          const extra = remaining[Math.floor(Math.random() * remaining.length)];
-          balancedQuestions.push(extra);
-          pickedIds.add(extra.id ?? extra.question);
-          addedThisRound++;
-        }
-        // If a full round added nothing, the bank is exhausted — stop early
-        if (addedThisRound === 0) break;
+        // ── Build an even per-subject quota that sums to `target` ──────────
+        // base goes to every subject; the remainder is handed out one-by-one
+        // to the leading subjects so the totals stay balanced.
+        const base = Math.floor(target / coveredCategories.length);
+        let remainder = target % coveredCategories.length;
+
+        const quota = {};
+        coveredCategories.forEach(category => {
+          quota[category] = base + (remainder > 0 ? 1 : 0);
+          if (remainder > 0) remainder--;
+        });
+
+        // ── Fill each subject's quota from a shuffled pool (no repeats) ─────
+        const pickedIds = new Set();
+        coveredCategories.forEach(category => {
+          // Shuffle this subject's questions (Fisher–Yates) for variety.
+          const pool = QUESTION_BANK.filter(q => q.category === category);
+          for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+          }
+
+          let need = quota[category];
+          for (const q of pool) {
+            if (need <= 0) break;
+            const qid = q.id ?? q.question;
+            if (pickedIds.has(qid)) continue;
+            balancedQuestions.push(q);
+            pickedIds.add(qid);
+            need--;
+          }
+        });
       }
     }
 

@@ -1,7 +1,7 @@
 import '../pages/Analytics/sessionTracker.js';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import React, { useEffect, useState, Suspense, lazy } from "react";
+import React, { useEffect, useMemo, useState, Suspense, lazy } from "react";
 import { SettingsProvider, useSettings } from '../src/context/SettingsContext';
 import { NotificationProvider } from '../src/context/NotificationContext';
 import "./App.css";
@@ -15,9 +15,21 @@ import Footer from "../components/Footer/Footer";
 // 🟢 DashboardLayout is now a PERSISTENT layout route — import eagerly (it's always needed once logged in)
 import DashboardLayout from "../components/Dashboard/DashboardLayout/DashboardLayout.jsx";
 
-// 🟢 Lazy Loading for Public Pages
+// ════════════════════════════════════════════════════════════════════════════
+// 🟢 LAZY + PRELOAD HELPER
+// Wraps React.lazy but exposes a `.preload()` so we can warm a route's chunk
+// during idle time. The first visit to a preloaded route is then instant
+// (chunk already in the browser cache — no spinner, no network round-trip).
+// ════════════════════════════════════════════════════════════════════════════
+const lazyWithPreload = (factory) => {
+  const Component = lazy(factory);
+  Component.preload = factory;
+  return Component;
+};
+
+// 🟢 Lazy Loading for Public Pages (preload not needed — visited rarely)
 const Index = lazy(() => import("../pages/Index"));
-const Login = lazy(() => import("../pages/Login/Login"));
+const Login = lazyWithPreload(() => import("../pages/Login/Login"));
 const Signup = lazy(() => import("../pages/Signup/Signup"));
 const ForgotPassword = lazy(() => import("../pages/ForgotPassword/ForgotPassword"));
 const VerifyOTP = lazy(() => import("../pages/VerifyOTP/VerifyOTP"));
@@ -29,25 +41,25 @@ const About = lazy(() => import("../pages/About/About"));
 const Contact = lazy(() => import("../pages/Contact/Contact"));
 const NotFound = lazy(() => import("../pages/NotFound/NotFound"));
 
-// 🟢 Student Pages
-const Dashboard = lazy(() => import("../pages/Dashboard/Dashboard"));
-const StudyTime = lazy(() => import("../pages/StudyTime/StudyTime"));
-const Courses = lazy(() => import("../pages/Courses/Courses"));
-const Social = lazy(() => import("../pages/Social/Social"));
-const Analytics = lazy(() => import("../pages/Analytics/Analytics"));
-const StudyRoom = lazy(() => import("../pages/StudyRoom/StudyRoom"));
+// 🟢 Student Pages (these are the hot path — give them preload)
+const Dashboard = lazyWithPreload(() => import("../pages/Dashboard/Dashboard"));
+const StudyTime = lazyWithPreload(() => import("../pages/StudyTime/StudyTime"));
+const Courses = lazyWithPreload(() => import("../pages/Courses/Courses"));
+const Social = lazyWithPreload(() => import("../pages/Social/Social"));
+const Analytics = lazyWithPreload(() => import("../pages/Analytics/Analytics"));
+const StudyRoom = lazyWithPreload(() => import("../pages/StudyRoom/StudyRoom"));
 const StudyRoomWaiting = lazy(() => import("../pages/StudyRoomWaiting/StudyRoomWaiting"));
 const StudyRoomActive = lazy(() => import("../pages/StudyRoomActive/StudyRoomActive"));
-const UserProfile = lazy(() => import("../pages/UserProfile/UserProfile"));
-const Messages = lazy(() => import("../pages/Messages/Messages"));
-const Quiz = lazy(() => import("../pages/Quiz/Quiz"));
-const Gamification = lazy(() => import("../pages/Gamification/Gamification"));
+const UserProfile = lazyWithPreload(() => import("../pages/UserProfile/UserProfile"));
+const Messages = lazyWithPreload(() => import("../pages/Messages/Messages"));
+const Quiz = lazyWithPreload(() => import("../pages/Quiz/Quiz"));
+const Gamification = lazyWithPreload(() => import("../pages/Gamification/Gamification"));
 const Refer = lazy(() => import("../pages/Refer/Refer"));
 const PendingConnections = lazy(() => import("../pages/PendingConnections/PendingConnections"));
 const Connections = lazy(() => import("../pages/Connections/Connections"));
-const StudyMatches = lazy(() => import("../pages/StudyMatches/StudyMatches"));
-const Settings = lazy(() => import("../pages/Settings/Settings"));
-const ChatBot = lazy(() => import("../pages/ChatBot/ChatBot"));
+const StudyMatches = lazyWithPreload(() => import("../pages/StudyMatches/StudyMatches"));
+const Settings = lazyWithPreload(() => import("../pages/Settings/Settings"));
+const ChatBot = lazyWithPreload(() => import("../pages/ChatBot/ChatBot"));
 const XP = lazy(() => import("../pages/XP/Xp"));
 
 // 🟢 Admin Pages
@@ -67,6 +79,20 @@ const dashboardRoutes = [
   '/pending-connections', '/connections', '/settings', '/chatbot', '/admin', '/refer', '/xp'
 ];
 
+// 🟢 Read auth from storage SYNCHRONOUSLY — no network needed to decide redirects.
+const getStoredAuth = () => {
+  try {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    return { token, user: raw ? JSON.parse(raw) : null };
+  } catch (e) {
+    console.error("Failed to parse stored auth", e);
+    return { token: null, user: null };
+  }
+};
+
+const PUBLIC_PATHS = ['/', '/login', '/signup'];
+
 // 🟢 Fallback Spinner for lazy-loaded pages
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -75,95 +101,139 @@ const PageLoader = () => (
   </div>
 );
 
+// 🟢 Warm the most-likely route chunks once the browser is idle, so the first
+// navigation to them is instant instead of triggering a spinner + fetch.
+const idle = (cb) =>
+  (typeof window !== 'undefined' && window.requestIdleCallback)
+    ? window.requestIdleCallback(cb, { timeout: 2000 })
+    : setTimeout(cb, 1);
+
+const preloadRoutes = (components) => {
+  idle(() => {
+    components.forEach((c) => {
+      try { c?.preload?.(); } catch (_) { /* chunk fetch is best-effort */ }
+    });
+  });
+};
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboardRoute = dashboardRoutes.some(route => location.pathname.startsWith(route));
 
-  const [isChecking, setIsChecking] = useState(true);
   const { settings } = useSettings();
+  const apiUrl = useMemo(() => `http://${window.location.hostname}:5000`, []);
 
-  const apiUrl = `http://${window.location.hostname}:5000`;
+  // 🟢 Only block the very first paint if a logged-in user is sitting on a
+  // public page (a redirect to their dashboard is imminent and we'd rather not
+  // flash the landing page). EVERY other case renders instantly — no spinner.
+  const [isChecking, setIsChecking] = useState(() => {
+    const { token, user } = getStoredAuth();
+    return Boolean(token && user) && PUBLIC_PATHS.includes(window.location.pathname);
+  });
 
-  // 🟢 PRESERVED: Original auth + maintenance check logic, untouched
+  // 🟢 Preload the hot dashboard chunks after first paint (non-blocking).
   useEffect(() => {
-    const checkStatus = async () => {
-      if (!settings) return;
+    const { token, user } = getStoredAuth();
+    if (token && user) {
+      preloadRoutes([Dashboard, StudyTime, Courses, Social, Analytics, Messages, StudyRoom, Settings]);
+    } else {
+      preloadRoutes([Login, Dashboard]);
+    }
+  }, []);
 
-      try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const storedUserString = (localStorage.getItem('user') || sessionStorage.getItem('user'));
+  // 🟢 Auth + maintenance check — now SYNCHRONOUS for all redirect decisions.
+  // The server verification (/api/auth/me) runs in the BACKGROUND and never
+  // gates the UI.
+  useEffect(() => {
+    let cancelled = false;
 
-        let user = null;
-        if (storedUserString) {
-          try { user = JSON.parse(storedUserString); } catch (e) { console.error("Failed to parse user", e); }
-        }
+    try {
+      const { token, user } = getStoredAuth();
+      const path = location.pathname;
+      const isPublicPage = PUBLIC_PATHS.includes(path);
 
-        if (settings?.maintenanceMode) {
+      // ── Maintenance / registrations (depends on settings; re-runs when it loads) ──
+      if (settings) {
+        if (settings.maintenanceMode) {
           const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
-          if (!isAdmin && location.pathname !== '/maintenance') {
+          if (!isAdmin && path !== '/maintenance') {
             navigate('/maintenance');
             return;
           }
-        } else {
-          if (location.pathname === '/maintenance') navigate('/');
+        } else if (path === '/maintenance') {
+          navigate('/');
         }
 
-        if (settings?.allowRegistrations === false && location.pathname === '/signup') {
+        if (settings.allowRegistrations === false && path === '/signup') {
           alert("New registrations are currently disabled by the administrator.");
           navigate('/login');
           return;
         }
+      }
 
-        if (!token || !user) return;
+      // ── Not logged in → render immediately ──
+      if (!token || !user) {
+        setIsChecking(false);
+        return;
+      }
 
-        const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup';
+      // ── Admins ──
+      if (user.role === 'admin' || user.role === 'super-admin') {
+        if (isPublicPage) navigate('/admin');
+        setIsChecking(false);
+        return;
+      }
 
-        if (user.role === 'admin' || user.role === 'super-admin') {
-          if (isPublicPage) navigate('/admin');
-          return;
-        }
+      // ── Quiz already done → straight in ──
+      if (user.quizCompleted) {
+        if (isPublicPage) navigate('/dashboard');
+        setIsChecking(false);
+        return;
+      }
 
-        const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
+      // ── Has strengths but quiz not marked complete → verify in BACKGROUND ──
+      const hasStrengths = user.academicStrengths && user.academicStrengths.length > 0;
+      if (hasStrengths) {
+        // Internal pages render right away; only public pages briefly wait to
+        // avoid a flash before the redirect resolves.
+        if (!isPublicPage) setIsChecking(false);
 
-        if (user.quizCompleted) {
-          if (isPublicPage) navigate('/dashboard');
-          return;
-        }
-
-        if (hasStrengths && !user.quizCompleted) {
+        (async () => {
           try {
             const res = await fetch(`${apiUrl}/api/auth/me`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
+            if (cancelled) return;
 
             if (data.success && data.user.quizCompleted) {
-              if (localStorage.getItem('token')) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-              } else {
-                sessionStorage.setItem('user', JSON.stringify(data.user));
-              }
-
+              const store = localStorage.getItem('token') ? localStorage : sessionStorage;
+              store.setItem('user', JSON.stringify(data.user));
               if (isPublicPage) navigate('/dashboard');
-              return;
+            } else if (path !== '/quiz' && path !== '/login') {
+              navigate('/quiz');
             }
           } catch (err) {
             console.error("Auth check failed (Server might be down):", err);
+            if (!cancelled && path !== '/quiz' && path !== '/login') {
+              navigate('/quiz');
+            }
+          } finally {
+            if (!cancelled) setIsChecking(false);
           }
+        })();
 
-          if (location.pathname !== '/quiz' && location.pathname !== '/login') {
-            navigate('/quiz');
-          }
-        }
-      } catch (error) {
-        console.error("Critical error during app initialization:", error);
-      } finally {
-        setIsChecking(false);
+        return () => { cancelled = true; };
       }
-    };
 
-    checkStatus();
+      setIsChecking(false);
+    } catch (error) {
+      console.error("Critical error during app initialization:", error);
+      setIsChecking(false);
+    }
+
+    return () => { cancelled = true; };
   }, [location.pathname, navigate, settings, apiUrl]);
 
   if (isChecking) {
