@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { io as socketIO } from 'socket.io-client';
 import {
   Search, Moon, Sun, Bell, Play, Gift,
   User as UserIcon, Settings, LogOut,
@@ -9,7 +10,8 @@ import {
 import styles from './DashboardHeader.module.css';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const API = `http://${window.location.hostname}:5000/api`;
-const POLL_MS = 8000; // poll every 8s — not 5s, reduces server load
+const SOCKET_URL = `http://${window.location.hostname}:5000`;
+const POLL_MS = 8000; // fallback poll every 8s — socket is primary now
 
 const avatars = {
   male: {
@@ -182,11 +184,13 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
 
     // Inject welcome notes into local storage
     const welcomeNotes = buildWelcomeNotifications(user);
-    const existingLocal = readLocalNotifs();
+    const existingLocal = readLocalNotifs(user._id);
     // Avoid duplicating if component remounts before flag is set
     const alreadyHas = existingLocal.some(n => n.id === welcomeNotes[0].id);
     if (!alreadyHas) {
-      writeLocalNotifs([...welcomeNotes, ...existingLocal]);
+      writeLocalNotifs(user._id, [...welcomeNotes, ...existingLocal]);
+      // 🟢 Tell the rest of the app a new notification arrived (sidebar glow + bell badge)
+      window.dispatchEvent(new CustomEvent('notificationAdded', { detail: welcomeNotes[0] }));
     }
     localStorage.setItem(flag, 'new');
 
@@ -257,7 +261,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       }
 
       // ── 3. Read local-only notifications (welcome, etc.) ─────────────────
-      const localNotifs = readLocalNotifs().map(normalise);
+      const localNotifs = readLocalNotifs(user._id).map(normalise);
 
       // ── 4. Merge: local + DB + optional chat synthetic ───────────────────
       // Order: chat synthetic first (most urgent), then merge rest
@@ -267,15 +271,15 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       setNotifications(final);
 
       // Persist only local ones back — DB ones are always refetched
-      writeLocalNotifs(final);
+      writeLocalNotifs(user._id, final);
 
     } catch (err) {
       console.error('[DashboardHeader] loadNotifications:', err);
       // On error, still show whatever we have locally
-      const localNotifs = readLocalNotifs().map(normalise);
+      const localNotifs = readLocalNotifs(user._id).map(normalise);
       setNotifications(localNotifs);
     }
-  }, [user.role]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user.role, user._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Event listeners + polling ────────────────────────────────────────────
   useEffect(() => {
@@ -303,6 +307,44 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     };
   }, [loadUser, loadNotifications]);
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // 🟢 LIVE SOCKET NOTIFICATIONS — replaces 8s polling delay with instant push.
+  // Backend emits 'newNotification' via pushLiveNotification() helper. When it
+  // arrives we (a) refetch so the bell shows the full DB record, AND
+  // (b) dispatch 'notificationAdded' so the sidebar glows live.
+  // ════════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const socket = socketIO(SOCKET_URL, {
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 8000,
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('registerUser', user._id);
+      console.log('[DashboardHeader] socket connected', socket.id);
+    });
+
+    socket.on('newNotification', (payload) => {
+      console.log('[DashboardHeader] 🔔 newNotification:', payload);
+      // 1. Refetch so the bell list and unread count are accurate
+      loadNotifications();
+      // 2. Tell the sidebar so the relevant nav item glows in real time
+      window.dispatchEvent(new CustomEvent('notificationAdded', { detail: payload }));
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('newNotification');
+      socket.disconnect();
+    };
+  }, [user._id, loadNotifications]);
+
   // ── Click outside ────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
@@ -319,8 +361,8 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })));
 
     // 2. Update local storage (local notifications)
-    const updated = readLocalNotifs().map(n => ({ ...n, isUnread: false, read: true, unread: false }));
-    writeLocalNotifs(updated);
+    const updated = readLocalNotifs(user._id).map(n => ({ ...n, isUnread: false, read: true, unread: false }));
+    writeLocalNotifs(user._id, updated);
 
     // 3. Tell backend to mark all DB notifications as read
     const token = getToken();
@@ -341,7 +383,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     setNotifications(prev => prev.filter(n => n.id === 'synthetic-chat-unread'));
 
     // 2. Wipe local storage notifications
-    writeLocalNotifs([]);
+    writeLocalNotifs(user._id, []);
 
     // 3. Tell backend to delete all DB notifications for this user
     const token = getToken();
@@ -367,10 +409,10 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
 
     // 2. Persist read state for local notifications
     if (notif._local) {
-      const updated = readLocalNotifs().map(n =>
+      const updated = readLocalNotifs(user._id).map(n =>
         n.id === notif.id ? { ...n, isUnread: false, read: true, unread: false } : n
       );
-      writeLocalNotifs(updated);
+      writeLocalNotifs(user._id, updated);
     } else if (notif._id) {
       // 3. Tell backend to mark this specific DB notification as read
       // Most backends expose PUT /api/notifications/:id/read
@@ -385,10 +427,28 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     }
 
     // 4. Navigate to relevant page
-    const dest = notif.link ||
-      (notif.type === 'message' ? '/messages' :
-        notif.type === 'connection' ? '/pending-connections' :
-          notif.type === 'achievement' ? '/gamification' : null);
+    //    🟢 LINK SANITIZER — older DB records may have legacy paths that no
+    //    longer exist in the router (e.g. '/requests' instead of
+    //    '/pending-connections'). Translate them on the fly so a click never
+    //    lands on a 404, even before those records are cleaned up.
+    const LEGACY_PATH_MAP = {
+      '/requests': '/pending-connections',
+      '/request': '/pending-connections',
+      '/pending': '/pending-connections',
+      '/connections-pending': '/pending-connections',
+      '/inbox': '/messages',
+      '/chat': '/messages',
+    };
+    let dest = notif.link || null;
+    if (dest && LEGACY_PATH_MAP[dest]) {
+      dest = LEGACY_PATH_MAP[dest];
+    }
+    // Fall back to type-based routing if there's still no destination
+    if (!dest) {
+      dest = notif.type === 'message' ? '/messages' :
+             notif.type === 'connection' ? '/pending-connections' :
+             notif.type === 'achievement' ? '/gamification' : null;
+    }
 
     if (dest) navigate(dest);
   };

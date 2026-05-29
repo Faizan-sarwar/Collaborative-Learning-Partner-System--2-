@@ -265,7 +265,7 @@ const UserProfile = () => {
                                             </div>
                                             <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
                                                 <Clock size={24} color="#10b981" style={{ margin: '0 auto 8px auto' }} />
-                                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary, #f8fafc)' }}>{user.studyHours || 0}h</div>
+                                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary, #f8fafc)' }}>{Number(user.studyHours || 0).toFixed(1)}h</div>
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>Study Time</div>
                                             </div>
                                             <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>

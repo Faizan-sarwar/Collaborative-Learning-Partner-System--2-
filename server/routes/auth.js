@@ -233,14 +233,19 @@ router.post('/signup', upload.single('profilePicture'), async (req, res) => {
     try {
       await ActivityLog.create({ action: 'New User Registered', user: newUser.fullName, userType: newUser.role, ip: getClientIp(req), status: 'success' });
 
-      await Notification.create({
-        recipient: newUser._id,
-        type: 'registration',
-        title: 'New Student Registration',
-        message: `${newUser.fullName} has joined the platform.`,
-        link: '/admin/students',
-        unread: true
-      });
+      // 🟢 FIX: registration notifications are FOR ADMINS, not for the new
+      // user themselves. Find all admins and create one notification per admin.
+      const admins = await User.find({ role: { $in: ['admin', 'super-admin'] } }).select('_id');
+      if (admins.length > 0) {
+        await Notification.insertMany(admins.map(admin => ({
+          recipient: admin._id,
+          type: 'registration',
+          title: 'New Student Registration',
+          message: `${newUser.fullName} has joined the platform.`,
+          link: '/admin/students',
+          unread: true
+        })));
+      }
     } catch (e) { console.error("Logging failed", e); }
 
     res.status(201).json({ success: true, message: 'Profile created successfully!', token: generateToken(newUser._id), user: newUser.toSafeObject() });
@@ -862,7 +867,7 @@ router.post('/connect/:targetId', async (req, res) => {
     const senderUser = await User.findByIdAndUpdate(senderId, { $addToSet: { sentRequests: targetId } });
     await User.findByIdAndUpdate(targetId, { $addToSet: { receivedRequests: senderId } });
 
-    await Notification.create({ recipient: targetId, sender: senderId, type: 'connection', title: 'New Connection Request', message: `${senderUser.fullName} wants to connect.`, link: '/requests', unread: true });
+    await Notification.create({ recipient: targetId, sender: senderId, type: 'connection', title: 'New Connection Request', message: `${senderUser.fullName} wants to connect.`, link: '/pending-connections', unread: true });
 
     // 🟢 PUSH LIVE NOTIFICATION
     pushLiveNotification(req, targetId, { type: 'connection', title: 'New Connection Request', message: `${senderUser.fullName} wants to connect.` });

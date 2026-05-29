@@ -40,13 +40,15 @@ const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const TYPING_DEBOUNCE_MS = 1500;
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
-const API_HOST = `http://${window.location.hostname}:5000`;
+// 🟢 Backend URL — configurable so the same build works on localhost AND
+// through an ngrok tunnel. Set VITE_API_HOST in client/.env to override.
+//   • Local dev:  leave it unset → uses current hostname:5000
+//   • ngrok:      set VITE_API_HOST=https://abcd-1234.ngrok-free.app
+const API_HOST =
+  import.meta.env.VITE_API_HOST?.replace(/\/$/, '') ||
+  `http://${window.location.hostname}:5000`;
 const API = `${API_HOST}/api`;
 const SOCKET_URL = API_HOST;
-
-// 🟢 SOCKET SINGLETON — survives React StrictMode's dev double-mount so we
-// don't create two sockets (the first getting killed and confusing the backend).
-const __socketCache = { instance: null, refs: 0 };
 
 // ============================================================================
 // 🟢 HELPERS — preserved from original
@@ -66,6 +68,21 @@ const getInitials = (name = '') =>
   name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'ST';
 
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+// 🟢 NGROK: inject the skip-warning header into EVERY fetch app-wide, so all
+// API calls (login, conversations, avatars, send, etc.) bypass ngrok's free-tier
+// interstitial. Installed once. No-op when not using ngrok.
+if (typeof window !== 'undefined' && !window.__ngrokFetchPatched) {
+  window.__ngrokFetchPatched = true;
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (!headers.has('ngrok-skip-browser-warning')) {
+      headers.set('ngrok-skip-browser-warning', 'true');
+    }
+    return _origFetch(input, { ...init, headers });
+  };
+}
 
 // Decode JWT to extract own userId for socket registration (no extra API call)
 const getMyUserId = () => {
@@ -346,15 +363,6 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [loadError, setLoadError] = useState(null);
-
-  // 🟢 Re-init when src changes (live-arriving voice notes)
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    setPlaying(false); setCurrentTime(0); setDuration(0); setLoadError(null);
-    a.load();
-  }, [src]);
 
   useEffect(() => {
     const a = audioRef.current;
@@ -362,40 +370,21 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
     const onTime = () => setCurrentTime(a.currentTime);
     const onMeta = () => setDuration(a.duration || 0);
     const onEnd = () => { setPlaying(false); setCurrentTime(0); };
-    const onError = () => {
-      console.error('[VoiceNotePlayer] load error:', src, a.error);
-      setLoadError(a.error?.message || 'Cannot play');
-    };
-    const onCanPlay = () => setLoadError(null);
     a.addEventListener('timeupdate', onTime);
     a.addEventListener('loadedmetadata', onMeta);
-    a.addEventListener('durationchange', onMeta);
     a.addEventListener('ended', onEnd);
-    a.addEventListener('error', onError);
-    a.addEventListener('canplay', onCanPlay);
-    if (a.readyState >= 1 && a.duration && !isNaN(a.duration)) setDuration(a.duration);
     return () => {
       a.removeEventListener('timeupdate', onTime);
       a.removeEventListener('loadedmetadata', onMeta);
-      a.removeEventListener('durationchange', onMeta);
       a.removeEventListener('ended', onEnd);
-      a.removeEventListener('error', onError);
-      a.removeEventListener('canplay', onCanPlay);
     };
-  }, [src]);
+  }, []);
 
-  const toggle = async () => {
+  const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); return; }
-    try {
-      await a.play();          // await so codec/autoplay errors surface
-      setPlaying(true);
-    } catch (err) {
-      console.error('[VoiceNotePlayer] play() rejected:', err);
-      setLoadError(err.message || 'Playback failed');
-      setPlaying(false);
-    }
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play(); setPlaying(true); }
   };
 
   const pct = duration ? (currentTime / duration) * 100 : 0;
@@ -407,14 +396,14 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       background: isOwn ? 'rgba(255,255,255,0.18)' : 'rgba(99,102,241,0.1)',
       minWidth: 180
     }}>
-      <button onClick={toggle} title={loadError || 'Play voice note'} style={{
+      <button onClick={toggle} style={{
         width: 32, height: 32, borderRadius: '50%', border: 'none',
-        background: loadError ? '#ef4444' : (isOwn ? 'rgba(255,255,255,0.9)' : '#6366f1'),
-        color: loadError ? 'white' : (isOwn ? '#6366f1' : 'white'),
+        background: isOwn ? 'rgba(255,255,255,0.9)' : '#6366f1',
+        color: isOwn ? '#6366f1' : 'white',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', flexShrink: 0
       }}>
-        {loadError ? <AlertTriangle size={14} /> : playing ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
+        {playing ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
       </button>
       <div style={{ flex: 1, height: 4, background: isOwn ? 'rgba(255,255,255,0.3)' : 'rgba(99,102,241,0.25)', borderRadius: 2, position: 'relative' }}>
         <div style={{
@@ -425,7 +414,7 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
       <span style={{ fontSize: '0.7rem', opacity: 0.85, fontVariantNumeric: 'tabular-nums', minWidth: 38, textAlign: 'right' }}>
         {formatDuration(playing || currentTime ? currentTime : duration)}
       </span>
-      <audio ref={audioRef} src={src} preload="auto" />
+      <audio ref={audioRef} src={src} preload="metadata" />
     </div>
   );
 };
@@ -680,74 +669,45 @@ const Messages = () => {
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const myId = myIdRef.current;
-    if (!myId) {
-      console.warn('[Messages] No userId in token — socket NOT connecting');
-      return;
-    }
+    if (!myId) return;
 
-    // 🟢 SINGLETON: reuse existing socket across StrictMode remounts.
-    __socketCache.refs += 1;
-    let socket = __socketCache.instance;
-    if (!socket) {
-      console.log('[Messages] 🚀 Creating socket for', myId);
-      socket = socketIO(SOCKET_URL, {
-        reconnection: true,
-        reconnectionAttempts: Infinity,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 8000,
-        randomizationFactor: 0.5,
-        timeout: 20000,
-        transports: ['websocket', 'polling'],
-        withCredentials: true,
-        autoConnect: true,
-      });
-      __socketCache.instance = socket;
-    } else {
-      console.log('[Messages] ♻️ Reusing socket', socket.id, '(connected:', socket.connected, ')');
-    }
+    const socket = socketIO(SOCKET_URL, {
+      // Mobile-friendly reconnection: try forever, escalating delays
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,        // start at 1s
+      reconnectionDelayMax: 8000,     // cap at 8s
+      randomizationFactor: 0.5,
+      timeout: 20000,
+      transports: ['websocket', 'polling'], // fallback for restrictive networks
+      withCredentials: true,
+      autoConnect: true,
+      // 🟢 NGROK: skip the free-tier browser-warning interstitial that would
+      // otherwise break the socket handshake. Harmless when not using ngrok.
+      extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
+    });
     socketRef.current = socket;
-
-    // 🟢 CRITICAL: remove any handlers from a previous mount before re-adding,
-    // otherwise StrictMode/reuse stacks duplicate listeners → duplicate messages.
-    socket.off('connect');
-    socket.off('disconnect');
-    socket.off('connect_error');
-    socket.off('receiveMessage');
-    socket.off('messageSentEcho');
-    socket.off('messageEdited');
-    socket.off('messageUnsent');
-    socket.off('userTyping');
-    socket.off('userStoppedTyping');
-    socket.off('messagesRead');
-    socket.off('youWereBlocked');
-    socket.off('youWereUnblocked');
-
-    // If already connected (reused socket), sync state + re-register now.
-    if (socket.connected) {
-      setSocketConnected(true);
-      socket.emit('registerUser', myId);
-    }
 
     socket.on('connect', () => {
       setSocketConnected(true);
       socket.emit('registerUser', myId);
-      console.log('[socket] ✅ Connected:', socket.id, '| userId:', myId);
+      console.log('[socket] connected:', socket.id);
     });
     socket.on('disconnect', (reason) => {
       setSocketConnected(false);
-      console.log('[socket] ❌ Disconnected:', reason);
+      console.log('[socket] disconnected:', reason);
+      // Force-reconnect on mobile background-tab kill
       if (reason === 'io server disconnect' || reason === 'transport close') {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = setTimeout(() => socket.connect(), 800);
       }
     });
     socket.on('connect_error', (err) => {
-      console.warn('[socket] ⚠️ connect_error:', err.message);
+      console.warn('[socket] connect_error:', err.message);
     });
 
     // ─── INCOMING MESSAGE ────────────────────────────────────────────────────
     socket.on('receiveMessage', ({ conversationId, message }) => {
-      console.log('[socket] 📩 receiveMessage', { conversationId, id: message?.id });
       if (!message) return;
       setMessages(prev => {
         const list = prev[conversationId] || [];
@@ -867,20 +827,7 @@ const Messages = () => {
       clearInterval(heartbeatInterval);
       clearTimeout(reconnectTimerRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
-
-      // 🟢 SINGLETON CLEANUP: decrement ref. Only fully disconnect when the
-      // LAST consumer leaves — and defer it so StrictMode's instant remount
-      // finds the socket alive and reuses it.
-      __socketCache.refs -= 1;
-      if (__socketCache.refs <= 0) {
-        setTimeout(() => {
-          if (__socketCache.refs <= 0 && __socketCache.instance) {
-            console.log('[Messages] 👋 Last consumer — disconnecting socket');
-            __socketCache.instance.disconnect();
-            __socketCache.instance = null;
-          }
-        }, 300);
-      }
+      socket.disconnect();
       socketRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
