@@ -130,7 +130,7 @@ const readLocalNotifs = (userId) => {
   catch { return []; }
 };
 
-const writeLocalNotifs = (userId, arr) => { 
+const writeLocalNotifs = (userId, arr) => {
   if (!userId || !Array.isArray(arr)) return;
   localStorage.setItem(getLocalKey(userId), JSON.stringify(arr.filter(n => n._local)));
 };
@@ -327,11 +327,11 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
 
     socket.on('connect', () => {
       socket.emit('registerUser', user._id);
-      console.log('[DashboardHeader] socket connected', socket.id);
+      if (import.meta.env.DEV) console.log('[DashboardHeader] socket connected', socket.id);
     });
 
     socket.on('newNotification', (payload) => {
-      console.log('[DashboardHeader] 🔔 newNotification:', payload);
+      if (import.meta.env.DEV) console.log('[DashboardHeader] 🔔 newNotification:', payload);
       // 1. Refetch so the bell list and unread count are accurate
       loadNotifications();
       // 2. Tell the sidebar so the relevant nav item glows in real time
@@ -446,8 +446,8 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     // Fall back to type-based routing if there's still no destination
     if (!dest) {
       dest = notif.type === 'message' ? '/messages' :
-             notif.type === 'connection' ? '/pending-connections' :
-             notif.type === 'achievement' ? '/gamification' : null;
+        notif.type === 'connection' ? '/pending-connections' :
+          notif.type === 'achievement' ? '/gamification' : null;
     }
 
     if (dest) navigate(dest);

@@ -6,29 +6,53 @@ export const SettingsProvider = ({ children }) => {
   const [settings, setSettings] = useState(null);
 
   // 1. FETCH SETTINGS
-  const fetchSettings = async () => {
+  // `silent` suppresses console noise. The backend may not be up the instant
+  // the app mounts (especially in dev), so a failed first attempt is expected —
+  // we quietly retry rather than spamming red errors into the console.
+  const fetchSettings = async (silent = false) => {
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
-const res = await fetch(`${apiUrl}/api/auth/admin/settings`);
+      const res = await fetch(`${apiUrl}/api/auth/admin/settings`);
       const data = await res.json();
-      
+
       if (data.success && data.settings) {
         setSettings(data.settings);
-        
-        // 🟢 GLOBAL DOM MANIPULATION: 
+
+        // 🟢 GLOBAL DOM MANIPULATION:
         // This instantly changes the Browser Tab title across all 50+ pages!
         if (data.settings.platformName) {
-            document.title = data.settings.platformName;
+          document.title = data.settings.platformName;
         }
       }
+      return true;
     } catch (err) {
-      console.error('Failed to load global settings', err);
+      // Network/connection error (backend not reachable yet). Stay quiet unless
+      // explicitly asked to report — see the retry logic below.
+      if (!silent && import.meta.env.DEV) {
+        console.warn('[settings] backend not reachable yet — will retry');
+      }
+      return false;
     }
   };
 
-  // Run on initial load
+  // Run on initial load, with a few quiet retries in case the backend is still
+  // starting up. Stops as soon as it succeeds; no red errors in the console.
   useEffect(() => {
-    fetchSettings();
+    let cancelled = false;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 5;
+
+    const tryLoad = async () => {
+      if (cancelled) return;
+      const ok = await fetchSettings(true); // silent
+      attempt += 1;
+      if (!ok && !cancelled && attempt < MAX_ATTEMPTS) {
+        setTimeout(tryLoad, 2000); // retry in 2s
+      }
+    };
+
+    tryLoad();
+    return () => { cancelled = true; };
   }, []);
 
   // 🟢 GLOBAL SESSION TIMEOUT LOGIC
@@ -54,7 +78,7 @@ const res = await fetch(`${apiUrl}/api/auth/admin/settings`);
                 sessionStorage.removeItem('user');
                 
                 // Alert the backend they went offline
-                fetch(`http://${window.location.hostname}:5000/api/auth/logout`, { method: 'POST' }).catch(()=>console.log("Logout signal failed"));
+                fetch(`http://${window.location.hostname}:5000/api/auth/logout`, { method: 'POST' }).catch(() => {});
                 
                 // Kick them back to login page
                 window.location.href = '/login?timeout=true';
