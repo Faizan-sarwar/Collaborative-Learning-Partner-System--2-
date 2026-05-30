@@ -117,22 +117,16 @@ const ChatBot = () => {
                     botResponse = 'I received your message but couldn\'t format a proper response.';
                 }
 
-                setTimeout(() => {
-                    setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
-                    setIsTyping(false);
-                }, 1000);
+                setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
+                setIsTyping(false);
             } else {
-                setTimeout(() => {
-                    setMessages(prev => [...prev, { role: 'bot', content: data.error || 'Sorry, I encountered an error. Please try again.' }]);
-                    setIsTyping(false);
-                }, 1000);
+                setMessages(prev => [...prev, { role: 'bot', content: data.error || 'Sorry, I encountered an error. Please try again.' }]);
+                setIsTyping(false);
             }
         } catch (error) {
             console.error('Chat error:', error);
-            setTimeout(() => {
-                setMessages(prev => [...prev, { role: 'bot', content: 'Sorry, I\'m having trouble connecting. Please try again later.' }]);
-                setIsTyping(false);
-            }, 1000);
+            setMessages(prev => [...prev, { role: 'bot', content: 'Sorry, I\'m having trouble connecting. Please try again later.' }]);
+            setIsTyping(false);
         } finally {
             setIsLoading(false);
         }

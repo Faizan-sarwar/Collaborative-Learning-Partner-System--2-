@@ -1,6 +1,7 @@
 import express from 'express';
-import https from 'https';
 import cors from 'cors';
+import 'dotenv/config';
+
 const app = express();
 
 // Enable CORS for React frontend
@@ -21,72 +22,80 @@ app.use(cors({
 
 app.use(express.json());
 
-// Chatbot API configuration
-const RAPIDAPI_KEY = '436a7f8f36mshbbdca25ff29cd4ap16084djsnce6923387caf';
-const API_HOST = 'open-ai21.p.rapidapi.com';
+// ════════════════════════════════════════════════════════════════════════════
+// Chatbot API configuration — Groq (fast LPU inference, generous free tier).
+// Get a free key at https://console.groq.com/keys and put it in chatserver/.env:
+//     GROQ_API_KEY=gsk_your_key_here
+// ════════════════════════════════════════════════════════════════════════════
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-// Function to call chatbot API
-function callChatbot(messages) {
-    return new Promise((resolve, reject) => {
-        const options = {
-            method: 'POST',
-            hostname: 'open-ai21.p.rapidapi.com',
-            port: null,
-            path: '/conversationllama',
-            headers: {
-                'x-rapidapi-key': '8b999a2ab4mshf05894d395797fcp108cc5jsnf48624df84db',
-                'x-rapidapi-host': 'open-ai21.p.rapidapi.com',
-                'Content-Type': 'application/json'
-            }
-        };
-        const req = https.request(options, function (res) {
-            const chunks = [];
+// 'llama-3.3-70b-versatile' = best quality | 'llama-3.1-8b-instant' = fastest
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
-            res.on('data', function (chunk) {
-                chunks.push(chunk);
-            });
+const SYSTEM_PROMPT = `You are a helpful AI study assistant for a student learning platform.
+You help students improve academic performance: explaining concepts clearly, suggesting
+study techniques, breaking down hard topics, and motivating them. Keep answers concise
+and well-structured. Use markdown (headings, bold, lists, code blocks) when it aids clarity.`;
 
-            res.on('end', function () {
-                try {
-                    const body = Buffer.concat(chunks);
-                    const response = JSON.parse(body.toString());
-                    console.log('API Response:', JSON.stringify(response, null, 2));
-                    resolve(response);
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        });
+// Only keep the last few turns so we never blow the per-minute token budget.
+const MAX_HISTORY_MESSAGES = 12;
 
-        req.on('error', (error) => {
-            reject(error);
-        });
+// Function to call the Groq chat API. Returns the assistant's reply as a string.
+async function callChatbot(messages) {
+    if (!GROQ_API_KEY) {
+        throw new Error('Missing GROQ_API_KEY — add it to chatserver/.env');
+    }
 
-        req.write(JSON.stringify({
-            messages: messages,
-            web_access: false
-        }));
+    // Keep only valid user/assistant turns, trimmed to the most recent ones.
+    const history = (Array.isArray(messages) ? messages : [])
+        .filter(m => m && m.content && (m.role === 'user' || m.role === 'assistant'))
+        .slice(-MAX_HISTORY_MESSAGES);
 
-        req.end();
+    const payload = {
+        model: MODEL,
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
+        temperature: 0.6,
+        max_tokens: 1024
+    };
+
+    const response = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        const err = new Error(`Groq API error ${response.status}: ${errText}`);
+        err.status = response.status;
+        throw err;
+    }
+
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error('Empty response from Groq');
+    return text;
 }
 
 // Test endpoint to debug API response
 app.get('/api/test', async (req, res) => {
     try {
         const testMessages = [{ role: 'user', content: 'Hello, how are you?' }];
-        const response = await callChatbot(testMessages);
+        const reply = await callChatbot(testMessages);
 
         res.json({
             success: true,
-            rawResponse: response,
-            extractedMessage: response.response || response.message || response.content || 'No message found'
+            model: MODEL,
+            extractedMessage: reply
         });
     } catch (error) {
         res.json({
             success: false,
-            error: error.message,
-            stack: error.stack
+            error: error.message
         });
     }
 });
@@ -96,19 +105,34 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { message, conversation = [] } = req.body;
 
-        // Add user message to conversation
-        const messages = [...conversation, { role: 'user', content: message }];
+        if (!message || !message.trim()) {
+            return res.status(400).json({ success: false, error: 'Message is required.' });
+        }
 
-        // Call chatbot API
-        const response = await callChatbot(messages);
+        // The frontend already appends the latest user message to `conversation`,
+        // but we add it defensively in case it didn't.
+        const last = conversation[conversation.length - 1];
+        const messages = (last && last.role === 'user' && last.content === message)
+            ? conversation
+            : [...conversation, { role: 'user', content: message }];
 
+        const reply = await callChatbot(messages);
+
+        // Returned as a plain string in `response` — ChatBot.jsx already handles
+        // the `typeof data.response === 'string'` case.
         res.json({
             success: true,
-            response: response,
-            conversation: messages
+            response: reply,
+            conversation: [...messages, { role: 'assistant', content: reply }]
         });
     } catch (error) {
-        console.error('Chatbot API error:', error);
+        console.error('Chatbot API error:', error.message);
+        if (error.status === 429) {
+            return res.status(429).json({
+                success: false,
+                error: 'Busy right now — please try again in a few seconds.'
+            });
+        }
         res.status(500).json({
             success: false,
             error: 'Failed to get chatbot response'
@@ -118,12 +142,12 @@ app.post('/api/chat', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Chatbot API is running' });
+    res.json({ status: 'OK', message: 'Chatbot API is running', model: MODEL });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Chatbot API server running on port ${PORT}`);
+    console.log(`Chatbot API server running on port ${PORT} (model: ${MODEL})`);
 });
 
 export default app;
