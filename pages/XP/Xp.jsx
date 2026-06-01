@@ -260,41 +260,7 @@ const XP = () => {
                   );
                 })}
               </div>
-            </motion.div>
-
-            {/* Quick Actions */}
-            <motion.div className={styles.quickCard} variants={itemVariants}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardIcon}>⚡</span>
-                <h3 className={styles.cardTitle}>Quick Earn</h3>
-              </div>
-              <div className={styles.quickActions}>
-                <motion.button 
-                  className={styles.quickBtn}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/study-time')}
-                >
-                  <span>🍅</span> Start Study Session (+50 XP)
-                </motion.button>
-                <motion.button 
-                  className={styles.quickBtn}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/study-room')}
-                >
-                  <span>🎓</span> Join Study Room (+100 XP)
-                </motion.button>
-                <motion.button 
-                  className={styles.quickBtn}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/connections')}
-                >
-                  <span>🤝</span> Connect with Peers (+75 XP)
-                </motion.button>
-              </div>
-            </motion.div>
+            </motion.div>     
           </div>
         </div>
       </motion.div>
