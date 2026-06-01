@@ -553,18 +553,6 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className={styles.searchBar}>
-        <Search className={styles.searchIcon} size={18} aria-hidden="true" />
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={styles.searchInput}
-          aria-label="Search platform" /* 🟢 A11Y FIX: Added aria-label to input */
-        />
-      </div>
 
       {/* Actions */}
       <div className={styles.actions}>
