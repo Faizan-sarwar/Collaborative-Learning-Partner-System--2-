@@ -152,13 +152,15 @@ const Signup = () => {
         return '';
     };
 
-    const validateRollNumber = (roll) => {
-        const trimmedRoll = roll.trim();
-        if (!trimmedRoll) return 'Roll number is required';
-        if (trimmedRoll.length < 4 || trimmedRoll.length > 20) return 'Roll number must be between 4 and 20 characters';
-        if (!/^[A-Za-z0-9-]+$/.test(trimmedRoll)) return 'Roll number can only contain letters, numbers, and hyphens (no spaces)';
-        return '';
-    };
+const validateRollNumber = (roll) => {
+    const trimmedRoll = roll.trim();
+    if (!trimmedRoll) return 'Roll number is required';
+    const rollRegex = /^22034156-\d{3}$/;
+    if (!rollRegex.test(trimmedRoll)) {
+        return 'Roll number must be in the format "22034156-XXX" (e.g., 22034156-043)';
+    }
+    return '';
+};
 
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
