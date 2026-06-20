@@ -6,7 +6,7 @@
   margin: 0 auto;
 }
 
-/* 🟢 HEADER */
+/*  HEADER */
 .header {
   display: flex;
   align-items: center;
@@ -57,7 +57,7 @@
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
-/* 🟢 STATS CARDS */
+/*  STATS CARDS */
 .rolesInfo {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -109,7 +109,7 @@
   color: var(--text-primary, #f8fafc);
 }
 
-/* 🟢 TABLE STYLES */
+/*  TABLE STYLES */
 .tableWrapper {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
@@ -144,7 +144,7 @@
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover { background: rgba(255,255,255,0.02); }
 
-/* 🟢 ADMIN INFO & AVATARS */
+/*  ADMIN INFO & AVATARS */
 .adminInfo {
   display: flex;
   align-items: center;
@@ -170,7 +170,7 @@
 .email { font-size: 0.85rem; color: var(--text-secondary, #94a3b8); }
 .selfTag { color: #10b981; font-weight: 700; font-size: 0.8rem; margin-left: 4px; }
 
-/* 🟢 BADGES */
+/*  BADGES */
 .roleBadge {
   display: inline-block;
   padding: 6px 12px;
@@ -205,7 +205,7 @@
 
 .date { font-size: 0.85rem; color: var(--text-secondary, #94a3b8); font-weight: 500; }
 
-/* 🟢 ACTION BUTTONS */
+/*  ACTION BUTTONS */
 .actions { display: flex; gap: 8px; }
 
 .actionBtn {
@@ -235,7 +235,7 @@
 
 .actionBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* 🟢 MODALS */
+/*  MODALS */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -373,7 +373,7 @@
 
 .submitBtn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-/* 🟢 DELETE MODAL */
+/*  DELETE MODAL */
 .confirmModal {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
@@ -409,7 +409,7 @@
 .confirmDangerBtn:hover:not(:disabled) { background: #dc2626; }
 .confirmDangerBtn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-/* 🟢 LOADING / ERROR */
+/*  LOADING / ERROR */
 .centerState {
   display: flex;
   flex-direction: column;

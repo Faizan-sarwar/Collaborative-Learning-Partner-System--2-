@@ -9,7 +9,7 @@ import { springs } from '../../../src/motion/motion';
 /**
  * Persistent layout for all student pages.
  *
- * 🟢 CRITICAL FIX: Sidebar is rendered OUTSIDE any motion / PageWrapper /
+ *  CRITICAL FIX: Sidebar is rendered OUTSIDE any motion / PageWrapper /
  * transformed element. CSS `position: fixed` is broken by any ancestor with a
  * `transform`, `filter`, `perspective`, `backdrop-filter`, or
  * `will-change: transform` — the fixed element starts behaving like
@@ -28,7 +28,7 @@ const DashboardLayout = ({ hideSidebar = false }) => {
 
   return (
     <div className={`${styles.dashboard} ${hideSidebar ? styles.dashboardFull : ''}`}>
-      {/* 🟢 Sidebar at the TOP level — no transformed ancestors */}
+      {/*  Sidebar at the TOP level — no transformed ancestors */}
       {!hideSidebar && (
         <DashboardSidebar
           isOpen={isSidebarOpen}
@@ -61,7 +61,7 @@ const DashboardLayout = ({ hideSidebar = false }) => {
 
         <main className={styles.content}>
           {/*
-            🟢 Page transitions live HERE — only the inner content gets a transform.
+             Page transitions live HERE — only the inner content gets a transform.
             The sidebar above is untouched, so position:fixed stays anchored to the viewport.
           */}
           <AnimatePresence mode="wait">

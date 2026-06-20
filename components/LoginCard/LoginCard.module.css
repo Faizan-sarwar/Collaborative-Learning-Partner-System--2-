@@ -65,7 +65,7 @@
   gap: 1.25rem;
 }
 
-/* 🟢 CUSTOM ENTERPRISE INPUTS */
+/*  CUSTOM ENTERPRISE INPUTS */
 .inputGroup {
   display: flex;
   flex-direction: column;
@@ -135,7 +135,7 @@
   color: var(--text-primary, #f8fafc);
 }
 
-/* 🟢 REMEMBER ME & FORGOT PASSWORD */
+/*  REMEMBER ME & FORGOT PASSWORD */
 .options {
   display: flex;
   justify-content: space-between;
@@ -205,7 +205,7 @@
   text-decoration: underline;
 }
 
-/* 🟢 SUBMIT BUTTON */
+/*  SUBMIT BUTTON */
 .signInButton {
   display: flex;
   align-items: center;

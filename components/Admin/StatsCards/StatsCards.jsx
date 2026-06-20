@@ -134,7 +134,7 @@ const StatsCards = () => {
                 {stat.value.toLocaleString()}
               </span>
               
-              {/* 🟢 Enterprise Trend Indicators */}
+              {/*  Enterprise Trend Indicators */}
               <div className={`${styles.statChangeWrapper} ${
                 stat.isPositive === true ? styles.positive : 
                 stat.isPositive === false ? styles.negative : styles.neutral

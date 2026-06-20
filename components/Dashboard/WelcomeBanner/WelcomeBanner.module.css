@@ -1,4 +1,4 @@
-/* 🟢 The floating masterpiece container */
+/*  The floating masterpiece container */
 .bannerContainer {
   background: var(--bg-secondary, #0f172a);
   border-radius: 24px; /* Premium soft curves */
@@ -10,7 +10,7 @@
   transition: box-shadow 0.4s ease;
 }
 
-/* 🟢 Hero Section with a clean, subtle gradient */
+/*  Hero Section with a clean, subtle gradient */
 .heroSection {
   display: flex;
   justify-content: space-between;
@@ -96,7 +96,7 @@
   box-shadow: var(--card-shadow-hover);
 }
 
-/* 🟢 Removing the flat grid lines */
+/*  Removing the flat grid lines */
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -104,7 +104,7 @@
   border-bottom: 1px solid var(--border-color, #1e293b);
 }
 
-/* 🟢 Stat cards with premium fluid hover lift */
+/*  Stat cards with premium fluid hover lift */
 .statCard {
   background: var(--bg-secondary, #0f172a);
   padding: 28px 24px;
@@ -192,7 +192,7 @@
   color: var(--text-primary);
 }
 
-/* 🟢 Path to Elite Section */
+/*  Path to Elite Section */
 .improvementSection {
   background: var(--bg-primary, #020617);
   padding: 0 32px;
@@ -262,7 +262,7 @@
   color: var(--text-primary, #e2e8f0);
 }
 
-/* 🟢 Apple-Style Segmented Navigation Tabs */
+/*  Apple-Style Segmented Navigation Tabs */
 .tabs {
   display: flex;
   gap: 12px;

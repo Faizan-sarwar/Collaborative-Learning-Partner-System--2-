@@ -58,7 +58,7 @@
   opacity: 1;
 }
 
-/* 🟢 NAVIGATION */
+/*  NAVIGATION */
 .nav {
   display: flex;
   flex-direction: column;
@@ -114,7 +114,7 @@
   animation: pulse 2s infinite;
 }
 
-/* 🟢 NEW: COUNT BADGE — when there's an actual number to display */
+/*  NEW: COUNT BADGE — when there's an actual number to display */
 .countBadge {
   position: absolute;
   top: -6px;
@@ -149,7 +149,7 @@
   }
 }
 
-/* 🟢 NEW: INLINE COUNT CHIP — shown next to the label when sidebar is expanded */
+/*  NEW: INLINE COUNT CHIP — shown next to the label when sidebar is expanded */
 .inlineCount {
   margin-left: auto;
   min-width: 20px;
@@ -172,7 +172,7 @@
   opacity: 1;
 }
 
-/* 🟢 NEW: GLOW STATE — applies to nav items with pending activity */
+/*  NEW: GLOW STATE — applies to nav items with pending activity */
 .navItem.glowing {
   color: var(--text-primary, #f8fafc);
   background: linear-gradient(
@@ -263,7 +263,7 @@
   opacity: 1;
 }
 
-/* 🟢 DYNAMIC WIDGETS */
+/*  DYNAMIC WIDGETS */
 .widgets {
   display: flex;
   flex-direction: column;
@@ -358,7 +358,7 @@
   white-space: nowrap;
 }
 
-/* 🟢 FOOTER */
+/*  FOOTER */
 .footer {
   padding: 16px 12px;
   border-top: 1px solid var(--border-color, #1e293b);
@@ -407,7 +407,7 @@
     z-index: 101;
   }
 }
-/* 🟢 MOBILE RESPONSIVE SIDEBAR */
+/*  MOBILE RESPONSIVE SIDEBAR */
 @media (max-width: 768px) {
   .sidebar {
     display: flex; /* Overrides the display:none from earlier */
@@ -433,7 +433,7 @@
     z-index: 101;
   }
 
-  /* 🟢 CRITICAL: Force text to be visible on mobile since there is no hover! */
+  /*  CRITICAL: Force text to be visible on mobile since there is no hover! */
   .logoText,
   .navLabel,
   .widgetInfo,

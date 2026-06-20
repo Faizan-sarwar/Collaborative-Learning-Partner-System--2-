@@ -36,7 +36,7 @@ foreach ($file in $files) {
     # Backup with new extension
     Copy-Item -Path $file -Destination "$file.bak2" -Force
 
-    # 🟢 KEY FIX: Read as UTF-8 explicitly — not as Windows-1252 default
+    #  KEY FIX: Read as UTF-8 explicitly — not as Windows-1252 default
     $content = [System.IO.File]::ReadAllText($file, $utf8NoBom)
 
     # 1. Remove the import line for DashboardLayout
@@ -48,7 +48,7 @@ foreach ($file in $files) {
     # 3. Replace closing tag </DashboardLayout> with </>
     $content = $content -replace "</DashboardLayout>", "</>"
 
-    # 🟢 KEY FIX: Write as UTF-8 (no BOM)
+    #  KEY FIX: Write as UTF-8 (no BOM)
     [System.IO.File]::WriteAllText($file, $content, $utf8NoBom)
 }
 

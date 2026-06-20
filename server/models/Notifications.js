@@ -24,7 +24,7 @@ const notificationSchema = new mongoose.Schema({
   },
   title: { type: String, required: true },
   message: { type: String, required: true },
-  icon: { type: String }, // 🟢 Added this so your Admin panel icons save to the database!
+  icon: { type: String }, //  Added this so your Admin panel icons save to the database!
   link: { type: String }, // Optional link to redirect to
   unread: { type: Boolean, default: true },
 }, { timestamps: true });

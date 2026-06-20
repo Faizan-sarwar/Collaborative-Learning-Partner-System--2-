@@ -11,7 +11,7 @@ const AnalyticsCharts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 🟢 FETCH DATA SECURELY
+  //  FETCH DATA SECURELY
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
@@ -62,7 +62,7 @@ const AnalyticsCharts = () => {
     );
   }
 
-  // 🟢 SAFE FALLBACKS
+  //  SAFE FALLBACKS
   const registrationData = data?.registrations?.length ? data.registrations : [{ month: 'No Data', students: 0 }];
   const courseData = data?.courses?.length ? data.courses : [{ name: 'No Data', count: 0 }];
   
@@ -72,7 +72,7 @@ const AnalyticsCharts = () => {
     { name: 'Blocked', value: 0, color: '#EF4444' }
   ];
 
-  // 🟢 ENTERPRISE CUSTOM TOOLTIP
+  //  ENTERPRISE CUSTOM TOOLTIP
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (

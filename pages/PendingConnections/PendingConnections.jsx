@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { UserCheck, UserX, UserSearch, Inbox, Send, Check, X, User as UserIcon } from 'lucide-react';
 import styles from './PendingConnections.module.css';
 
-// 🟢 IMPORT ALL AVATARS
+//  IMPORT ALL AVATARS
 const avatars = {
   male: { 
     1: '/gamification/male-level-1.png', 
@@ -18,7 +18,7 @@ const avatars = {
     /* ... */
   }
 };
-// 🟢 SMART AVATAR COMPONENT
+//  SMART AVATAR COMPONENT
 const UserAvatar = ({ user, getInitials }) => {
   const [imgError, setImgError] = useState(false);
   const uId = user._id || user.id;
@@ -58,7 +58,7 @@ const PendingConnections = () => {
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // 🟢 SECURITY: Prevents double-clicking buttons
+  //  SECURITY: Prevents double-clicking buttons
   const [processingId, setProcessingId] = useState(null);
 
   // FETCH REQUESTS
@@ -107,7 +107,7 @@ const PendingConnections = () => {
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'ST';
 
-  // 🟢 ACCEPT REQUEST (Enterprise logic)
+  //  ACCEPT REQUEST (Enterprise logic)
   const acceptRequest = async (reqUser) => {
     if (processingId) return;
     setProcessingId(reqUser._id);
@@ -134,7 +134,7 @@ const PendingConnections = () => {
             storage.setItem('user', JSON.stringify(currentUser));
             window.dispatchEvent(new Event('userUpdated'));
 
-            // 🟢 Send System Notification
+            //  Send System Notification
             const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
             notifs.unshift({
                 id: Date.now(), 
@@ -154,7 +154,7 @@ const PendingConnections = () => {
     }
   };
 
-  // 🟢 DECLINE REQUEST
+  //  DECLINE REQUEST
   const declineRequest = async (id) => {
     if (processingId) return;
     setProcessingId(id);
@@ -183,7 +183,7 @@ const PendingConnections = () => {
     }
   };
 
-  // 🟢 CANCEL OUTGOING
+  //  CANCEL OUTGOING
   const cancelRequest = async (id) => {
     if (processingId) return;
     setProcessingId(id);
@@ -226,7 +226,7 @@ const PendingConnections = () => {
         {/* Requests Grid */}
         <div className={styles.requestsGrid}>
           
-          {/* 🟢 INCOMING REQUESTS */}
+          {/*  INCOMING REQUESTS */}
           <div className={styles.requestsSection}>
             <div className={styles.sectionHeader}>
                 <div className={styles.sectionIconWrapper} style={{color: '#a855f7', background: 'rgba(168, 85, 247, 0.15)'}}>
@@ -290,7 +290,7 @@ const PendingConnections = () => {
             )}
           </div>
 
-          {/* 🟢 OUTGOING REQUESTS */}
+          {/*  OUTGOING REQUESTS */}
           <div className={styles.requestsSection}>
             <div className={styles.sectionHeader}>
                 <div className={styles.sectionIconWrapper} style={{color: '#3b82f6', background: 'rgba(59, 130, 246, 0.15)'}}>

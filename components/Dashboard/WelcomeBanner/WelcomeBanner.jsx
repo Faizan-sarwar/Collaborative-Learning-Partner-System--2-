@@ -59,7 +59,7 @@ const WelcomeBanner = () => {
   const currentLevel = user?.level || 1;
   const currentStreak = user?.streak || 0;
 
-  // 🟢 TRUST TIER HELPER
+  //  TRUST TIER HELPER
   const getTrustTier = (score) => {
     if (score >= 90) return { label: 'Elite Scholar', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
     if (score >= 75) return { label: 'Trusted Partner', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' };
@@ -76,7 +76,7 @@ const WelcomeBanner = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {/* 🟢 HERO SECTION */}
+      {/*  HERO SECTION */}
       <div className={styles.heroSection}>
         <div className={styles.greeting}>
           <h1 className={styles.title}>Welcome back, {username}! 👋</h1>
@@ -92,7 +92,7 @@ const WelcomeBanner = () => {
         </div>
       </div>
 
-      {/* 🟢 EXECUTIVE STATS GRID */}
+      {/*  EXECUTIVE STATS GRID */}
       <div className={styles.statsGrid}>
 
         {/* Trust Score Card */}
@@ -153,7 +153,7 @@ const WelcomeBanner = () => {
 
       </div>
 
-      {/* 🟢 HOW TO IMPROVE TRUST SCORE (Collapsible or always visible based on logic) */}
+      {/*  HOW TO IMPROVE TRUST SCORE (Collapsible or always visible based on logic) */}
       <AnimatePresence>
         {showTips && (
           <motion.div
@@ -196,7 +196,7 @@ const WelcomeBanner = () => {
         )}
       </AnimatePresence>
 
-      {/* 🟢 NAVIGATION TABS */}
+      {/*  NAVIGATION TABS */}
       <div className={styles.tabs}>
         <Link className={`${styles.tab} ${styles.active}`} to="/dashboard">Overview</Link>
         <Link className={styles.tab} to="/study-time">Study Time</Link>

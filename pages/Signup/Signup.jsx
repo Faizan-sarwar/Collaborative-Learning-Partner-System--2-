@@ -101,7 +101,7 @@ const Signup = () => {
     const [alertError, setAlertError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // 🟢 Photo adjuster state
+    //  Photo adjuster state
     const [previewImage, setPreviewImage] = useState(null);  // object URL of cropped photo for preview
     const [showAdjuster, setShowAdjuster] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState(null);  // raw uploaded file as object URL
@@ -458,7 +458,7 @@ const validateRollNumber = (roll) => {
 
                         <form className={styles.form} onSubmit={handleSubmit} noValidate>
 
-                            {/* 🟢 THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
+                            {/*  THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
                             <motion.div
                                 className={styles.section}
                                 variants={fadeUpItem}
@@ -729,13 +729,13 @@ const validateRollNumber = (roll) => {
                                 </div>
                             </motion.div>
 
-                            {/* 🟢 THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
+                            {/*  THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
                             <motion.div
                                 className={styles.section}
                                 variants={fadeUpItem}
                                 style={{ position: 'relative', zIndex: (strengthsDropdownOpen || difficultyDropdownOpen) ? 50 : 1 }}
                             >
-                                <h3 className={styles.sectionTitle}>📚 Academic Profile</h3>
+                                <h3 className={styles.sectionTitle}> Academic Profile</h3>
 
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup} style={{ position: 'relative', zIndex: strengthsDropdownOpen ? 50 : 1 }}>
@@ -858,7 +858,7 @@ const validateRollNumber = (roll) => {
                                 </div>
                             </motion.div>
 
-                            {/* 🟢 THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
+                            {/*  THE FIX IS HERE: Dynamic zIndex moved to the Framer Motion Section Wrapper! */}
                             <motion.div
                                 className={styles.section}
                                 variants={fadeUpItem}
@@ -957,7 +957,7 @@ const validateRollNumber = (roll) => {
                 </main>
             </div>
 
-            {/* 🟢 Photo Adjuster modal */}
+            {/*  Photo Adjuster modal */}
             <AnimatePresence>
                 {showAdjuster && rawImageSrc && pendingFile && (
                     <PhotoAdjuster

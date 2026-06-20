@@ -36,7 +36,7 @@ const Dashboard = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  // 🟢 No more sidebar/header/overlay here — DashboardLayout handles all that.
+  //  No more sidebar/header/overlay here — DashboardLayout handles all that.
   //    We just return the page CONTENT.
   return (
     <motion.div

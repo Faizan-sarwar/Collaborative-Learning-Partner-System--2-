@@ -22,7 +22,7 @@ const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
   const [user, setUser] = useState(null);
   const [imgError, setImgError] = useState(false);
 
-  // 🟢 ENTERPRISE UPGRADE: Live Sync User Data
+  //  ENTERPRISE UPGRADE: Live Sync User Data
   // This ensures if the admin changes their photo or name in settings, 
   // the sidebar updates instantly without requiring a page refresh.
   const loadUser = () => {
@@ -83,7 +83,7 @@ const AdminSidebar = ({ collapsed, onToggle, mobileOpen }) => {
               key={item.id}
               to={item.path}
               end={item.path === '/admin'}
-              title={collapsed ? item.label : ''} // 🟢 Accessibility tooltips for collapsed mode
+              title={collapsed ? item.label : ''} //  Accessibility tooltips for collapsed mode
               className={({ isActive }) =>
                 `${styles.navItem} ${isActive ? styles.active : ''}`
               }

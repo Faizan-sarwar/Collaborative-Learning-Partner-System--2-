@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, Check, Clock, UserPlus, Shield, X, Info } from 'lucide-react';
 import styles from './StudyMatches.module.css';
 
-// 🟢 FIX: Completed the avatar dictionary so it doesn't crash on high-level users
+//  FIX: Completed the avatar dictionary so it doesn't crash on high-level users
 const avatars = {
   male: {
     1: '/gamification/male-level-1.png',

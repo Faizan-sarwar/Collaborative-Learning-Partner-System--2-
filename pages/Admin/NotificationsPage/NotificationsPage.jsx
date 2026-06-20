@@ -38,7 +38,7 @@ const NotificationsPage = () => {
   const [notifCategory, setNotifCategory] = useState('announcement');
   const [isSending, setIsSending] = useState(false);
 
-  // 🟢 Converted static history into state so we can add to it instantly
+  //  Converted static history into state so we can add to it instantly
   const [sentHistory, setSentHistory] = useState([
     { id: 1, title: 'System Maintenance', message: 'Scheduled maintenance on Dec 15th', recipients: 'All Students', sentAt: '2024-03-14 10:00 AM', type: 'system', icon: 'shield' },
     { id: 2, title: 'New Course Available', message: 'Check out our new Python programming course', recipients: 'All Students', sentAt: '2024-03-13 02:30 PM', type: 'announcement', icon: 'megaphone' },
@@ -68,7 +68,7 @@ const NotificationsPage = () => {
     );
   };
 
-  // 🟢 The function that talks to the new backend route
+  //  The function that talks to the new backend route
   const handleSendNotification = async () => {
     if (!title.trim() || !message.trim()) {
       alert("Please provide both a title and a message.");
@@ -319,7 +319,7 @@ const NotificationsPage = () => {
             </div>
           </div>
 
-          {/* 🟢 Wired up the button with loading state */}
+          {/*  Wired up the button with loading state */}
           <button 
             className={styles.sendBtn} 
             onClick={handleSendNotification}

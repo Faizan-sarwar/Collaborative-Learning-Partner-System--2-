@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa' // 🟢 NEW: Import the plugin
+import { VitePWA } from 'vite-plugin-pwa' //  NEW: Import the plugin
 import path from 'path'
 
 export default defineConfig({
   plugins: [
     react(),
-    // 🟢 NEW: PWA Configuration
+    //  NEW: PWA Configuration
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],

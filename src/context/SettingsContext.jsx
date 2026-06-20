@@ -18,7 +18,7 @@ export const SettingsProvider = ({ children }) => {
       if (data.success && data.settings) {
         setSettings(data.settings);
 
-        // 🟢 GLOBAL DOM MANIPULATION:
+        //  GLOBAL DOM MANIPULATION:
         // This instantly changes the Browser Tab title across all 50+ pages!
         if (data.settings.platformName) {
           document.title = data.settings.platformName;
@@ -55,7 +55,7 @@ export const SettingsProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, []);
 
-  // 🟢 GLOBAL SESSION TIMEOUT LOGIC
+  //  GLOBAL SESSION TIMEOUT LOGIC
   // This watches the user's mouse and keyboard. If they are idle for X minutes, it boots them out.
   useEffect(() => {
     if (!settings?.sessionTimeout) return;

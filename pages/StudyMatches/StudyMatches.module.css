@@ -49,7 +49,7 @@
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* 🟢 SEARCH & FILTERS */
+/*  SEARCH & FILTERS */
 .searchSection {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
@@ -147,7 +147,7 @@
   color: var(--text-secondary, #94a3b8);
 }
 
-/* 🟢 USERS GRID */
+/*  USERS GRID */
 .usersGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -182,7 +182,7 @@
   box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
 }
 
-/* 🟢 AVATAR AND HEADER FIXES */
+/*  AVATAR AND HEADER FIXES */
 .cardHeader {
   display: flex;
   align-items: center;
@@ -282,7 +282,7 @@
   border-radius: 4px;
 }
 
-/* 🟢 RIBBONS */
+/*  RIBBONS */
 .rankRibbon {
   position: absolute;
   top: -12px;
@@ -309,7 +309,7 @@
   color: #fff;
 }
 
-/* 🟢 CARD BODY */
+/*  CARD BODY */
 .cardBody {
   padding: 0 20px 20px;
   flex: 1;
@@ -393,7 +393,7 @@
   font-size: 0.8rem;
 }
 
-/* 🟢 STATS */
+/*  STATS */
 .statsRow {
   display: flex;
   justify-content: space-between;
@@ -420,7 +420,7 @@
   margin-top: 2px;
 }
 
-/* 🟢 FOOTER BUTTONS */
+/*  FOOTER BUTTONS */
 .cardFooter {
   padding: 16px 20px;
   display: flex;
@@ -511,12 +511,12 @@
 }
 
 @media (max-width: 768px) {
-  /* 🟢 1. Reduce overall screen padding so cards have room */
+  /*  1. Reduce overall screen padding so cards have room */
   .container {
     padding: 1rem;
   }
 
-  /* 🟢 2. Fix Search Bar Overflow */
+  /*  2. Fix Search Bar Overflow */
   .searchBarWrapper {
     flex-wrap: wrap;
   }
@@ -529,13 +529,13 @@
     margin-top: 4px;
   }
 
-  /* 🟢 3. Force Grid to 1 Column with tighter gaps */
+  /*  3. Force Grid to 1 Column with tighter gaps */
   .usersGrid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 
-  /* 🟢 4. Shrink internal card padding to fit mobile screens */
+  /*  4. Shrink internal card padding to fit mobile screens */
   .cardHeader {
     padding: 16px 16px 12px;
     gap: 12px;
@@ -547,14 +547,14 @@
     padding: 12px 16px;
   }
 
-  /* 🟢 5. CRITICAL: Stop long names from pushing the screen out */
+  /*  5. CRITICAL: Stop long names from pushing the screen out */
   .userName {
     white-space: normal;
     flex-wrap: wrap;
     line-height: 1.3;
   }
 
-  /* 🟢 6. Stop the blue info banner from breaking the layout */
+  /*  6. Stop the blue info banner from breaking the layout */
   .noExactMatchBanner {
     flex-direction: column;
     text-align: center;

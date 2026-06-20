@@ -48,7 +48,7 @@ router.put('/read-all', verifyToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 });
-// 🟢 Mark all notifications as read
+//  Mark all notifications as read
 router.put('/read', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -60,7 +60,7 @@ router.put('/read', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 🟢 Clear/Delete all notifications
+//  Clear/Delete all notifications
 router.delete('/clear', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];

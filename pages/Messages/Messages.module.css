@@ -15,7 +15,7 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* 🟢 CONVERSATIONS SIDEBAR */
+/*  CONVERSATIONS SIDEBAR */
 .conversationsSidebar {
   width: 340px;
   border-right: 1px solid var(--border-color, #1e293b);
@@ -96,7 +96,7 @@
   overflow-y: auto;
 }
 
-/* 🟢 CUSTOM SCROLLBARS FOR ENTERPRISE FEEL */
+/*  CUSTOM SCROLLBARS FOR ENTERPRISE FEEL */
 .conversationsList::-webkit-scrollbar,
 .messagesContainer::-webkit-scrollbar,
 .usersList::-webkit-scrollbar {
@@ -243,7 +243,7 @@
   text-align: center;
 }
 
-/* 🟢 CHAT AREA */
+/*  CHAT AREA */
 .chatArea {
   flex: 1;
   display: flex;
@@ -390,7 +390,7 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* 🟢 MESSAGES CONTAINER */
+/*  MESSAGES CONTAINER */
 .messagesContainer {
   flex: 1;
   overflow-y: auto;
@@ -432,7 +432,7 @@
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
-/* 🟢 HOVER ACTION MENU — positioned INLINE beside the bubble, not floating above
+/*  HOVER ACTION MENU — positioned INLINE beside the bubble, not floating above
    so users can clearly see which message they're acting on. Other-person's
    message: menu appears to the RIGHT of their bubble. Own message: menu
    appears to the LEFT of own bubble. Never overlaps adjacent messages. */
@@ -513,7 +513,7 @@
   }
 }
 
-/* 🟢 NEW: REPLY BUBBLES */
+/*  NEW: REPLY BUBBLES */
 .replyBubble {
   background: rgba(0, 0, 0, 0.08);
   border-left: 3px solid #3b82f6;
@@ -540,7 +540,7 @@
   color: #fff;
 }
 
-/* 🟢 NEW: MEDIA & VOICE NOTES */
+/*  NEW: MEDIA & VOICE NOTES */
 .messageMedia {
   max-width: 100%;
   border-radius: 12px;
@@ -562,7 +562,7 @@
   color: white;
 }
 
-/* 🟢 NEW: EDITED / DELETED STATES */
+/*  NEW: EDITED / DELETED STATES */
 .editedLabel {
   font-size: 0.65rem;
   opacity: 0.6;
@@ -605,7 +605,7 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* 🟢 NEW: TYPING INDICATOR */
+/*  NEW: TYPING INDICATOR */
 .typingIndicator {
   display: flex;
   align-items: center;
@@ -640,7 +640,7 @@
   }
 }
 
-/* 🟢 INPUT AREA */
+/*  INPUT AREA */
 .inputWrapper {
   display: flex;
   flex-direction: column;
@@ -648,7 +648,7 @@
   border-top: 1px solid var(--border-color, #1e293b);
 }
 
-/* 🟢 NEW: REPLY/EDIT PREVIEW BAR */
+/*  NEW: REPLY/EDIT PREVIEW BAR */
 .replyPreview {
   display: flex;
   justify-content: space-between;
@@ -682,7 +682,7 @@
   padding-right: 80px; /* Padding for ChatBot */
 }
 
-/* 🟢 NEW: MEDIA ATTACHMENT BUTTONS */
+/*  NEW: MEDIA ATTACHMENT BUTTONS */
 .mediaActions {
   display: flex;
   gap: 4px;
@@ -750,7 +750,7 @@
   box-shadow: none;
 }
 
-/* 🟢 STATES */
+/*  STATES */
 .noConversation {
   flex: 1;
   display: flex;
@@ -761,7 +761,7 @@
   color: var(--text-secondary, #94a3b8);
 }
 
-/* 🟢 BLOCKED / DELETED NOTICES */
+/*  BLOCKED / DELETED NOTICES */
 .blockedNotice {
   display: flex;
   align-items: center;

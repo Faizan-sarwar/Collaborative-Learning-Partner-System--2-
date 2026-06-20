@@ -12,11 +12,11 @@ import ProtectedRoute from "../pages/ProtectedRoutes";
 import FAQ from "../components/FAQ/FAQ";
 import Footer from "../components/Footer/Footer";
 
-// 🟢 DashboardLayout is now a PERSISTENT layout route — import eagerly (it's always needed once logged in)
+//  DashboardLayout is now a PERSISTENT layout route — import eagerly (it's always needed once logged in)
 import DashboardLayout from "../components/Dashboard/DashboardLayout/DashboardLayout.jsx";
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 LAZY + PRELOAD HELPER
+//  LAZY + PRELOAD HELPER
 // Wraps React.lazy but exposes a `.preload()` so we can warm a route's chunk
 // during idle time. The first visit to a preloaded route is then instant
 // (chunk already in the browser cache — no spinner, no network round-trip).
@@ -27,7 +27,7 @@ const lazyWithPreload = (factory) => {
   return Component;
 };
 
-// 🟢 Lazy Loading for Public Pages (preload not needed — visited rarely)
+//  Lazy Loading for Public Pages (preload not needed — visited rarely)
 const Index = lazy(() => import("../pages/Index"));
 const Login = lazyWithPreload(() => import("../pages/Login/Login"));
 const Signup = lazy(() => import("../pages/Signup/Signup"));
@@ -41,7 +41,7 @@ const About = lazy(() => import("../pages/About/About"));
 const Contact = lazy(() => import("../pages/Contact/Contact"));
 const NotFound = lazy(() => import("../pages/NotFound/NotFound"));
 
-// 🟢 Student Pages (these are the hot path — give them preload)
+//  Student Pages (these are the hot path — give them preload)
 const Dashboard = lazyWithPreload(() => import("../pages/Dashboard/Dashboard"));
 const StudyTime = lazyWithPreload(() => import("../pages/StudyTime/StudyTime"));
 const Courses = lazyWithPreload(() => import("../pages/Courses/Courses"));
@@ -62,7 +62,7 @@ const Settings = lazyWithPreload(() => import("../pages/Settings/Settings"));
 const ChatBot = lazyWithPreload(() => import("../pages/ChatBot/ChatBot"));
 const XP = lazy(() => import("../pages/XP/Xp"));
 
-// 🟢 Admin Pages
+//  Admin Pages
 const AdminLayout = lazy(() => import("../pages/Admin/AdminLayout/AdminLayout"));
 const AdminDashboard = lazy(() => import("../pages/Admin/AdminDashboard/AdminDashboard"));
 const StudentManagement = lazy(() => import("../pages/Admin/StudentManagement/StudentManagement"));
@@ -79,7 +79,7 @@ const dashboardRoutes = [
   '/pending-connections', '/connections', '/settings', '/chatbot', '/admin', '/refer', '/xp'
 ];
 
-// 🟢 Read auth from storage SYNCHRONOUSLY — no network needed to decide redirects.
+//  Read auth from storage SYNCHRONOUSLY — no network needed to decide redirects.
 const getStoredAuth = () => {
   try {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -93,7 +93,7 @@ const getStoredAuth = () => {
 
 const PUBLIC_PATHS = ['/', '/login', '/signup'];
 
-// 🟢 Fallback Spinner for lazy-loaded pages
+//  Fallback Spinner for lazy-loaded pages
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
     <div style={{ width: '40px', height: '40px', border: '3px solid transparent', borderTop: '3px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -101,7 +101,7 @@ const PageLoader = () => (
   </div>
 );
 
-// 🟢 Warm the most-likely route chunks once the browser is idle, so the first
+//  Warm the most-likely route chunks once the browser is idle, so the first
 // navigation to them is instant instead of triggering a spinner + fetch.
 const idle = (cb) =>
   (typeof window !== 'undefined' && window.requestIdleCallback)
@@ -124,7 +124,7 @@ const AnimatedRoutes = () => {
   const { settings } = useSettings();
   const apiUrl = useMemo(() => `http://${window.location.hostname}:5000`, []);
 
-  // 🟢 Only block the very first paint if a logged-in user is sitting on a
+  //  Only block the very first paint if a logged-in user is sitting on a
   // public page (a redirect to their dashboard is imminent and we'd rather not
   // flash the landing page). EVERY other case renders instantly — no spinner.
   const [isChecking, setIsChecking] = useState(() => {
@@ -132,7 +132,7 @@ const AnimatedRoutes = () => {
     return Boolean(token && user) && PUBLIC_PATHS.includes(window.location.pathname);
   });
 
-  // 🟢 Preload the hot dashboard chunks after first paint (non-blocking).
+  //  Preload the hot dashboard chunks after first paint (non-blocking).
   useEffect(() => {
     const { token, user } = getStoredAuth();
     if (token && user) {
@@ -142,7 +142,7 @@ const AnimatedRoutes = () => {
     }
   }, []);
 
-  // 🟢 Auth + maintenance check — now SYNCHRONOUS for all redirect decisions.
+  //  Auth + maintenance check — now SYNCHRONOUS for all redirect decisions.
   // The server verification (/api/auth/me) runs in the BACKGROUND and never
   // gates the UI.
   useEffect(() => {

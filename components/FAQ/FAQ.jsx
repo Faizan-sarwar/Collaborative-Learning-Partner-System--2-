@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import styles from '../FAQ/FAQ.module.css';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
-import { useSettings } from '../../src/context/SettingsContext'; // 🟢 Added
+import { useSettings } from '../../src/context/SettingsContext'; //  Added
 
 const FAQPage = () => {
-  const { settings } = useSettings(); // 🟢 Dynamic Settings
+  const { settings } = useSettings(); //  Dynamic Settings
   const [openIndex, setOpenIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState('general');
 

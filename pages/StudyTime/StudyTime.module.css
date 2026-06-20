@@ -39,7 +39,7 @@
   gap: 2.5rem;
 }
 
-/* 🟢 TIMER CENTERPIECE */
+/*  TIMER CENTERPIECE */
 .timerCard {
   background: var(--bg-card); /* Fix: changed from --card-bg */
   border: 1px solid var(--border-color);
@@ -127,7 +127,7 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* 🟢 CONTROLS */
+/*  CONTROLS */
 .timerControls {
   display: flex;
   gap: 1.25rem;
@@ -185,7 +185,7 @@
   transform: translateY(-2px);
 }
 
-/* 🟢 STATS GRID */
+/*  STATS GRID */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -251,7 +251,7 @@
   font-weight: 600;
 }
 
-/* 🟢 Responsive Design */
+/*  Responsive Design */
 @media (max-width: 1024px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);

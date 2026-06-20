@@ -64,7 +64,7 @@
   justify-content: center;
 }
 
-/* 🟢 CUSTOM TOOLTIP FOR RECHARTS */
+/*  CUSTOM TOOLTIP FOR RECHARTS */
 .customTooltip {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #334155);
@@ -95,7 +95,7 @@
   font-weight: 700;
 }
 
-/* 🟢 LOADING & ERROR STATES */
+/*  LOADING & ERROR STATES */
 .loadingContainer, .errorContainer {
   grid-column: 1 / -1; /* Spans across all grid columns */
   display: flex;
@@ -129,7 +129,7 @@
   100% { transform: rotate(360deg); }
 }
 
-/* 🟢 RESPONSIVE DESIGN */
+/*  RESPONSIVE DESIGN */
 @media (max-width: 1400px) {
   .chartsGrid {
     grid-template-columns: 1fr 1fr;

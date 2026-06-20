@@ -5,7 +5,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
-// 🟢 IMPORT HTTP & SOCKET.IO
+//  IMPORT HTTP & SOCKET.IO
 import http from 'http';
 import { Server } from 'socket.io';
 
@@ -24,11 +24,11 @@ dotenv.config();
 const app = express();
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 HTTP SERVER + SOCKET.IO (mobile-resilient config)
+//  HTTP SERVER + SOCKET.IO (mobile-resilient config)
 // ════════════════════════════════════════════════════════════════════════════
 const server = http.createServer(app);
 
-// 🟢 CORS REFLECTION HELPER
+//  CORS REFLECTION HELPER
 // Mirrors the caller's origin so localhost, 192.168.x.x, and any LAN IP all work
 // with credentials. Wildcard '*' is forbidden when credentials:true, so we MUST
 // echo the actual origin back instead.
@@ -42,7 +42,7 @@ const corsOrigin = (origin, callback) => {
 
 const io = new Server(server, {
   cors: {
-    origin: corsOrigin,                   // 🟢 Mirror origin (fixes LAN/phone)
+    origin: corsOrigin,                   //  Mirror origin (fixes LAN/phone)
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   },
@@ -53,7 +53,7 @@ const io = new Server(server, {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 GLOBAL SOCKET REGISTRY
+//  GLOBAL SOCKET REGISTRY
 // Tracks which user ID belongs to which active socket connection.
 // ════════════════════════════════════════════════════════════════════════════
 const connectedUsers = new Map();
@@ -129,12 +129,12 @@ io.on('connection', (socket) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 BODY PARSING + STATIC UPLOADS
+//  BODY PARSING + STATIC UPLOADS
 // ════════════════════════════════════════════════════════════════════════════
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🟢 SERVE UPLOADED CHAT MEDIA (images, voice notes, files)
+//  SERVE UPLOADED CHAT MEDIA (images, voice notes, files)
 // CRITICAL: forces correct MIME. Without this Express serves .webm as
 // "video/webm" and Chrome's <audio> refuses to decode it (Format error code 4).
 const MEDIA_MIME = {
@@ -153,13 +153,13 @@ app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), {
 }));
 
 app.use(cors({
-  origin: corsOrigin,                     // 🟢 Same mirror function (fixes LAN/phone)
+  origin: corsOrigin,                     //  Same mirror function (fixes LAN/phone)
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 MONGODB CONNECTION
+//  MONGODB CONNECTION
 // ════════════════════════════════════════════════════════════════════════════
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/studybuddy';
 
@@ -168,7 +168,7 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error('❌ MongoDB Error:', err));
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 GLOBAL BACKEND FIREWALL (Maintenance Mode - Admin Aware)
+//  GLOBAL BACKEND FIREWALL (Maintenance Mode - Admin Aware)
 // ════════════════════════════════════════════════════════════════════════════
 app.use(async (req, res, next) => {
   try {
@@ -212,7 +212,7 @@ app.use(async (req, res, next) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 ROUTES
+//  ROUTES
 // ════════════════════════════════════════════════════════════════════════════
 app.use('/api/auth', auth);
 app.use('/api/activity-logs', activityLogsRoutes);
@@ -410,7 +410,7 @@ app.delete('/studygroup/:id', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 GLOBAL ERROR HANDLER
+//  GLOBAL ERROR HANDLER
 // ════════════════════════════════════════════════════════════════════════════
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
@@ -422,7 +422,7 @@ app.use((err, req, res, next) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 ENTERPRISE BACKGROUND WORKER (CRON JOBS)
+//  ENTERPRISE BACKGROUND WORKER (CRON JOBS)
 // ════════════════════════════════════════════════════════════════════════════
 cron.schedule('0 0 * * *', async () => {
   console.log('⏳ [CRON] Running nightly system maintenance...');
@@ -455,7 +455,7 @@ cron.schedule('0 0 * * *', async () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🟢 START SERVER (server.listen, NOT app.listen — needed for Socket.IO)
+//  START SERVER (server.listen, NOT app.listen — needed for Socket.IO)
 // ════════════════════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {

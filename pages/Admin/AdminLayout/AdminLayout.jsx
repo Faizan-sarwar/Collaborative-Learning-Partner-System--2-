@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import styles from './AdminLayout.module.css'; // 🟢 CRITICAL: Import your CSS module!
+import styles from './AdminLayout.module.css'; //  CRITICAL: Import your CSS module!
 import AdminSidebar from '../../../components/Admin/AdminSidebar/AdminSidebar';
 import AdminNavbar from '../../../components/Admin/AdminNavbar/AdminNavbar';
 import PageTransition from '../../../components/PageTransition/PageTransition';
@@ -35,7 +35,7 @@ const AdminLayout = () => {
           />
         )}
         
-        {/* 🟢 Main Area uses CSS modules to dynamically switch margins */}
+        {/*  Main Area uses CSS modules to dynamically switch margins */}
         <div className={`${styles.mainArea} ${sidebarCollapsed ? styles.expanded : ''}`}>
           <AdminNavbar onMenuClick={toggleMobileMenu} />
           

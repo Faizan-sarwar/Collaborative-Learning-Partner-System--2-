@@ -189,7 +189,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     const alreadyHas = existingLocal.some(n => n.id === welcomeNotes[0].id);
     if (!alreadyHas) {
       writeLocalNotifs(user._id, [...welcomeNotes, ...existingLocal]);
-      // 🟢 Tell the rest of the app a new notification arrived (sidebar glow + bell badge)
+      //  Tell the rest of the app a new notification arrived (sidebar glow + bell badge)
       window.dispatchEvent(new CustomEvent('notificationAdded', { detail: welcomeNotes[0] }));
     }
     localStorage.setItem(flag, 'new');
@@ -308,7 +308,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
   }, [loadUser, loadNotifications]);
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 🟢 LIVE SOCKET NOTIFICATIONS — replaces 8s polling delay with instant push.
+  //  LIVE SOCKET NOTIFICATIONS — replaces 8s polling delay with instant push.
   // Backend emits 'newNotification' via pushLiveNotification() helper. When it
   // arrives we (a) refetch so the bell shows the full DB record, AND
   // (b) dispatch 'notificationAdded' so the sidebar glows live.
@@ -427,7 +427,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     }
 
     // 4. Navigate to relevant page
-    //    🟢 LINK SANITIZER — older DB records may have legacy paths that no
+    //     LINK SANITIZER — older DB records may have legacy paths that no
     //    longer exist in the router (e.g. '/requests' instead of
     //    '/pending-connections'). Translate them on the fly so a click never
     //    lands on a 404, even before those records are cleaned up.
@@ -530,7 +530,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
       className={styles.header}
       style={isFullWidth ? { left: 0, width: '100vw', maxWidth: '100vw', marginLeft: 0, borderRadius: 0 } : {}}
     >
-      {/* 🟢 A11Y FIX: Added aria-label */}
+      {/*  A11Y FIX: Added aria-label */}
       <button className={styles.mobileMenuBtn} onClick={toggleSidebar} aria-label="Open mobile menu">
         <Menu size={24} aria-hidden="true" />
       </button>
@@ -541,7 +541,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
           <img
             src={avatarSrc}
             alt="User Profile"
-            fetchPriority="high" /* 🟢 PERFORMANCE FIX: Force load the main LCP image */
+            fetchPriority="high" /*  PERFORMANCE FIX: Force load the main LCP image */
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
           />
         </div>
@@ -695,7 +695,7 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
                   <img
                     src={avatarSrc}
                     alt="Profile Menu Avatar"
-                    loading="lazy" /* 🟢 PERFORMANCE FIX: Lazy load the hidden dropdown image */
+                    loading="lazy" /*  PERFORMANCE FIX: Lazy load the hidden dropdown image */
                     onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = fallbackSrc; }}
                   />
                   <div className={styles.menuUserInfo}>

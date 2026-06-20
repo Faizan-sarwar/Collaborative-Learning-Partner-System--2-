@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Help.module.css';
-import { useSettings } from '../../src/context/SettingsContext'; // 🟢 Added
+import { useSettings } from '../../src/context/SettingsContext'; //  Added
 
 const Help = () => {
-  const { settings } = useSettings(); // 🟢 Dynamic Settings
+  const { settings } = useSettings(); //  Dynamic Settings
   const [openFaq, setOpenFaq] = useState(null);
 
   const platformName = settings?.platformName || 'Collaborative Learning Partner System';

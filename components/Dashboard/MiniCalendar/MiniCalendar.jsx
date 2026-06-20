@@ -17,7 +17,7 @@ const MiniCalendar = () => {
 
   const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  // 🟢 ENTERPRISE LOGIC: Fetch actual deadlines for the selected date
+  //  ENTERPRISE LOGIC: Fetch actual deadlines for the selected date
   useEffect(() => {
     const fetchEventsForDate = () => {
       // Format selected date to match standard HTML date input format (YYYY-MM-DD)

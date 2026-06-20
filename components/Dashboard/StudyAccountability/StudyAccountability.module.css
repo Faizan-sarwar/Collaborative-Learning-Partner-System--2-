@@ -118,7 +118,7 @@
   min-height: 250px;
 }
 
-/* 🟢 EMPTY STATES */
+/*  EMPTY STATES */
 .emptyState {
   text-align: center;
   display: flex;
@@ -157,7 +157,7 @@
   gap: 12px;
 }
 
-/* 🟢 BUTTONS */
+/*  BUTTONS */
 .findBtn {
   display: flex;
   align-items: center;
@@ -204,7 +204,7 @@
   cursor: not-allowed;
 }
 
-/* 🟢 LIST STATE (Sent Nudges) */
+/*  LIST STATE (Sent Nudges) */
 .listState {
   display: flex;
   flex-direction: column;

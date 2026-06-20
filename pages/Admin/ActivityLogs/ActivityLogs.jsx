@@ -16,7 +16,7 @@ const ActivityLogs = () => {
   const itemsPerPage = 15; // Increased to 15 for better desktop usage
   const syncInterval = useRef(null);
 
-  // 🟢 SECURE FETCH (Supports silent background syncing)
+  //  SECURE FETCH (Supports silent background syncing)
   const fetchLogs = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     setError(null);
@@ -46,7 +46,7 @@ const ActivityLogs = () => {
     }
   };
 
-  // 🟢 AUTO-REFRESH ENGINE
+  //  AUTO-REFRESH ENGINE
   useEffect(() => {
     fetchLogs(false); 
     syncInterval.current = setInterval(() => {
@@ -61,7 +61,7 @@ const ActivityLogs = () => {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  // 🟢 FILTERING LOGIC
+  //  FILTERING LOGIC
   const filteredLogs = logs.filter((log) => {
     const logDate = new Date(log.createdAt);
     if (logDate < sevenDaysAgo) return false;
@@ -90,7 +90,7 @@ const ActivityLogs = () => {
     if (newPage >= 1 && newPage <= totalPages) setCurrentPage(newPage);
   };
 
-  // 🟢 EXPORT TO EXCEL
+  //  EXPORT TO EXCEL
   const handleExportExcel = () => {
     if (filteredLogs.length === 0) return alert("No logs to export");
 
@@ -118,7 +118,7 @@ const ActivityLogs = () => {
     document.body.removeChild(link);
   };
 
-  // 🟢 XSS SANITIZER FOR PDF
+  //  XSS SANITIZER FOR PDF
   const escapeHTML = (str) => {
     if (!str) return '';
     return str.toString()
@@ -129,7 +129,7 @@ const ActivityLogs = () => {
       .replace(/'/g, '&#039;');
   };
 
-  // 🟢 SECURE PDF EXPORT
+  //  SECURE PDF EXPORT
   const handleExportPDF = () => {
     if (filteredLogs.length === 0) return alert("No logs to export");
 

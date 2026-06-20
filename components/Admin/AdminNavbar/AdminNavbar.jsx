@@ -229,7 +229,7 @@ const AdminNavbar = ({ onMenuClick }) => {
                   
                   <div className={styles.dropdownDivider}></div>
                   
-                  {/* 🟢 HARD LOCKDOWN: Logout Button Security */}
+                  {/*  HARD LOCKDOWN: Logout Button Security */}
                   <button 
                     onClick={handleLogout} 
                     className={`${styles.dropdownItem} ${styles.logoutItem} ${settings?.maintenanceMode ? styles.disabledItem : ''}`}

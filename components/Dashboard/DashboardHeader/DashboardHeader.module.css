@@ -50,7 +50,7 @@
   color: var(--text-secondary, #94a3b8);
 }
 
-/* 🟢 SEARCH BAR */
+/*  SEARCH BAR */
 .searchBar {
   flex: 1;
   max-width: 400px;
@@ -114,7 +114,7 @@
   border-color: #3b82f6;
 }
 
-/* 🟢 NOTIFICATIONS */
+/*  NOTIFICATIONS */
 .notificationSection {
   position: relative;
 }
@@ -293,7 +293,7 @@
   font-size: 0.9rem;
 }
 
-/* 🟢 ACTION BUTTONS */
+/*  ACTION BUTTONS */
 .startTimer {
   display: flex;
   align-items: center;
@@ -336,7 +336,7 @@
   box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
 }
 
-/* 🟢 PROFILE MENU */
+/*  PROFILE MENU */
 .profileSection {
   position: relative;
   margin-left: 8px;
@@ -475,7 +475,7 @@
     display: none;
   }
 }
-/* 🟢 MOBILE MENU BUTTON - Hides on Desktop, Shows on Mobile */
+/*  MOBILE MENU BUTTON - Hides on Desktop, Shows on Mobile */
 .mobileMenuBtn {
   display: none;
   background: none;
@@ -503,7 +503,7 @@
   padding: 0 10px 0 0;
 }
 
-/* 🟢 ALL MOBILE FIXES (768px and below) */
+/*  ALL MOBILE FIXES (768px and below) */
 @media (max-width: 768px) {
   .header {
     padding: 12px 16px;
@@ -518,7 +518,7 @@
     display: block;
   }
 
-  /* 🟢 FIX: Break the dropdowns out of the parent so they span the phone screen perfectly */
+  /*  FIX: Break the dropdowns out of the parent so they span the phone screen perfectly */
   .notificationDropdown,
   .profileMenu {
     position: fixed;

@@ -38,7 +38,7 @@ const subjectColors = {
   'Artificial Intelligence': '#3b82f6'
 };
 
-// 🟢 NEW: Professional Trust Tiers & Colors
+//  NEW: Professional Trust Tiers & Colors
 const getTrustTier = (score) => {
   if (score >= 90) return { label: 'Elite Scholar', color: '#059669', emoji: '💎' }; // Emerald
   if (score >= 75) return { label: 'Trusted Partner', color: '#3b82f6', emoji: '🛡️' }; // Blue
@@ -46,7 +46,7 @@ const getTrustTier = (score) => {
   return { label: 'Needs Improvement', color: '#ef4444', emoji: '📈' }; // Red
 };
 
-// 🟢 Reliability calculation — scales with however many questions the student answered
+//  Reliability calculation — scales with however many questions the student answered
 const calculateProfessionalReliability = (correctAnswers, totalQuestions) => {
   const baseScore = 40;
   if (!totalQuestions || totalQuestions === 0) return baseScore;
@@ -270,7 +270,7 @@ const Quiz = () => {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   const isLastQuestion = currentQuestion === questions.length - 1;
 
-  // 🟢 UPDATED: Result view utilizing Trust Tiers
+  //  UPDATED: Result view utilizing Trust Tiers
   if (showResult) {
     const rawScore = calculateScore();
     const finalReliability = calculateProfessionalReliability(rawScore, questions.length);

@@ -30,7 +30,7 @@ const AdminManagement = () => {
 
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  // 🟢 SECURE FETCH
+  //  SECURE FETCH
   const fetchAdmins = async () => {
     try {
       setLoading(true);
@@ -86,7 +86,7 @@ const AdminManagement = () => {
     setShowModal(true);
   };
 
-  // 🟢 SECURE SUBMIT
+  //  SECURE SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.fullName || !formData.email || (modalMode === 'add' && !formData.password)) {
@@ -122,7 +122,7 @@ const AdminManagement = () => {
     }
   };
 
-  // 🟢 SECURE DELETE
+  //  SECURE DELETE
   const handleDelete = async () => {
     if (!showDeleteModal) return;
     const { _id } = showDeleteModal;
@@ -190,7 +190,7 @@ const AdminManagement = () => {
         </div>
       )}
 
-      {/* 🟢 STATS CARDS */}
+      {/*  STATS CARDS */}
       <div className={styles.rolesInfo}>
         <div className={styles.roleCard}>
           <div className={`${styles.roleIcon} ${styles.superAdminIcon}`}><ShieldCheck size={22} /></div>
@@ -220,7 +220,7 @@ const AdminManagement = () => {
         </div>
       </div>
 
-      {/* 🟢 ADMINS TABLE */}
+      {/*  ADMINS TABLE */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
@@ -294,7 +294,7 @@ const AdminManagement = () => {
         </table>
       </div>
 
-      {/* 🟢 ADD / EDIT MODAL */}
+      {/*  ADD / EDIT MODAL */}
       <AnimatePresence>
         {showModal && (
           <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -351,7 +351,7 @@ const AdminManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* 🟢 DELETE CONFIRMATION MODAL */}
+      {/*  DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {showDeleteModal && (
           <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

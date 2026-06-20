@@ -31,7 +31,7 @@ const CourseManagement = () => {
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
   const getCurrentUser = () => JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
 
-  // 🟢 SECURE FETCH COURSES
+  //  SECURE FETCH COURSES
   const fetchCourses = async () => {
     try {
       setLoading(true);
@@ -111,14 +111,14 @@ const CourseManagement = () => {
       [name]: value
     }));
   };
-  // 🟢 SECURE SAVE COURSE
+  //  SECURE SAVE COURSE
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return alert('Course Title is required');
 
     setIsSubmitting(true);
     const currentUser = getCurrentUser();
-    const creatorId = currentUser._id; // 🟢 FIXED: No longer hardcoded!
+    const creatorId = currentUser._id; //  FIXED: No longer hardcoded!
 
     if (!creatorId) {
       alert("Session expired. Please log in again.");
@@ -164,7 +164,7 @@ const CourseManagement = () => {
     }
   };
 
-  // 🟢 SECURE DELETE
+  //  SECURE DELETE
   const handleDeleteCourse = async () => {
     if (!selectedCourse) return;
     setIsSubmitting(true);

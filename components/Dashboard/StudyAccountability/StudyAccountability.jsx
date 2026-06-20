@@ -44,7 +44,7 @@ const StudyAccountability = () => {
       setSentNudges(updatedNudges);
       localStorage.setItem('sentNudges', JSON.stringify(updatedNudges));
 
-      // 🟢 ENTERPRISE LOGIC: Trigger a global notification so the Header Bell updates!
+      //  ENTERPRISE LOGIC: Trigger a global notification so the Header Bell updates!
       const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
       notifs.unshift({
           id: Date.now(), 

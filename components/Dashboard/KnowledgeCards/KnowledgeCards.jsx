@@ -38,7 +38,7 @@ const KnowledgeCards = () => {
 
   return (
     <div className={styles.container}>
-      {/* 🟢 FACT CARD */}
+      {/*  FACT CARD */}
       <motion.div 
         className={`${styles.card} ${styles.purpleCard}`}
         whileHover={{ y: -4 }}
@@ -53,7 +53,7 @@ const KnowledgeCards = () => {
         <p className={styles.cardText}>{facts[currentFact]}</p>
       </motion.div>
 
-      {/* 🟢 CHALLENGE CARD */}
+      {/*  CHALLENGE CARD */}
       <motion.div 
         className={`${styles.card} ${styles.greenCard}`}
         whileHover={{ y: -4 }}
@@ -75,7 +75,7 @@ const KnowledgeCards = () => {
         </button>
       </motion.div>
 
-      {/* 🟢 TOOL CARD */}
+      {/*  TOOL CARD */}
       <motion.div 
         className={`${styles.card} ${styles.amberCard}`}
         whileHover={{ y: -4 }}

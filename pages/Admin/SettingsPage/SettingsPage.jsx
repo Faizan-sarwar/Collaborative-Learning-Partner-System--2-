@@ -32,7 +32,7 @@ const SettingsPage = () => {
 
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  // 🟢 SECURE FETCH SETTINGS
+  //  SECURE FETCH SETTINGS
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -68,7 +68,7 @@ const SettingsPage = () => {
     setTimeout(() => setStatusMessage(null), 5000);
   };
 
-  // 🟢 SECURE SAVE
+  //  SECURE SAVE
   const handleSave = async () => {
     setIsSubmitting(true);
     setStatusMessage(null);
@@ -98,7 +98,7 @@ const SettingsPage = () => {
     }
   };
 
-  // 🟢 DATA EXPORT
+  //  DATA EXPORT
   const handleExportData = async () => {
     setIsSubmitting(true);
     try {
@@ -125,7 +125,7 @@ const SettingsPage = () => {
     }
   };
 
-  // 🟢 SECURE CLEAR CACHE
+  //  SECURE CLEAR CACHE
   const handleClearCache = async () => {
     setShowConfirmModal(false);
     setIsSubmitting(true);
@@ -165,7 +165,7 @@ const SettingsPage = () => {
           <h2>Platform Settings</h2>
           <p className={styles.subtitle}>Manage global configurations and security parameters.</p>
         </div>
-        {/* 🟢 STATUS BANNER */}
+        {/*  STATUS BANNER */}
         <AnimatePresence>
             {statusMessage && (
                 <motion.div 
@@ -354,7 +354,7 @@ const SettingsPage = () => {
         </button>
       </div>
 
-      {/* 🟢 CONFIRMATION MODAL */}
+      {/*  CONFIRMATION MODAL */}
       <AnimatePresence>
         {showConfirmModal && (
           <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

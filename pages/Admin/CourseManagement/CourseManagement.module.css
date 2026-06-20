@@ -6,7 +6,7 @@
   margin: 0 auto;
 }
 
-/* 🟢 HEADER */
+/*  HEADER */
 .header {
   display: flex;
   align-items: center;
@@ -57,7 +57,7 @@
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
-/* 🟢 STATS CARDS */
+/*  STATS CARDS */
 .statsRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -102,7 +102,7 @@
   font-weight: 500;
 }
 
-/* 🟢 SEARCH BOX */
+/*  SEARCH BOX */
 .searchBox {
   display: flex;
   align-items: center;
@@ -138,7 +138,7 @@
   color: var(--text-muted, #64748b);
 }
 
-/* 🟢 COURSE GRID */
+/*  COURSE GRID */
 .courseGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -265,7 +265,7 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* 🟢 MODALS */
+/*  MODALS */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -377,7 +377,7 @@
   line-height: 1.5;
 }
 
-/* 🟢 DELETE & VIEW MODES */
+/*  DELETE & VIEW MODES */
 .deleteConfirm {
   text-align: center;
   padding: 10px 0;
@@ -473,7 +473,7 @@
   border-radius: 12px;
 }
 
-/* 🟢 MODAL FOOTER */
+/*  MODAL FOOTER */
 .modalFooter {
   display: flex;
   gap: 12px;
@@ -534,7 +534,7 @@
 .deleteBtn:hover:not(:disabled) { background: #dc2626; }
 .deleteBtn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-/* 🟢 STATES */
+/*  STATES */
 .centerState {
   display: flex;
   flex-direction: column;

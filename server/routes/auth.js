@@ -33,7 +33,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// 🟢 HELPER: INSTANTLY PUSH A NOTIFICATION TO A USER'S SCREEN
+//  HELPER: INSTANTLY PUSH A NOTIFICATION TO A USER'S SCREEN
 const pushLiveNotification = (req, userId, notificationPayload) => {
   const io = req.app.get("io");
   const connectedUsers = req.app.get("connectedUsers");
@@ -343,7 +343,7 @@ router.post("/signup", upload.single("profilePicture"), async (req, res) => {
           unread: true,
         });
 
-        // 🟢 PUSH LIVE NOTIFICATION
+        //  PUSH LIVE NOTIFICATION
         pushLiveNotification(req, referrer._id, {
           type: "achievement",
           title: "Successful Referral! 🎉",
@@ -361,7 +361,7 @@ router.post("/signup", upload.single("profilePicture"), async (req, res) => {
         status: "success",
       });
 
-      // 🟢 FIX: registration notifications are FOR ADMINS, not for the new
+      //  FIX: registration notifications are FOR ADMINS, not for the new
       // user themselves. Find all admins and create one notification per admin.
       const admins = await User.find({
         role: { $in: ["admin", "super-admin"] },
@@ -441,7 +441,7 @@ router.post("/login", async (req, res) => {
       console.error("Logging failed:", logErr);
     }
 
-    // 🟢 THE FIX: Capture their old login date BEFORE we overwrite it!
+    //  THE FIX: Capture their old login date BEFORE we overwrite it!
     const today = new Date();
     const previousLoginDate = new Date(user.lastLogin || 0);
 
@@ -1375,7 +1375,7 @@ router.post("/connect/:targetId", async (req, res) => {
       unread: true,
     });
 
-    // 🟢 PUSH LIVE NOTIFICATION
+    //  PUSH LIVE NOTIFICATION
     pushLiveNotification(req, targetId, {
       type: "connection",
       title: "New Connection Request",
@@ -1427,7 +1427,7 @@ router.post("/requests/:senderId/:action", async (req, res) => {
         unread: true,
       });
 
-      // 🟢 PUSH LIVE NOTIFICATION
+      //  PUSH LIVE NOTIFICATION
       pushLiveNotification(req, senderId, {
         type: "achievement",
         title: "Request Accepted",
@@ -1490,7 +1490,7 @@ router.post("/requests/:id/accept", async (req, res) => {
     await receiver.save();
     await sender.save();
 
-    // 🟢 PUSH LIVE NOTIFICATION
+    //  PUSH LIVE NOTIFICATION
     pushLiveNotification(req, senderId, {
       type: "connection",
       title: "Request Accepted 🎉",
@@ -1562,7 +1562,7 @@ router.post("/award-xp", async (req, res) => {
         unread: true,
       });
 
-      // 🟢 PUSH LIVE NOTIFICATION
+      //  PUSH LIVE NOTIFICATION
       pushLiveNotification(req, user._id, {
         type: "achievement",
         title: "Level Up! 🚀",
@@ -1578,7 +1578,7 @@ router.post("/award-xp", async (req, res) => {
       unread: true,
     });
 
-    // 🟢 PUSH LIVE NOTIFICATION
+    //  PUSH LIVE NOTIFICATION
     pushLiveNotification(req, user._id, {
       type: "achievement",
       title: "XP Earned! ⚡",
@@ -1698,7 +1698,7 @@ router.post("/admin/send-notification", async (req, res) => {
 
     await Notification.insertMany(notificationsToInsert);
 
-    // 🟢 PUSH LIVE TO EVERYONE ONLINE
+    //  PUSH LIVE TO EVERYONE ONLINE
     students.forEach((student) => {
       pushLiveNotification(req, student._id, {
         type: category || "system",

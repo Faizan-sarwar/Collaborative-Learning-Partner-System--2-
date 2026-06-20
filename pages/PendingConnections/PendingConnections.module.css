@@ -11,7 +11,7 @@
   font-size: 1.1rem;
 }
 
-/* 🟢 HEADER */
+/*  HEADER */
 .header {
   display: flex;
   justify-content: space-between;
@@ -63,7 +63,7 @@
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
-/* 🟢 LAYOUT GRID */
+/*  LAYOUT GRID */
 .requestsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -112,7 +112,7 @@
   margin: 0;
 }
 
-/* 🟢 REQUESTS LIST */
+/*  REQUESTS LIST */
 .requestsList {
   display: flex;
   flex-direction: column;
@@ -204,7 +204,7 @@
   margin: 0;
 }
 
-/* 🟢 ACTION BUTTONS */
+/*  ACTION BUTTONS */
 .requestActions {
   display: flex;
   gap: 8px;
@@ -295,7 +295,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* 🟢 LOADING SPINNERS */
+/*  LOADING SPINNERS */
 .spinner {
   width: 14px;
   height: 14px;
@@ -316,7 +316,7 @@ button:disabled {
 
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* 🟢 EMPTY STATE */
+/*  EMPTY STATE */
 .emptyState {
   display: flex;
   flex-direction: column;

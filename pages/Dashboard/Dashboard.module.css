@@ -7,12 +7,12 @@
   max-width: 100vw; 
   overflow-x: hidden; 
   background: var(--bg-primary);
-  position: relative; /* 🟢 Required for the mobile overlay */
+  position: relative; /*  Required for the mobile overlay */
 }
 
 .mainArea {
   flex: 1;
-  /* 🟢 STRICT DESKTOP MARGIN: Prevents laptop text cutoff */
+  /*  STRICT DESKTOP MARGIN: Prevents laptop text cutoff */
   margin-left: 70px;
   width: calc(100% - 70px); 
   display: flex;
@@ -71,7 +71,7 @@
 /* Mobile Devices */
 @media (max-width: 768px) {
   .mainArea {
-    margin-left: 0; /* 🟢 REMOVE MARGIN ON MOBILE */
+    margin-left: 0; /*  REMOVE MARGIN ON MOBILE */
     width: 100%;
   }
   
@@ -80,7 +80,7 @@
     flex-direction: column;
   }
 
-  /* 🟢 NEW: Darkens background when mobile menu opens */
+  /*  NEW: Darkens background when mobile menu opens */
   .overlay {
     display: block;
     position: fixed;

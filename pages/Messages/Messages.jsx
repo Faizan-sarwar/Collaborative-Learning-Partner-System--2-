@@ -11,7 +11,7 @@ import ChatBot from '../ChatBot/ChatBot';
 import styles from './Messages.module.css';
 
 // ============================================================================
-// 🟢 CONSTANTS & CONFIG
+//  CONSTANTS & CONFIG
 // ============================================================================
 const avatars = {
   male: {
@@ -40,7 +40,7 @@ const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const TYPING_DEBOUNCE_MS = 1500;
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
-// 🟢 Backend URL — configurable so the same build works on localhost AND
+//  Backend URL — configurable so the same build works on localhost AND
 // through an ngrok tunnel. Set VITE_API_HOST in client/.env to override.
 //   • Local dev:  leave it unset → uses current hostname:5000
 //   • ngrok:      set VITE_API_HOST=https://abcd-1234.ngrok-free.app
@@ -51,7 +51,7 @@ const API = `${API_HOST}/api`;
 const SOCKET_URL = API_HOST;
 
 // ============================================================================
-// 🟢 HELPERS — preserved from original
+//  HELPERS — preserved from original
 // ============================================================================
 const getAvatarSrc = (userObj) => {
   const userId = userObj?.id || userObj?._id;
@@ -69,7 +69,7 @@ const getInitials = (name = '') =>
 
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-// 🟢 NGROK: inject the skip-warning header into EVERY fetch app-wide, so all
+//  NGROK: inject the skip-warning header into EVERY fetch app-wide, so all
 // API calls (login, conversations, avatars, send, etc.) bypass ngrok's free-tier
 // interstitial. Installed once. No-op when not using ngrok.
 if (typeof window !== 'undefined' && !window.__ngrokFetchPatched) {
@@ -161,7 +161,7 @@ const isSameDay = (a, b) => {
 
 const sanitize = (str) => String(str ?? '').replace(/</g, '\u003c').replace(/>/g, '\u003e');
 
-// 🟢 SAFE UUID — works on insecure-context phones (http://192.168.x.x)
+//  SAFE UUID — works on insecure-context phones (http://192.168.x.x)
 // where window.crypto.randomUUID is undefined.
 const safeUUID = () => {
   try {
@@ -177,7 +177,7 @@ const safeUUID = () => {
   });
 };
 
-// 🟢 FETCH WITH TIMEOUT — bare fetch() hangs forever on unreachable LAN hosts
+//  FETCH WITH TIMEOUT — bare fetch() hangs forever on unreachable LAN hosts
 // or slow mobile networks, locking the UI. AbortController forces a hard fail.
 const fetchWithTimeout = async (url, options = {}, timeoutMs = 20000) => {
   const controller = new AbortController();
@@ -215,7 +215,7 @@ function useDebounce(value, delay = 220) {
 }
 
 // ============================================================================
-// 🟢 AVATAR
+//  AVATAR
 // ============================================================================
 const Avatar = ({ src, name, size = 42, online = false }) => {
   const [imgFailed, setImgFailed] = useState(false);
@@ -246,7 +246,7 @@ const Avatar = ({ src, name, size = 42, online = false }) => {
 };
 
 // ============================================================================
-// 🟢 TYPING INDICATOR
+//  TYPING INDICATOR
 // ============================================================================
 const TypingIndicator = () => (
   <div className={styles.typingIndicator}>
@@ -257,7 +257,7 @@ const TypingIndicator = () => (
 );
 
 // ============================================================================
-// 🟢 DATE SEPARATOR
+//  DATE SEPARATOR
 // ============================================================================
 const DateSeparator = ({ label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0 8px' }}>
@@ -274,7 +274,7 @@ const DateSeparator = ({ label }) => (
 );
 
 // ============================================================================
-// 🟢 CONFIRM MODAL — preserved from original
+//  CONFIRM MODAL — preserved from original
 // ============================================================================
 const CONFIRM_CONFIG = {
   clear: { title: 'Clear Chat', body: 'All messages will be permanently deleted for you.', label: 'Clear', danger: true, Icon: Trash2 },
@@ -336,7 +336,7 @@ const ConfirmModal = ({ type, onConfirm, onCancel }) => {
 };
 
 // ============================================================================
-// 🟢 TOAST
+//  TOAST
 // ============================================================================
 const Toast = ({ message, type }) => (
   <motion.div
@@ -356,7 +356,7 @@ const Toast = ({ message, type }) => (
 );
 
 // ============================================================================
-// 🟢 VOICE NOTE PLAYER (native HTML5 audio with custom UI)
+//  VOICE NOTE PLAYER (native HTML5 audio with custom UI)
 // ============================================================================
 const VoiceNotePlayer = ({ src, isOwn }) => {
   const audioRef = useRef(null);
@@ -420,7 +420,7 @@ const VoiceNotePlayer = ({ src, isOwn }) => {
 };
 
 // ============================================================================
-// 🟢 MESSAGE BUBBLE — with reply, edit, unsend, media
+//  MESSAGE BUBBLE — with reply, edit, unsend, media
 // ============================================================================
 const MessageBubble = ({
   message, onRetry, isFirst, isLast,
@@ -476,7 +476,7 @@ const MessageBubble = ({
       onMouseLeave={() => setShowActions(false)}
       style={{ marginBottom: isLast ? '12px' : '2px', position: 'relative' }}
     >
-      {/* 🟢 FLOATING ACTION MENU */}
+      {/*  FLOATING ACTION MENU */}
       <AnimatePresence>
         {showActions && message.status !== 'sending' && message.status !== 'error' && !message.deletedForEveryone && (
           <motion.div
@@ -519,7 +519,7 @@ const MessageBubble = ({
             : isOwn ? '0 2px 12px rgba(99,102,241,0.35)' : 'none'
         }}
       >
-        {/* 🟢 REPLY QUOTE BUBBLE */}
+        {/*  REPLY QUOTE BUBBLE */}
         {message.replyTo && (
           <div className={styles.replyBubble} onClick={() => scrollToMessage?.(message.replyTo.id)}>
             <span className={styles.replySender}>
@@ -537,7 +537,7 @@ const MessageBubble = ({
           </div>
         )}
 
-        {/* 🟢 MEDIA RENDERING */}
+        {/*  MEDIA RENDERING */}
         {message.fileType === 'image' && mediaUrl && (
           <img
             src={mediaUrl}
@@ -566,14 +566,14 @@ const MessageBubble = ({
           </a>
         )}
 
-        {/* 🟢 TEXT (optional — voice notes / images may have none) */}
+        {/*  TEXT (optional — voice notes / images may have none) */}
         {message.text && (
           <p className={styles.messageText} style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
             {sanitize(message.text)}
           </p>
         )}
 
-        {/* 🟢 META: time + edited + status */}
+        {/*  META: time + edited + status */}
         <div className={styles.messageMeta} style={{ marginTop: 4 }}>
           {message.isEdited && (
             <span className={styles.editedLabel} style={{ color: isOwn ? 'rgba(255,255,255,0.75)' : 'var(--text-secondary)' }}>
@@ -606,7 +606,7 @@ const MessageBubble = ({
 };
 
 // ============================================================================
-// 🟢 MAIN COMPONENT
+//  MAIN COMPONENT
 // ============================================================================
 const Messages = () => {
   // ─── STATE ────────────────────────────────────────────────────────────────
@@ -625,7 +625,7 @@ const Messages = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // 🟢 NEW: Reply, Edit, Typing, Recording, Unsend
+  //  NEW: Reply, Edit, Typing, Recording, Unsend
   const [replyingTo, setReplyingTo] = useState(null);     // { id, text, senderName, ... }
   const [editingMessage, setEditingMessage] = useState(null); // { id, originalText }
   const [pendingUnsend, setPendingUnsend] = useState(null); // message object awaiting confirm
@@ -665,7 +665,7 @@ const Messages = () => {
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 SOCKET.IO — AGGRESSIVE RECONNECTION FOR MOBILE
+  //  SOCKET.IO — AGGRESSIVE RECONNECTION FOR MOBILE
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const myId = myIdRef.current;
@@ -682,7 +682,7 @@ const Messages = () => {
       transports: ['websocket', 'polling'], // fallback for restrictive networks
       withCredentials: true,
       autoConnect: true,
-      // 🟢 NGROK: skip the free-tier browser-warning interstitial that would
+      //  NGROK: skip the free-tier browser-warning interstitial that would
       // otherwise break the socket handshake. Harmless when not using ngrok.
       extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
     });
@@ -834,7 +834,7 @@ const Messages = () => {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 DATA FETCHING
+  //  DATA FETCHING
   // ═══════════════════════════════════════════════════════════════════════════
   const fetchConversations = useCallback(async () => {
     const token = getToken();
@@ -943,7 +943,7 @@ const Messages = () => {
   }, [activeConversation?.id]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 SEND MESSAGE (text, reply, media — always via FormData for consistency)
+  //  SEND MESSAGE (text, reply, media — always via FormData for consistency)
   // ═══════════════════════════════════════════════════════════════════════════
   const sendMessageInternal = useCallback(async ({ text = '', file = null, replyToId = null }) => {
     if (!selectedConversation || isSending) return;
@@ -955,7 +955,7 @@ const Messages = () => {
 
     setIsSending(true);
 
-    // 🟢 Declare outside try so the catch block can still reference it for status='error'
+    //  Declare outside try so the catch block can still reference it for status='error'
     let tempId = null;
     const currentConvId = selectedConversation.id || 'temp';
 
@@ -990,7 +990,7 @@ const Messages = () => {
       const token = getToken();
       if (!token) throw new Error('Not authenticated');
 
-      // 🟢 USE FormData ALWAYS — robust on mobile, handles both text & media uniformly
+      //  USE FormData ALWAYS — robust on mobile, handles both text & media uniformly
       const fd = new FormData();
       if (selectedConversation.id) fd.append('conversationId', selectedConversation.id);
       if (selectedConversation.otherUserId) fd.append('targetUserId', selectedConversation.otherUserId);
@@ -999,7 +999,7 @@ const Messages = () => {
       fd.append('clientTempId', tempId);
       if (file) fd.append('file', file, file.name || 'upload');
 
-      // 🟢 fetchWithTimeout — prevents the send button from spinning forever
+      //  fetchWithTimeout — prevents the send button from spinning forever
       // when the phone can't reach the server (LAN drop, slow network, etc.)
       const res = await fetchWithTimeout(`${API}/chat/messages`, {
         method: 'POST',
@@ -1050,7 +1050,7 @@ const Messages = () => {
         }));
       }
     } finally {
-      // 🟢 ALWAYS clears — no matter what threw above, the button stops spinning
+      //  ALWAYS clears — no matter what threw above, the button stops spinning
       setIsSending(false);
     }
   }, [selectedConversation, isSending, replyingTo, showToast, fetchConversations]);
@@ -1058,7 +1058,7 @@ const Messages = () => {
   const handleSendMessage = async (e) => {
     e?.preventDefault();
 
-    // 🟢 EDIT MODE submission
+    //  EDIT MODE submission
     if (editingMessage) {
       await submitEdit();
       return;
@@ -1084,7 +1084,7 @@ const Messages = () => {
   }, [selectedConversation, sendMessageInternal]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 TYPING — debounced socket emits (no HTTP spam)
+  //  TYPING — debounced socket emits (no HTTP spam)
   // ═══════════════════════════════════════════════════════════════════════════
   const emitTyping = useCallback(() => {
     if (!socketRef.current?.connected || !activeConversation?.id || !activeConversation?.otherUserId) return;
@@ -1113,7 +1113,7 @@ const Messages = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 REPLY / EDIT / UNSEND / DELETE-FOR-ME
+  //  REPLY / EDIT / UNSEND / DELETE-FOR-ME
   // ═══════════════════════════════════════════════════════════════════════════
   const handleReply = useCallback((msg) => {
     setReplyingTo({
@@ -1252,7 +1252,7 @@ const Messages = () => {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 MEDIA UPLOAD — IMAGE + VOICE NOTE
+  //  MEDIA UPLOAD — IMAGE + VOICE NOTE
   // ═══════════════════════════════════════════════════════════════════════════
   const handleImagePick = () => {
     fileInputRef.current?.click();
@@ -1318,7 +1318,7 @@ const Messages = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 NEW CHAT FLOW
+  //  NEW CHAT FLOW
   // ═══════════════════════════════════════════════════════════════════════════
   const handleOpenNewChat = async () => {
     setShowNewChatModal(true);
@@ -1360,7 +1360,7 @@ const Messages = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 CLEAR / DELETE / BLOCK — preserved
+  //  CLEAR / DELETE / BLOCK — preserved
   // ═══════════════════════════════════════════════════════════════════════════
   const handleClearChat = async () => {
     if (!selectedConversation?.id) return;
@@ -1451,7 +1451,7 @@ const Messages = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 OUTSIDE CLICKS / ESC
+  //  OUTSIDE CLICKS / ESC
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const onMouse = (e) => {
@@ -1476,7 +1476,7 @@ const Messages = () => {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 DERIVED STATE
+  //  DERIVED STATE
   // ═══════════════════════════════════════════════════════════════════════════
   const filteredConversations = useMemo(() => conversations.filter(c =>
     c.name?.toLowerCase().includes(debouncedSearch.toLowerCase())
@@ -1538,7 +1538,7 @@ const Messages = () => {
 
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 RENDER
+  //  RENDER
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <>
@@ -1743,7 +1743,7 @@ const Messages = () => {
 
                 {/* INPUT AREA */}
                 <div style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)', flexShrink: 0 }}>
-                  {/* 🟢 REPLY / EDIT PREVIEW BAR */}
+                  {/*  REPLY / EDIT PREVIEW BAR */}
                   {(replyingTo || editingMessage) && (
                     <div className={styles.replyPreview}>
                       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
@@ -1764,7 +1764,7 @@ const Messages = () => {
                     </div>
                   )}
 
-                  {/* 🟢 BLOCKED / DELETED USER STATES (admin moderation aware) */}
+                  {/*  BLOCKED / DELETED USER STATES (admin moderation aware) */}
                   {inputDisabled ? (
                     <div className={styles.blockedNotice}>
                       {isBlockedByAdmin ? <ShieldAlert size={16} /> : <Ban size={16} />}
@@ -1795,7 +1795,7 @@ const Messages = () => {
                         </div>
                       ) : (
                         <form onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '6px 6px 6px 8px' }}>
-                          {/* 🟢 MEDIA ACTIONS */}
+                          {/*  MEDIA ACTIONS */}
                           <input ref={fileInputRef} type="file" accept="image/*,video/*,application/pdf" onChange={handleFileChange} style={{ display: 'none' }} />
                           {!editingMessage && (
                             <>

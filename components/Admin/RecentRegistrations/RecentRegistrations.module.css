@@ -15,7 +15,7 @@
   border-color: #334155;
 }
 
-/* 🟢 HEADER */
+/*  HEADER */
 .header {
   display: flex;
   align-items: flex-start;
@@ -71,7 +71,7 @@
   color: white;
 }
 
-/* 🟢 TABLE STYLES */
+/*  TABLE STYLES */
 .tableWrapper {
   overflow-x: auto;
   flex: 1;
@@ -111,7 +111,7 @@
   background: var(--bg-tertiary, #1e293b);
 }
 
-/* 🟢 STUDENT INFO & AVATARS */
+/*  STUDENT INFO & AVATARS */
 .studentInfo {
   display: flex;
   align-items: center;
@@ -160,7 +160,7 @@
   color: var(--text-secondary, #94a3b8);
 }
 
-/* 🟢 STATUS BADGES */
+/*  STATUS BADGES */
 .status {
   display: inline-flex;
   align-items: center;
@@ -199,7 +199,7 @@
   font-weight: 500;
 }
 
-/* 🟢 STATES */
+/*  STATES */
 .centerState {
   display: flex;
   flex-direction: column;

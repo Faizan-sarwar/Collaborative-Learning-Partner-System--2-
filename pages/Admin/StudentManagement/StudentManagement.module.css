@@ -6,7 +6,7 @@
   margin: 0 auto;
 }
 
-/* 🟢 HEADER */
+/*  HEADER */
 .header {
   display: flex;
   align-items: center;
@@ -83,7 +83,7 @@
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
-/* 🟢 FILTERS & SEARCH */
+/*  FILTERS & SEARCH */
 .filters {
   display: flex;
   align-items: center;
@@ -158,7 +158,7 @@
   color: #3b82f6;
 }
 
-/* 🟢 TABLE STYLES */
+/*  TABLE STYLES */
 .tableWrapper {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
@@ -201,7 +201,7 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* 🟢 STUDENT INFO & AVATARS */
+/*  STUDENT INFO & AVATARS */
 .studentInfo {
   display: flex;
   align-items: center;
@@ -264,7 +264,7 @@
   color: var(--text-primary, #f8fafc);
 }
 
-/* 🟢 STATUS BADGES */
+/*  STATUS BADGES */
 .statusBadge {
   display: inline-flex;
   align-items: center;
@@ -315,7 +315,7 @@
   font-weight: 500;
 }
 
-/* 🟢 ACTION BUTTONS */
+/*  ACTION BUTTONS */
 .actions {
   display: flex;
   gap: 8px;
@@ -346,7 +346,7 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* 🟢 ERROR & LOADING STATES */
+/*  ERROR & LOADING STATES */
 .centerState {
   display: flex;
   align-items: center;
@@ -381,7 +381,7 @@
   font-weight: 500;
 }
 
-/* 🟢 MODALS */
+/*  MODALS */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -489,7 +489,7 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-/* 🟢 MODAL ACTIONS */
+/*  MODAL ACTIONS */
 .modalActions {
   display: flex;
   gap: 12px;
@@ -533,7 +533,7 @@
   cursor: not-allowed;
 }
 
-/* 🟢 DELETE MODE */
+/*  DELETE MODE */
 .deleteConfirm {
   padding: 40px 30px;
   text-align: center;
@@ -565,7 +565,7 @@
   background: #dc2626;
 }
 
-/* 🟢 VIEW MODE */
+/*  VIEW MODE */
 .viewMode {
   padding: 24px;
   display: flex;

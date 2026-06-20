@@ -22,7 +22,7 @@ const LoginCard = () => {
     setAlert(null);
     setIsSubmitting(true);
 
-    // 🟢 Fetch the dynamic URL from your .env file
+    //  Fetch the dynamic URL from your .env file
     const apiUrl = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
 
     try {
@@ -40,7 +40,7 @@ const LoginCard = () => {
         return;
       }
 
-      // 🟢 Secure Storage Logic
+      //  Secure Storage Logic
       if (rememberMe) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -55,7 +55,7 @@ const LoginCard = () => {
 
       setAlert({ type: 'success', message: 'Authentication successful. Redirecting...' });
 
-      // 🟢 Smart Redirection Logic
+      //  Smart Redirection Logic
       setTimeout(() => {
         if (data.user.role === 'admin' || data.user.role === 'super-admin') {
           navigate('/admin');
@@ -104,7 +104,7 @@ const LoginCard = () => {
           />
         )}
 
-        {/* 🟢 ENTERPRISE EMAIL INPUT */}
+        {/*  ENTERPRISE EMAIL INPUT */}
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Email Address</label>
           <div className={styles.inputWrapper}>
@@ -123,7 +123,7 @@ const LoginCard = () => {
           </div>
         </div>
 
-        {/* 🟢 ENTERPRISE PASSWORD INPUT WITH TOGGLE */}
+        {/*  ENTERPRISE PASSWORD INPUT WITH TOGGLE */}
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Password</label>
           <div className={styles.inputWrapper}>
@@ -150,7 +150,7 @@ const LoginCard = () => {
           </div>
         </div>
 
-        {/* 🟢 OPTIONS ROW */}
+        {/*  OPTIONS ROW */}
         <div className={styles.options}>
           <label className={styles.checkboxContainer}>
             <input

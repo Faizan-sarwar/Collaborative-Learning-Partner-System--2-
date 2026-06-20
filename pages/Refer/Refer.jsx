@@ -14,7 +14,7 @@ const Refer = () => {
   const [copied, setCopied] = useState(false);
   const [email, setEmail] = useState('');
   
-  // 🟢 ADDED: Local state to show success/error messages directly on the screen
+  //  ADDED: Local state to show success/error messages directly on the screen
   const [inviteStatus, setInviteStatus] = useState({ type: '', message: '' });
   
   // Real State Variables
@@ -100,7 +100,7 @@ const Refer = () => {
       const data = await res.json();
 
       if (data.success) {
-        // 🟢 Show inline success message
+        //  Show inline success message
         setInviteStatus({ type: 'success', message: `Invitation sent to ${email}!` });
         
         // Optimistically add the pending referral to the UI
@@ -117,7 +117,7 @@ const Refer = () => {
         ]);
         setEmail('');
       } else {
-        // 🟢 Show inline error message (e.g., "Uexists")
+        //  Show inline error message (e.g., "Uexists")
         setInviteStatus({ type: 'error', message: data.message || 'Failed to send invite' });
       }
     } catch (error) {
@@ -218,7 +218,7 @@ const Refer = () => {
               </motion.button>
             </form>
 
-            {/* 🟢 INLINE NOTIFICATION MESSAGE RENDERS HERE */}
+            {/*  INLINE NOTIFICATION MESSAGE RENDERS HERE */}
             {inviteStatus.message && (
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }} 

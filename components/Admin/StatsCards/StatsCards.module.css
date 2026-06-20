@@ -35,7 +35,7 @@
   border-color: #334155;
 }
 
-/* 🟢 COLOR THEMES */
+/*  COLOR THEMES */
 .statCard.blue::before { background: #3b82f6; }
 .statCard.blue .statIcon { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
 
@@ -64,7 +64,7 @@
   flex-shrink: 0;
 }
 
-/* 🟢 CONTENT STYLES */
+/*  CONTENT STYLES */
 .statInfo {
   display: flex;
   flex-direction: column;
@@ -86,7 +86,7 @@
   line-height: 1.2;
 }
 
-/* 🟢 TREND INDICATORS */
+/*  TREND INDICATORS */
 .statChangeWrapper {
   display: flex;
   align-items: center;
@@ -103,7 +103,7 @@
 .negative { color: #ef4444; }
 .neutral { color: var(--text-muted, #64748b); }
 
-/* 🟢 LOADING & ERROR STATES */
+/*  LOADING & ERROR STATES */
 .centerStateCard {
   background: var(--bg-secondary, #0f172a);
   border: 1px dashed var(--border-color, #334155);
@@ -132,7 +132,7 @@
   margin-top: 12px;
 }
 
-/* 🟢 RESPONSIVE */
+/*  RESPONSIVE */
 @media (max-width: 1024px) {
   .statsGrid {
     grid-template-columns: repeat(3, 1fr);

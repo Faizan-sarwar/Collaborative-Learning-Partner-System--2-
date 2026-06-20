@@ -126,7 +126,7 @@ const userSchema = new mongoose.Schema({
   level: { type: Number, default: 1 },
   achievements: [{ type: Number }],
 
-  // 🟢 --- REFERRAL SYSTEM ---
+  //  --- REFERRAL SYSTEM ---
   referralCode: {
     type: String,
     unique: true,
@@ -212,7 +212,7 @@ userSchema.methods.awardXP = async function (amount) {
   return { xp: this.xp, level: this.level, added: amount };
 };
 
-// 🟢 PROFESSIONAL RELIABILITY ENGINE
+//  PROFESSIONAL RELIABILITY ENGINE
 // Call this function anywhere in your backend to safely bump a user's score up or down
 userSchema.methods.adjustReliability = async function (amount) {
   // 1. Get current score (default to 40 if they somehow have nothing)

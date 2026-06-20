@@ -9,7 +9,7 @@ import {
 import styles from './DashboardSidebar.module.css';
 
 // ============================================================================
-// 🟢 NAV CONFIG — `activityKeys` lists every event "channel" that should
+//  NAV CONFIG — `activityKeys` lists every event "channel" that should
 //    light up this nav item. One nav can listen to multiple events.
 // ============================================================================
 const navItems = [
@@ -27,7 +27,7 @@ const navItems = [
 ];
 
 // ============================================================================
-// 🟢 ACTIVITY STORE — persisted to sessionStorage so a refresh doesn't wipe
+//  ACTIVITY STORE — persisted to sessionStorage so a refresh doesn't wipe
 //    pending notifications. Format:
 //    { "messages": { count: 3, glow: true, lastEvent: 1716700000000 } }
 // ============================================================================
@@ -53,7 +53,7 @@ navItems.forEach(item => {
 });
 
 // ============================================================================
-// 🟢 PUBLIC API — call from anywhere in the app to ping the sidebar.
+//  PUBLIC API — call from anywhere in the app to ping the sidebar.
 //    Examples:
 //      pingSidebar('new-message')
 //      pingSidebar('achievement-unlocked', { title: 'First Steps' })
@@ -66,7 +66,7 @@ export const pingSidebar = (activityKey, meta = {}) => {
 };
 
 // ============================================================================
-// 🟢 COMPONENT
+//  COMPONENT
 // ============================================================================
 const DashboardSidebar = ({ isOpen, closeSidebar }) => {
   const location = useLocation();
@@ -108,7 +108,7 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 LISTEN TO sidebarActivity EVENTS (universal entry point)
+  //  LISTEN TO sidebarActivity EVENTS (universal entry point)
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const handler = (e) => {
@@ -125,7 +125,7 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => {
   }, [location.pathname, recordActivity]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 ROUTE CHANGE → clear activity for whichever section we just visited
+  //  ROUTE CHANGE → clear activity for whichever section we just visited
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     const matched = navItems.find(n => location.pathname.startsWith(n.path));
@@ -133,7 +133,7 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => {
   }, [location.pathname, clearActivity]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 LEGACY BADGE LOGIC — kept so existing localStorage flags still work
+  //  LEGACY BADGE LOGIC — kept so existing localStorage flags still work
   // ═══════════════════════════════════════════════════════════════════════════
   const calculateLegacyBadges = useCallback(() => {
     const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
@@ -164,7 +164,7 @@ const DashboardSidebar = ({ isOpen, closeSidebar }) => {
   }, [calculateLegacyBadges]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🟢 AUTO-WIRE: when ANY 'notificationAdded' event fires anywhere in the
+  //  AUTO-WIRE: when ANY 'notificationAdded' event fires anywhere in the
   //    app, infer which section it relates to and ping the sidebar. This means
   //    if you already dispatch notificationAdded in other pages, you get
   //    sidebar glow for free — no extra integration needed.

@@ -127,7 +127,7 @@ const RecentActivity = () => {
             
             return (
               <div key={index} className={styles.activityItem}>
-                {/* 🟢 Vertical Timeline Line */}
+                {/*  Vertical Timeline Line */}
                 {!isLast && <div className={styles.timelineLine}></div>}
                 
                 <div className={`${styles.activityIcon} ${styles[colorClass]}`}>

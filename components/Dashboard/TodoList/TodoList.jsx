@@ -17,7 +17,7 @@ const TodoList = () => {
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
 
-  // 🟢 ENTERPRISE LOGIC: Safely increment tasks & XP in the DB
+  //  ENTERPRISE LOGIC: Safely increment tasks & XP in the DB
   const saveStatsToDB = async (updatedTodos) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) return;

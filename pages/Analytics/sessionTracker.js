@@ -119,7 +119,7 @@ window.addEventListener('beforeunload', () => {
 setInterval(() => {
   const token = getToken();
 
-  // 🟢 LOGOUT DETECTION: If no token exists, immediately wipe the session time
+  //  LOGOUT DETECTION: If no token exists, immediately wipe the session time
   if (!token) {
     if (sessionSeconds > 0) {
       sessionSeconds = 0;

@@ -256,7 +256,7 @@ const PhotoAdjuster = ({ imageSrc, originalFile, onConfirm, onCancel }) => {
     </motion.div>
   );
 
-  // 🟢 Render through a portal to document.body. This escapes any transformed
+  //  Render through a portal to document.body. This escapes any transformed
   //    ancestor (PageWrapper, framer-motion containers, etc.) so position:fixed
   //    is anchored to the actual viewport — not to a parent's coordinate system.
   return createPortal(modal, document.body);

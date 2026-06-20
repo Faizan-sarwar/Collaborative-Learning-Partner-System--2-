@@ -84,7 +84,7 @@
   line-height: 1.2;
 }
 
-/* 🟢 Responsive Design */
+/*  Responsive Design */
 @media (max-width: 768px) {
   .actions {
     grid-template-columns: 1fr;

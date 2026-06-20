@@ -119,7 +119,7 @@ const StudyStreak = () => {
           body: JSON.stringify({ streakData: updated })
         });
 
-        // 🟢 Tell the rest of the dashboard that we updated user stats
+        //  Tell the rest of the dashboard that we updated user stats
         window.dispatchEvent(new Event('userUpdated'));
       }
     } catch (err) {

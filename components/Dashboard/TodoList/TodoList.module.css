@@ -57,7 +57,7 @@
   background: var(--bg-primary, #020617);
   border: 1px solid var(--border-color, #334155);
   border-radius: 10px;
-  /* 🟢 FIX: Swapped 'white' for dynamic text variable */
+  /*  FIX: Swapped 'white' for dynamic text variable */
   color: var(--text-primary);
   font-size: 0.95rem;
   transition: 0.2s;
@@ -94,7 +94,7 @@
 }
 .todoItem.completed .todoText {
   text-decoration: line-through;
-  /* 🟢 FIX: Adapted completed text to theme */
+  /*  FIX: Adapted completed text to theme */
   color: var(--text-tertiary, #64748b);
 }
 .checkbox {
@@ -124,7 +124,7 @@
 }
 .todoText {
   font-size: 0.95rem;
-  /* 🟢 FIX: Swapped '#f8fafc' for dynamic text variable */
+  /*  FIX: Swapped '#f8fafc' for dynamic text variable */
   color: var(--text-primary, #f8fafc);
   display: block;
   margin-bottom: 4px;
@@ -149,13 +149,13 @@
 }
 .date {
   font-size: 0.75rem;
-  /* 🟢 FIX: Adapted date to theme */
+  /*  FIX: Adapted date to theme */
   color: var(--text-secondary, #64748b);
 }
 .editInput {
   flex: 1;
   padding: 8px 12px;
-  /* 🟢 FIX: Removed hardcoded '#020617' and 'white' */
+  /*  FIX: Removed hardcoded '#020617' and 'white' */
   background: var(--bg-primary, #020617);
   border: 1px solid #3b82f6;
   border-radius: 8px;
@@ -197,7 +197,7 @@
 .emptyState {
   text-align: center;
   padding: 30px;
-  /* 🟢 FIX: Adapted empty state text */
+  /*  FIX: Adapted empty state text */
   color: var(--text-secondary, #64748b);
   font-size: 0.9rem;
   border: 1px dashed var(--border-color, #334155);

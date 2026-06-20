@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import styles from './About.module.css';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
-import { useSettings } from '../../src/context/SettingsContext'; // 🟢 Added
+import { useSettings } from '../../src/context/SettingsContext'; //  Added
 
 const About = () => {
-  const { settings } = useSettings(); // 🟢 Dynamic Settings
+  const { settings } = useSettings(); //  Dynamic Settings
   const platformName = settings?.platformName || 'Collaborative Learning Partner System';
 
   const values = [

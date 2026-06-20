@@ -44,7 +44,7 @@ const XP = () => {
   const [studyHours, setStudyHours] = useState(0);
   const [recentHistory, setRecentHistory] = useState([]);
 
-  // 🟢 CLEANED UP FETCH: Just reads the secure backend data!
+  //  CLEANED UP FETCH: Just reads the secure backend data!
   useEffect(() => {
     const fetchData = async () => {
         try {

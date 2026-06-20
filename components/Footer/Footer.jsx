@@ -10,7 +10,7 @@ import {
   springs,
 } from '../../src/motion/motion';
 
-// 🟢 THE FIX: Moved this OUTSIDE of the Footer component!
+//  THE FIX: Moved this OUTSIDE of the Footer component!
 // Now React won't destroy and recreate it on every page navigation.
 const LinksColumn = ({ title, links }) => (
   <motion.div className={styles.linksColumn} variants={fadeUpItem}>

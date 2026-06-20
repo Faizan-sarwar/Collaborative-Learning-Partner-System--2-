@@ -73,7 +73,7 @@
   border-color: #3b82f6;
 }
 
-/* 🟢 NAVIGATION */
+/*  NAVIGATION */
 .nav {
   flex: 1;
   padding: 20px 12px;
@@ -105,7 +105,7 @@
   color: var(--text-primary, #f8fafc);
 }
 
-/* 🟢 ENTERPRISE ACTIVE STATE */
+/*  ENTERPRISE ACTIVE STATE */
 .navItem.active {
   background: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
@@ -127,7 +127,7 @@
   font-weight: 500;
 }
 
-/* 🟢 FOOTER */
+/*  FOOTER */
 .footer {
   padding: 16px;
   border-top: 1px solid var(--border-color, #1e293b);

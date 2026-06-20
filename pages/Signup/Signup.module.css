@@ -277,7 +277,7 @@
     transform: scale(1);
   }
 }
-/* 🟢 Gender radio group — styled to match form's pill aesthetic */
+/*  Gender radio group — styled to match form's pill aesthetic */
 .radioGroup {
   display: flex;
   gap: 0.75rem;
@@ -562,7 +562,7 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  /* 🟢 FIX: Solid background instead of gradient to prevent bleed-through */
+  /*  FIX: Solid background instead of gradient to prevent bleed-through */
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
@@ -572,7 +572,7 @@
   z-index: 1000;
   max-height: 250px;
   overflow-y: auto;
-  /* 🟢 FIX: Forces the mouse scroll to stay inside the menu */
+  /*  FIX: Forces the mouse scroll to stay inside the menu */
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   animation: dropdownSlide 0.2s ease-out;

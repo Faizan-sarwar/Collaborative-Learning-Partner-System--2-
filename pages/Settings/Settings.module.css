@@ -1,6 +1,6 @@
-/* 🟢 REMOVED .settings — the parent DashboardLayout provides the flex container */
-/* 🟢 REMOVED .mainArea — the parent DashboardLayout provides the main-area wrapper */
-/* 🟢 REMOVED mobile .overlay — the parent DashboardLayout handles it */
+/*  REMOVED .settings — the parent DashboardLayout provides the flex container */
+/*  REMOVED .mainArea — the parent DashboardLayout provides the main-area wrapper */
+/*  REMOVED mobile .overlay — the parent DashboardLayout handles it */
 
 .content {
   padding: 32px 48px;
@@ -26,7 +26,7 @@
   font-size: 1rem;
 }
 
-/* 🟢 Layout Container */
+/*  Layout Container */
 .settingsContainer {
   display: grid;
   grid-template-columns: 250px 1fr;
@@ -34,7 +34,7 @@
   align-items: start;
 }
 
-/* 🟢 Sidebar Tabs */
+/*  Sidebar Tabs */
 .tabsSidebar {
   display: flex;
   flex-direction: column;
@@ -74,7 +74,7 @@
   justify-content: center;
 }
 
-/* 🟢 Content Area */
+/*  Content Area */
 .tabContent {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
@@ -103,7 +103,7 @@
   font-size: 0.9rem;
 }
 
-/* 🟢 Profile Photo Upload UX */
+/*  Profile Photo Upload UX */
 .profilePhoto {
   display: flex;
   align-items: center;
@@ -180,7 +180,7 @@
   background: #334155;
 }
 
-/* 🟢 Forms */
+/*  Forms */
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -236,7 +236,7 @@
   min-height: 100px;
 }
 
-/* 🟢 Save Button */
+/*  Save Button */
 .saveAction {
   display: flex;
   justify-content: flex-end;
@@ -270,7 +270,7 @@
   cursor: not-allowed;
 }
 
-/* 🟢 Enterprise Toggles (iOS/Stripe style) */
+/*  Enterprise Toggles (iOS/Stripe style) */
 .toggleList {
   display: flex;
   flex-direction: column;
@@ -349,7 +349,7 @@
   transform: translateX(20px);
 }
 
-/* 🟢 Danger Zone */
+/*  Danger Zone */
 .dangerZone {
   margin-top: 24px;
   border: 1px solid #ef4444;
@@ -403,7 +403,7 @@
   background: #dc2626;
 }
 
-/* 🟢 Loading State — sits inside the parent layout, no longer full-viewport */
+/*  Loading State — sits inside the parent layout, no longer full-viewport */
 .loading {
   display: flex;
   align-items: center;

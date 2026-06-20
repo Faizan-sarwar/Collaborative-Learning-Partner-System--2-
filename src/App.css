@@ -67,7 +67,7 @@
 }
 
 [data-theme="light"] {
-  /* 🟢 PREMIUM ELEVATION: Cool grey backdrop makes white cards POP */
+  /*  PREMIUM ELEVATION: Cool grey backdrop makes white cards POP */
   --bg-primary: #f0f4f8;
   --bg-secondary: #ffffff; /* Pure white for elevated cards */
   --bg-tertiary: #f8fafc; /* Soft inner fill */
@@ -75,7 +75,7 @@
   --bg-card-hover: #f8fafc;
   --bg-hover: rgba(15, 23, 42, 0.04);
 
-  /* 🟢 TEXT: Deep slate for maximum high-contrast readability */
+  /*  TEXT: Deep slate for maximum high-contrast readability */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-tertiary: #64748b;
@@ -92,7 +92,7 @@
   --input-border: #e2e8f0;
   --border-color-hover: #cbd5e1;
 
-  /* 🟢 THE SECRET SAUCE: Stripe/Vercel style Multi-Layered Shadows */
+  /*  THE SECRET SAUCE: Stripe/Vercel style Multi-Layered Shadows */
   --card-shadow:
     0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 10px rgba(15, 23, 42, 0.03),
     0 0 0 1px rgba(15, 23, 42, 0.05); /* Optical inner border */

@@ -6,7 +6,7 @@
   margin: 0 auto;
 }
 
-/* 🟢 HEADER */
+/*  HEADER */
 .header {
   display: flex;
   align-items: center;
@@ -38,7 +38,7 @@
   border: 1px solid var(--border-color, #334155);
 }
 
-/* 🟢 EXPORT BUTTONS */
+/*  EXPORT BUTTONS */
 .headerActions {
   display: flex;
   gap: 10px;
@@ -68,7 +68,7 @@
 .btnExcel { background: linear-gradient(135deg, #10b981, #059669); }
 .btnPdf { background: linear-gradient(135deg, #ef4444, #dc2626); }
 
-/* 🟢 FILTERS & SEARCH */
+/*  FILTERS & SEARCH */
 .filters {
   display: flex;
   align-items: center;
@@ -143,7 +143,7 @@
   color: #3b82f6;
 }
 
-/* 🟢 TABLE STYLES */
+/*  TABLE STYLES */
 .logsCard {
   background: var(--bg-secondary, #0f172a);
   border: 1px solid var(--border-color, #1e293b);
@@ -201,7 +201,7 @@
 .ipCell { font-family: monospace; color: var(--text-muted, #64748b); }
 .timeCell { color: var(--text-secondary, #94a3b8); font-size: 0.85rem; }
 
-/* 🟢 BADGES */
+/*  BADGES */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -231,7 +231,7 @@
 .failed { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
 .failed .statusDot { background: #ef4444; }
 
-/* 🟢 CENTER STATES */
+/*  CENTER STATES */
 .centerStateCard, .tableCenterState {
   display: flex;
   flex-direction: column;
@@ -260,7 +260,7 @@
 
 .errorText { color: #ef4444; margin-top: 12px; font-weight: 500; }
 
-/* 🟢 PAGINATION */
+/*  PAGINATION */
 .pagination {
   display: flex;
   align-items: center;

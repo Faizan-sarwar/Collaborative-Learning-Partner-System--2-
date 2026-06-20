@@ -7,18 +7,18 @@ const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 Minutes of no activity = Auto-Paus
 const MIN_SESSION_SECONDS = 60; // Don't save sessions less than 1 minute
 
 const StudyTime = () => {
-  // 🟢 CORE TIMER STATE
+  //  CORE TIMER STATE
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [autoPaused, setAutoPaused] = useState(false);
   
-  // 🟢 DATABASE STATS
+  //  DATABASE STATS
   const [totalStudyHours, setTotalStudyHours] = useState(0);
   const [streak, setStreak] = useState(0);
   const [totalXP, setTotalXP] = useState(0);
 
-  // 🟢 REFS FOR BACKGROUND SAFE TRACKING
+  //  REFS FOR BACKGROUND SAFE TRACKING
   const startTimeRef = useRef(null);
   const accumulatedRef = useRef(0);
   const idleTimerRef = useRef(null);

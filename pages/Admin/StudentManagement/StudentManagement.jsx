@@ -31,7 +31,7 @@ const StudentManagement = () => {
 
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  // 🟢 SECURE FETCH STUDENTS
+  //  SECURE FETCH STUDENTS
   const fetchStudents = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
@@ -98,7 +98,7 @@ const StudentManagement = () => {
     setSelectedStudent(null);
   };
 
-  // 🟢 SECURE SAVE STUDENT
+  //  SECURE SAVE STUDENT
   const handleSaveStudent = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -149,7 +149,7 @@ const StudentManagement = () => {
     }
   };
 
-  // 🟢 SECURE DELETE
+  //  SECURE DELETE
   const handleDeleteStudent = async () => {
     if (!selectedStudent) return;
     setIsSubmitting(true);
@@ -199,7 +199,7 @@ const StudentManagement = () => {
 
   return (
     <div className={styles.container}>
-      {/* 🟢 HEADER */}
+      {/*  HEADER */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <h2>Student Directory</h2>
@@ -222,7 +222,7 @@ const StudentManagement = () => {
         </div>
       )}
 
-      {/* 🟢 FILTERS */}
+      {/*  FILTERS */}
       <div className={styles.filters}>
         <div className={styles.searchBox}>
           <Search size={18} className={styles.searchIcon} />
@@ -239,7 +239,7 @@ const StudentManagement = () => {
         </div>
       </div>
 
-      {/* 🟢 TABLE */}
+      {/*  TABLE */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
@@ -309,7 +309,7 @@ const StudentManagement = () => {
         </table>
       </div>
 
-      {/* 🟢 MODALS */}
+      {/*  MODALS */}
       <AnimatePresence>
         {showModal && (
           <motion.div className={styles.modalOverlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>

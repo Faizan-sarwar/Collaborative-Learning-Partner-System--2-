@@ -45,7 +45,7 @@ const Gamification = () => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [userName, setUserName] = useState('Student');
 
-  // 🟢 UX FIX: Immediately load the preference from memory on the first millisecond so it never flickers!
+  //  UX FIX: Immediately load the preference from memory on the first millisecond so it never flickers!
   const [useAvatar, setUseAvatar] = useState(() => {
     const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
     const storedUser = JSON.parse(storage.getItem('user') || '{}');
@@ -201,7 +201,7 @@ const Gamification = () => {
     return () => window.removeEventListener('userUpdated', handleUserUpdated);
   }, []);
 
-  // 🟢 DATABASE BUG FIX: Removed FormData wrappers and sent pure JSON so the backend never drops the request!
+  //  DATABASE BUG FIX: Removed FormData wrappers and sent pure JSON so the backend never drops the request!
   const handleToggleAvatar = async (showAvatarValue) => {
     // 1. Optimistically update the UI immediately
     setUseAvatar(showAvatarValue);

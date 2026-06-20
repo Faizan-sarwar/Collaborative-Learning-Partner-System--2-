@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import styles from './Contact.module.css';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
-import { useSettings } from '../../src/context/SettingsContext'; // 🟢 Added
+import { useSettings } from '../../src/context/SettingsContext'; //  Added
 
 const Contact = () => {
   const { settings } = useSettings();
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false); // 🟢 Added loading state
+  const [loading, setLoading] = useState(false); //  Added loading state
 
   const handleSubmit = async (e) => {
     e.preventDefault();

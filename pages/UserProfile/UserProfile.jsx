@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Shield, Star, Clock, BookOpen, Calendar, Award, MessageSquare, UserPlus, Check, X, Zap } from 'lucide-react';
 import styles from './UserProfile.module.css';
 
-// 🟢 PROFESSIONAL TRUST TIER HELPER
+//  PROFESSIONAL TRUST TIER HELPER
 const getTrustTier = (score) => {
     const s = score || 0;
     if (s >= 90) return { label: 'Elite Scholar', color: '#10b981', icon: <Shield size={16} /> };
@@ -170,7 +170,7 @@ const UserProfile = () => {
         <>
             <div className={styles.container} style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
 
-                {/* 🟢 ENTERPRISE HERO BANNER */}
+                {/*  ENTERPRISE HERO BANNER */}
                 <div style={{ width: '100%', height: '160px', borderRadius: '16px 16px 0 0', background: 'linear-gradient(135deg, #1e293b 0%, #3b82f6 100%)', position: 'relative', marginBottom: '60px' }}>
                     <button onClick={() => navigate(-1)} style={{ position: 'absolute', top: '15px', left: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
                         ← Back
@@ -190,7 +190,7 @@ const UserProfile = () => {
                     </div>
                 </div>
 
-                {/* 🟢 THE FIX: Replaced hardcoded hex colors with var(--theme) variables below */}
+                {/*  THE FIX: Replaced hardcoded hex colors with var(--theme) variables below */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '24px' }}>
 
                     {/* LEFT COLUMN: TRUST & BIO */}

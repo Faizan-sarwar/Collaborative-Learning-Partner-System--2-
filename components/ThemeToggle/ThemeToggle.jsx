@@ -4,7 +4,7 @@ import styles from './ThemeToggle.module.css';
 const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(true);
 
-  // 🟢 Read from the single source of truth: localStorage + the DOM attribute
+  //  Read from the single source of truth: localStorage + the DOM attribute
   useEffect(() => {
     const savedTheme =
       localStorage.getItem('theme') ||

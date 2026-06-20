@@ -6,7 +6,7 @@
 
 .mainArea {
   flex: 1;
-  margin-left: 260px; /* 🟢 Leaves perfect room for the sidebar on laptop */
+  margin-left: 260px; /*  Leaves perfect room for the sidebar on laptop */
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -15,7 +15,7 @@
 }
 
 .mainArea.expanded {
-  margin-left: 76px; /* 🟢 Matches the sidebar when collapsed */
+  margin-left: 76px; /*  Matches the sidebar when collapsed */
 }
 
 .content {

@@ -6,7 +6,7 @@
 
 /* Overview Card */
 .overviewCard {
-  /* 🟢 FIX: Hardcoded the gradient and added !important to protect it from Light Mode overrides */
+  /*  FIX: Hardcoded the gradient and added !important to protect it from Light Mode overrides */
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
   border-radius: 20px;
   padding: 2rem;
