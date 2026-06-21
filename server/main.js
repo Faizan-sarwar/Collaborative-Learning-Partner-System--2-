@@ -23,9 +23,9 @@ import referralRoutes from '../server/routes/referrals.js';
 dotenv.config();
 const app = express();
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  HTTP SERVER + SOCKET.IO (mobile-resilient config)
-// ════════════════════════════════════════════════════════════════════════════
+
 const server = http.createServer(app);
 
 //  CORS REFLECTION HELPER
@@ -52,10 +52,10 @@ const io = new Server(server, {
   allowEIO3: true                         // Compat with older mobile clients
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  GLOBAL SOCKET REGISTRY
 // Tracks which user ID belongs to which active socket connection.
-// ════════════════════════════════════════════════════════════════════════════
+
 const connectedUsers = new Map();
 app.set('io', io);
 app.set('connectedUsers', connectedUsers);
@@ -128,9 +128,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  BODY PARSING + STATIC UPLOADS
-// ════════════════════════════════════════════════════════════════════════════
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -158,18 +158,18 @@ app.use(cors({
   credentials: true
 }));
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  MONGODB CONNECTION
-// ════════════════════════════════════════════════════════════════════════════
+
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/studybuddy';
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  GLOBAL BACKEND FIREWALL (Maintenance Mode - Admin Aware)
-// ════════════════════════════════════════════════════════════════════════════
+
 app.use(async (req, res, next) => {
   try {
     const settings = await Settings.findOne();
@@ -211,9 +211,9 @@ app.use(async (req, res, next) => {
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  ROUTES
-// ════════════════════════════════════════════════════════════════════════════
+
 app.use('/api/auth', auth);
 app.use('/api/activity-logs', activityLogsRoutes);
 app.use('/api/chat', ChatRoutes);
@@ -228,9 +228,9 @@ app.get('/', (req, res) => {
   });
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 // STUDY GROUPS
-// ════════════════════════════════════════════════════════════════════════════
+
 
 // Create a new study group
 app.post('/studygroup', async (req, res) => {
@@ -409,9 +409,9 @@ app.delete('/studygroup/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  GLOBAL ERROR HANDLER
-// ════════════════════════════════════════════════════════════════════════════
+
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
@@ -421,9 +421,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  ENTERPRISE BACKGROUND WORKER (CRON JOBS)
-// ════════════════════════════════════════════════════════════════════════════
+
 cron.schedule('0 0 * * *', async () => {
   console.log('⏳ [CRON] Running nightly system maintenance...');
   try {
@@ -454,9 +454,9 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  START SERVER (server.listen, NOT app.listen — needed for Socket.IO)
-// ════════════════════════════════════════════════════════════════════════════
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Real-Time Server running on port ${PORT}`);

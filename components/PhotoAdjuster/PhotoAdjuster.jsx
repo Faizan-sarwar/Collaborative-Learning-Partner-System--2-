@@ -8,7 +8,7 @@ import { ZoomIn, ZoomOut } from 'lucide-react';
 // Renders via React Portal directly to document.body so it ALWAYS centers in
 // the viewport — bypassing any transformed ancestor (like PageWrapper or
 // framer-motion animations) that would otherwise trap position:fixed.
-// ────────────────────────────────────────────────────────────────────────────
+
 const CONTAINER_W = 360;
 const CONTAINER_H = 360;
 const CROP_SIZE = 280;

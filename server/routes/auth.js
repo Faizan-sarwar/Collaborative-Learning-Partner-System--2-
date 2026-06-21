@@ -157,7 +157,7 @@ router.post("/forgot-password", async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "Password Reset OTP - StudyBuddy",
+      subject: "Password Reset OTP - Collaborative Learning",
       text: `Your OTP for password reset is: ${otp}\n\nIt is valid for 10 minutes. Do not share this code with anyone.`,
     };
 

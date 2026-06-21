@@ -307,12 +307,12 @@ const DashboardHeader = ({ title, isFullWidth, toggleSidebar }) => {
     };
   }, [loadUser, loadNotifications]);
 
-  // ════════════════════════════════════════════════════════════════════════════
+  
   //  LIVE SOCKET NOTIFICATIONS — replaces 8s polling delay with instant push.
   // Backend emits 'newNotification' via pushLiveNotification() helper. When it
   // arrives we (a) refetch so the bell shows the full DB record, AND
   // (b) dispatch 'notificationAdded' so the sidebar glows live.
-  // ════════════════════════════════════════════════════════════════════════════
+  
   useEffect(() => {
     if (!user?._id) return;
 

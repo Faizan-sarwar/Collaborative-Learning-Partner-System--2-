@@ -22,11 +22,11 @@ app.use(cors({
 
 app.use(express.json());
 
-// ════════════════════════════════════════════════════════════════════════════
+
 // Chatbot API configuration — Groq (fast LPU inference, generous free tier).
 // Get a free key at https://console.groq.com/keys and put it in chatserver/.env:
 //     GROQ_API_KEY=gsk_your_key_here
-// ════════════════════════════════════════════════════════════════════════════
+
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 

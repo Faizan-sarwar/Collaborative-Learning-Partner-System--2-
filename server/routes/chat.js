@@ -11,10 +11,7 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 
 const router = express.Router();
-
-// ────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
-// ────────────────────────────────────────────────────────────────────────────
 const EDIT_UNSEND_WINDOW_MS = 15 * 60 * 1000; // 15 minutes (Instagram-style)
 const MAX_TEXT_LENGTH = 4000;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
@@ -30,9 +27,6 @@ const ALLOWED_MIME = {
 
 const detectFileType = (mime) => {
   if (!mime) return null;
-  //  STRIP codec parameters — Firefox sends "audio/ogg;codecs=opus",
-  // Safari sometimes sends "audio/mp4;codecs=mp4a.40.2", etc.
-  // Also normalize case (some Android browsers send "image/JPEG").
   const normalized = mime.split(';')[0].trim().toLowerCase();
   for (const [type, list] of Object.entries(ALLOWED_MIME)) {
     if (list.includes(normalized)) return type;
@@ -45,9 +39,7 @@ const detectFileType = (mime) => {
   return null;
 };
 
-// ────────────────────────────────────────────────────────────────────────────
 //  MULTER (DISK STORAGE) — uploads under /uploads/chat
-// ────────────────────────────────────────────────────────────────────────────
 const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads', 'chat');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -89,9 +81,9 @@ const handleUpload = (req, res, next) => {
 // Serve uploaded files statically — register this in main.js too if not already:
 //   app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  AUTH MIDDLEWARE
-// ────────────────────────────────────────────────────────────────────────────
+
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -104,9 +96,9 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  HELPERS
-// ────────────────────────────────────────────────────────────────────────────
+
 
 // Push a Socket.io event to a target user if connected. Returns true if delivered.
 const emitToUser = (req, userId, event, payload) => {
@@ -202,9 +194,9 @@ const lastMessagePreview = (msg) => {
   return msg.text || '';
 };
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  1. GET ALL CONVERSATIONS (with Block Status + gamification fields)
-// ────────────────────────────────────────────────────────────────────────────
+
 router.get('/conversations', verifyToken, async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId).select('blockedUsers');
@@ -260,9 +252,9 @@ router.get('/conversations', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  2. GET MESSAGES (with replyTo populated)
-// ────────────────────────────────────────────────────────────────────────────
+
 router.get('/messages/:conversationId', verifyToken, async (req, res) => {
   try {
     const conversation = await Conversation.findById(req.params.conversationId);
@@ -291,10 +283,10 @@ router.get('/messages/:conversationId', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  3. SEND MESSAGE — accepts JSON OR multipart/form-data (image/voice)
 //      The same endpoint handles text-only, text+media, and reply.
-// ────────────────────────────────────────────────────────────────────────────
+
 router.post('/messages', verifyToken, handleUpload, async (req, res) => {
   try {
     // Pull fields whether they come from JSON or FormData
@@ -463,9 +455,9 @@ router.post('/messages', verifyToken, handleUpload, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  4. EDIT MESSAGE (within 15-min window; sender only; text only)
-// ────────────────────────────────────────────────────────────────────────────
+
 router.put('/messages/:messageId', verifyToken, async (req, res) => {
   try {
     const { text } = req.body;
@@ -528,9 +520,9 @@ router.put('/messages/:messageId', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  5. UNSEND (Delete for Everyone) — within 15-min window
-// ────────────────────────────────────────────────────────────────────────────
+
 router.delete('/messages/:messageId/unsend', verifyToken, async (req, res) => {
   try {
     const msg = await Message.findById(req.params.messageId);
@@ -592,9 +584,9 @@ router.delete('/messages/:messageId/unsend', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  6. DELETE FOR ME (anytime; sender or recipient)
-// ────────────────────────────────────────────────────────────────────────────
+
 router.delete('/messages/:messageId/me', verifyToken, async (req, res) => {
   try {
     const msg = await Message.findById(req.params.messageId);
@@ -616,9 +608,9 @@ router.delete('/messages/:messageId/me', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  7. MARK READ (cascade to messages + emit read receipt)
-// ────────────────────────────────────────────────────────────────────────────
+
 router.put('/conversations/:id/read', verifyToken, async (req, res) => {
   try {
     const conv = await Conversation.findById(req.params.id).select('participants');
@@ -654,9 +646,9 @@ router.put('/conversations/:id/read', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  8. CLEAR CHAT
-// ────────────────────────────────────────────────────────────────────────────
+
 router.delete('/messages/:conversationId/clear', verifyToken, async (req, res) => {
   try {
     await Conversation.findByIdAndUpdate(req.params.conversationId, {
@@ -669,9 +661,9 @@ router.delete('/messages/:conversationId/clear', verifyToken, async (req, res) =
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  9. DELETE CONVERSATION
-// ────────────────────────────────────────────────────────────────────────────
+
 router.delete('/conversations/:id', verifyToken, async (req, res) => {
   try {
     const conv = await Conversation.findByIdAndUpdate(
@@ -697,9 +689,9 @@ router.delete('/conversations/:id', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  10. BLOCK / UNBLOCK
-// ────────────────────────────────────────────────────────────────────────────
+
 router.post('/block/:targetUserId', verifyToken, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.userId, {
@@ -725,11 +717,11 @@ router.post('/unblock/:targetUserId', verifyToken, async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────────────────────────────
+
 //  11. TYPING INDICATOR — pure socket relay endpoint (HTTP fallback)
 //      The frontend will primarily emit 'typing' / 'stopTyping' directly via socket;
 //      this is a defensive fallback for clients that lose socket but keep HTTP.
-// ────────────────────────────────────────────────────────────────────────────
+
 router.post('/typing/:conversationId', verifyToken, async (req, res) => {
   try {
     const { isTyping } = req.body;

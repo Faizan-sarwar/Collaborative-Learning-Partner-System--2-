@@ -15,12 +15,12 @@ import Footer from "../components/Footer/Footer";
 //  DashboardLayout is now a PERSISTENT layout route — import eagerly (it's always needed once logged in)
 import DashboardLayout from "../components/Dashboard/DashboardLayout/DashboardLayout.jsx";
 
-// ════════════════════════════════════════════════════════════════════════════
+
 //  LAZY + PRELOAD HELPER
 // Wraps React.lazy but exposes a `.preload()` so we can warm a route's chunk
 // during idle time. The first visit to a preloaded route is then instant
 // (chunk already in the browser cache — no spinner, no network round-trip).
-// ════════════════════════════════════════════════════════════════════════════
+
 const lazyWithPreload = (factory) => {
   const Component = lazy(factory);
   Component.preload = factory;

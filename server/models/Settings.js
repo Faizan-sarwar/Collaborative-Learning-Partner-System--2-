@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const settingsSchema = new mongoose.Schema({
-  platformName: { type: String, default: 'StudyPal' },
+  platformName: { type: String, default: 'Collaborative Learning' },
   logoUrl: { type: String, default: '' },
   supportEmail: { type: String, default: '' },
   allowRegistrations: { type: Boolean, default: true },
