@@ -66,6 +66,10 @@ const generateToken = (id) =>
   });
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+// Emails signing up here are treated as admin/super-admin accounts.
+// Keep this list in sync with ADMIN_EMAILS in Signup.jsx and AdminManagement.jsx.
+const ADMIN_EMAILS = ["faizan@admin.com", "hammad@admin.com"];
+
 const validateSignupData = (data) => {
   const errors = [];
   const addErr = (field, msg) => errors.push({ field, message: msg });
@@ -117,13 +121,18 @@ const validateSignupData = (data) => {
     !["1", "2", "3", "4", "5", "6", "7", "8"].includes(data.semester)
   )
     addErr("semester", "Semester must be between 1 and 8");
+  const isAdminSignup = ADMIN_EMAILS.includes(
+    (data.email || "").toLowerCase().trim(),
+  );
+
   if (
-    !data.studyStyle ||
-    ![
-      "Individual Study",
-      "Group Collaboration",
-      "One-on-One Mentoring",
-    ].includes(data.studyStyle)
+    !isAdminSignup &&
+    (!data.studyStyle ||
+      ![
+        "Individual Study",
+        "Group Collaboration",
+        "One-on-One Mentoring",
+      ].includes(data.studyStyle))
   )
     addErr("studyStyle", "Invalid study style");
   if (data.availability?.length > 500)
@@ -287,10 +296,9 @@ router.post("/signup", upload.single("profilePicture"), async (req, res) => {
     const generatedReferralCode =
       "STUDY" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    const role =
-      email.toLowerCase().trim() === "faizan@admin.com"
-        ? "super-admin"
-        : "student";
+    const role = ADMIN_EMAILS.includes(email.toLowerCase().trim())
+      ? "super-admin"
+      : "student";
     const userData = {
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
@@ -304,6 +312,7 @@ router.post("/signup", upload.single("profilePicture"), async (req, res) => {
       studyStyle: studyStyle || "Individual Study",
       availability: availability?.trim() || "",
       role,
+      quizCompleted: role !== "student", // admins skip the quiz entirely
       xp: 10,
       referralCode: generatedReferralCode,
     };
