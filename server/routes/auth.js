@@ -44,23 +44,6 @@ const pushLiveNotification = (req, userId, notificationPayload) => {
   }
 };
 
-//  HELPER: INSTANTLY KICK A USER'S ACTIVE SESSION (e.g. their account was just deleted)
-// This is the "active" half of session invalidation — `protect` (below) is the
-// "passive" half, rejecting their next API call. Together: an account deleted
-// while the person is sitting on a page gets booted immediately, not on their
-// next click.
-const forceLogoutUser = (req, userId, reason) => {
-  const io = req.app.get("io");
-  const connectedUsers = req.app.get("connectedUsers");
-  const targetSocketId = connectedUsers?.get(userId.toString());
-
-  if (io && targetSocketId) {
-    io.to(targetSocketId).emit("forceLogout", {
-      reason: reason || "Your account is no longer available.",
-    });
-  }
-};
-
 // --- Helpers ---
 const getClientIp = (req) => {
   let ip =
@@ -82,81 +65,6 @@ const generateToken = (id) =>
     expiresIn: process.env.JWT_EXPIRE || "7d",
   });
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-// Emails signing up here are treated as admin/super-admin accounts.
-// Keep this list in sync with ADMIN_EMAILS in Signup.jsx and AdminManagement.jsx.
-const ADMIN_EMAILS = ["faizan@admin.com", "hammad@admin.com"];
-
-// --- Auth Middleware ---
-//
-// `protect` verifies the JWT AND re-fetches the user from the database on
-// every single request. This is the part that matters: a JWT stays
-// cryptographically valid until it expires even after the account behind it
-// is deleted. Looking the user up here — instead of trusting the token alone —
-// is what makes a deleted account's token stop working on its very next
-// request, instead of staying "logged in" for up to 7 days.
-const protect = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (
-      !authHeader ||
-      !authHeader.startsWith("Bearer ") ||
-      authHeader === "Bearer null"
-    ) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || "test_key");
-    } catch (err) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Invalid or expired session",
-      });
-    }
-
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      // Account was deleted after this token was issued — kill the session.
-      return res.status(401).json({
-        success: false,
-        message: "Your account no longer exists. Please log in again.",
-      });
-    }
-
-    if (user.approved === false) {
-      return res.status(403).json({
-        success: false,
-        message: "Your account has been deactivated.",
-      });
-    }
-
-    req.user = user;
-    next();
-  } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server error during authentication" });
-  }
-};
-
-// Use AFTER `protect` (which populates req.user). Restricts a route to
-// admin / super-admin accounts only.
-const requireAdmin = (req, res, next) => {
-  if (
-    !req.user ||
-    (req.user.role !== "admin" && req.user.role !== "super-admin")
-  ) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Forbidden: Admins only" });
-  }
-  next();
-};
 
 const validateSignupData = (data) => {
   const errors = [];
@@ -209,18 +117,13 @@ const validateSignupData = (data) => {
     !["1", "2", "3", "4", "5", "6", "7", "8"].includes(data.semester)
   )
     addErr("semester", "Semester must be between 1 and 8");
-  const isAdminSignup = ADMIN_EMAILS.includes(
-    (data.email || "").toLowerCase().trim(),
-  );
-
   if (
-    !isAdminSignup &&
-    (!data.studyStyle ||
-      ![
-        "Individual Study",
-        "Group Collaboration",
-        "One-on-One Mentoring",
-      ].includes(data.studyStyle))
+    !data.studyStyle ||
+    ![
+      "Individual Study",
+      "Group Collaboration",
+      "One-on-One Mentoring",
+    ].includes(data.studyStyle)
   )
     addErr("studyStyle", "Invalid study style");
   if (data.availability?.length > 500)
@@ -384,9 +287,10 @@ router.post("/signup", upload.single("profilePicture"), async (req, res) => {
     const generatedReferralCode =
       "STUDY" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    const role = ADMIN_EMAILS.includes(email.toLowerCase().trim())
-      ? "super-admin"
-      : "student";
+    const role =
+      email.toLowerCase().trim() === "faizan@admin.com"
+        ? "super-admin"
+        : "student";
     const userData = {
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
@@ -400,7 +304,6 @@ router.post("/signup", upload.single("profilePicture"), async (req, res) => {
       studyStyle: studyStyle || "Individual Study",
       availability: availability?.trim() || "",
       role,
-      quizCompleted: role !== "student", // admins skip the quiz entirely
       xp: 10,
       referralCode: generatedReferralCode,
     };
@@ -800,7 +703,7 @@ router.put("/profile", upload.single("profilePicture"), async (req, res) => {
 });
 
 // --- Admin Management ---
-router.get("/admin/dashboard", protect, requireAdmin, async (req, res) => {
+router.get("/admin/dashboard", async (req, res) => {
   try {
     res.json({
       success: true,
@@ -816,7 +719,7 @@ router.get("/admin/dashboard", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/admin/stats", protect, requireAdmin, async (req, res) => {
+router.get("/admin/stats", async (req, res) => {
   try {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -856,7 +759,7 @@ router.get("/admin/stats", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/admin/analytics", protect, requireAdmin, async (req, res) => {
+router.get("/admin/analytics", async (req, res) => {
   try {
     const sevenMonthsAgo = new Date();
     sevenMonthsAgo.setMonth(sevenMonthsAgo.getMonth() - 6);
@@ -927,76 +830,66 @@ router.get("/admin/analytics", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.get(
-  "/admin/recent-registrations",
-  protect,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      res.json({
-        success: true,
-        users: await User.find()
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .select("fullName email approved createdAt isOnline lastLogin"),
-      });
-    } catch (err) {
-      res.status(500).json({ success: false, message: "Failed to fetch" });
-    }
-  },
-);
-
-router.get(
-  "/admin/recent-activity",
-  protect,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const activities = [];
-      const users = await User.find()
+router.get("/admin/recent-registrations", async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      users: await User.find()
         .sort({ createdAt: -1 })
         .limit(5)
-        .select("fullName approved createdAt");
-      users.forEach((u) => {
+        .select("fullName email approved createdAt isOnline lastLogin"),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch" });
+  }
+});
+
+router.get("/admin/recent-activity", async (req, res) => {
+  try {
+    const activities = [];
+    const users = await User.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("fullName approved createdAt");
+    users.forEach((u) => {
+      activities.push({
+        action: "New student registered",
+        user: u.fullName,
+        type: "registration",
+        createdAt: u.createdAt,
+      });
+      if (!u.approved)
         activities.push({
-          action: "New student registered",
+          action: "Student blocked",
           user: u.fullName,
-          type: "registration",
+          type: "moderation",
           createdAt: u.createdAt,
         });
-        if (!u.approved)
-          activities.push({
-            action: "Student blocked",
-            user: u.fullName,
-            type: "moderation",
-            createdAt: u.createdAt,
-          });
-      });
-      const groups = await StudyGroup.find()
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .populate("creator", "fullName");
-      groups.forEach((g) =>
-        activities.push({
-          action: "New course created",
-          user: g.creator?.fullName || "Admin",
-          type: "course",
-          createdAt: g.createdAt,
-        }),
-      );
-      res.json({
-        success: true,
-        activities: activities
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 8),
-      });
-    } catch (err) {
-      res.status(500).json({ success: false, message: "Failed to fetch" });
-    }
-  },
-);
+    });
+    const groups = await StudyGroup.find()
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate("creator", "fullName");
+    groups.forEach((g) =>
+      activities.push({
+        action: "New course created",
+        user: g.creator?.fullName || "Admin",
+        type: "course",
+        createdAt: g.createdAt,
+      }),
+    );
+    res.json({
+      success: true,
+      activities: activities
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 8),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch" });
+  }
+});
 
-router.get("/admin/students", protect, requireAdmin, async (req, res) => {
+router.get("/admin/students", async (req, res) => {
   try {
     const students = await User.find({
       role: { $nin: ["super-admin", "admin", "moderator"] },
@@ -1034,7 +927,7 @@ router.get("/admin/students", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/admin/students/:id", protect, requireAdmin, async (req, res) => {
+router.put("/admin/students/:id", async (req, res) => {
   try {
     const { name, email, department, semester, status } = req.body;
     const user = await User.findById(req.params.id);
@@ -1055,28 +948,16 @@ router.put("/admin/students/:id", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.delete(
-  "/admin/students/:id",
-  protect,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const deletedUser = await User.findByIdAndDelete(req.params.id);
-      if (deletedUser) {
-        forceLogoutUser(
-          req,
-          deletedUser._id,
-          "Your account has been removed by an administrator.",
-        );
-      }
-      res.json({ success: true, message: "Student deleted successfully" });
-    } catch (err) {
-      res.status(500).json({ success: false, message: "Delete failed" });
-    }
-  },
-);
+router.delete("/admin/students/:id", async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Student deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Delete failed" });
+  }
+});
 
-router.get("/admin/admins", protect, requireAdmin, async (req, res) => {
+router.get("/admin/admins", async (req, res) => {
   try {
     res.json({
       success: true,
@@ -1089,7 +970,7 @@ router.get("/admin/admins", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/admin/create-admin", protect, requireAdmin, async (req, res) => {
+router.post("/admin/create-admin", async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
     if (!email || !password || !fullName || !role)
@@ -1126,7 +1007,7 @@ router.post("/admin/create-admin", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/admin/admins/:id", protect, requireAdmin, async (req, res) => {
+router.put("/admin/admins/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
@@ -1143,7 +1024,7 @@ router.put("/admin/admins/:id", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.delete("/admin/admins/:id", protect, requireAdmin, async (req, res) => {
+router.delete("/admin/admins/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (
@@ -1155,14 +1036,13 @@ router.delete("/admin/admins/:id", protect, requireAdmin, async (req, res) => {
         .status(403)
         .json({ success: false, message: "Cannot delete this admin" });
     await User.findByIdAndDelete(req.params.id);
-    forceLogoutUser(req, user._id, "Your admin account has been removed.");
     res.json({ success: true, message: "Admin removed" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-router.get("/admin/settings", protect, requireAdmin, async (req, res) => {
+router.get("/admin/settings", async (req, res) => {
   try {
     res.json({
       success: true,
@@ -1173,7 +1053,7 @@ router.get("/admin/settings", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/admin/settings", protect, requireAdmin, async (req, res) => {
+router.put("/admin/settings", async (req, res) => {
   try {
     const settings = await Settings.findOneAndUpdate({}, req.body, {
       new: true,
@@ -1196,7 +1076,7 @@ router.put("/admin/settings", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/admin/notifications", protect, requireAdmin, async (req, res) => {
+router.get("/admin/notifications", async (req, res) => {
   try {
     res.json({
       success: true,
@@ -1771,97 +1651,101 @@ router.post("/ai/chat-topics", async (req, res) => {
   }
 });
 
-router.post(
-  "/admin/send-notification",
-  protect,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const {
-        title,
-        message,
-        category,
-        icon,
-        targetType,
-        departments,
-        semesters,
-      } = req.body;
+router.post("/admin/send-notification", async (req, res) => {
+  try {
+    const {
+      title,
+      message,
+      category,
+      icon,
+      targetType,
+      departments,
+      semesters,
+    } = req.body;
 
-      if (!title || !message) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Title and message are required" });
-      }
+    if (!title || !message) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Title and message are required" });
+    }
 
-      let query = { role: "student" };
-      if (targetType === "selected") {
-        if (departments && departments.length > 0)
-          query.department = { $in: departments };
-        if (semesters && semesters.length > 0)
-          query.semester = { $in: semesters };
-      }
+    let query = { role: "student" };
+    if (targetType === "selected") {
+      if (departments && departments.length > 0)
+        query.department = { $in: departments };
+      if (semesters && semesters.length > 0)
+        query.semester = { $in: semesters };
+    }
 
-      const students = await User.find(query).select("_id");
+    const students = await User.find(query).select("_id");
 
-      if (students.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "No students matched your selected filters.",
-        });
-      }
+    if (students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No students matched your selected filters.",
+      });
+    }
 
-      const notificationsToInsert = students.map((student) => ({
-        recipient: student._id,
+    const notificationsToInsert = students.map((student) => ({
+      recipient: student._id,
+      type: category || "system",
+      title: title,
+      message: message,
+      icon: icon || "bell",
+      link: "/dashboard",
+      unread: true,
+    }));
+
+    await Notification.insertMany(notificationsToInsert);
+
+    //  PUSH LIVE TO EVERYONE ONLINE
+    students.forEach((student) => {
+      pushLiveNotification(req, student._id, {
         type: category || "system",
         title: title,
         message: message,
-        icon: icon || "bell",
-        link: "/dashboard",
-        unread: true,
-      }));
-
-      await Notification.insertMany(notificationsToInsert);
-
-      //  PUSH LIVE TO EVERYONE ONLINE
-      students.forEach((student) => {
-        pushLiveNotification(req, student._id, {
-          type: category || "system",
-          title: title,
-          message: message,
-        });
       });
+    });
 
-      const targetLabel =
-        targetType === "all" ? "All Students" : "Selected Students";
-      await ActivityLog.create({
-        action: `Broadcasted "${title}"`,
-        user: "Admin",
-        userType: "admin",
-        status: "success",
-      });
+    const targetLabel =
+      targetType === "all" ? "All Students" : "Selected Students";
+    await ActivityLog.create({
+      action: `Broadcasted "${title}"`,
+      user: "Admin",
+      userType: "admin",
+      status: "success",
+    });
 
-      res.json({
-        success: true,
-        message: `Successfully sent to ${students.length} student(s)!`,
-        newHistoryItem: {
-          id: Date.now(),
-          title,
-          message,
-          recipients: targetLabel,
-          sentAt: "Just now",
-          type: category,
-          icon,
-        },
-      });
-    } catch (err) {
-      console.error("Broadcast Error:", err);
-      res.status(500).json({ success: false, message: "Server error" });
-    }
-  },
-);
+    res.json({
+      success: true,
+      message: `Successfully sent to ${students.length} student(s)!`,
+      newHistoryItem: {
+        id: Date.now(),
+        title,
+        message,
+        recipients: targetLabel,
+        sentAt: "Just now",
+        type: category,
+        icon,
+      },
+    });
+  } catch (err) {
+    console.error("Broadcast Error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
-router.get("/admin/export-data", protect, requireAdmin, async (req, res) => {
+router.get("/admin/export-data", async (req, res) => {
   try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "test_key");
+    const user = await User.findById(decoded.id);
+    if (!user || (user.role !== "admin" && user.role !== "super-admin")) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const exportData = {
       timestamp: new Date().toISOString(),
       platform: "Collaborative Learning Partner System",
@@ -1875,7 +1759,7 @@ router.get("/admin/export-data", protect, requireAdmin, async (req, res) => {
 
     await ActivityLog.create({
       action: "Exported Platform Data",
-      user: req.user.fullName,
+      user: user.fullName,
       userType: "admin",
       ip: getClientIp(req),
       status: "success",
@@ -1894,13 +1778,22 @@ router.get("/admin/export-data", protect, requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/admin/clear-cache", protect, requireAdmin, async (req, res) => {
+router.post("/admin/clear-cache", async (req, res) => {
   try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "test_key");
+    const user = await User.findById(decoded.id);
+    if (!user || (user.role !== "admin" && user.role !== "super-admin")) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     otpStore.clear();
 
     await ActivityLog.create({
       action: "Cleared Server Cache",
-      user: req.user.fullName,
+      user: user.fullName,
       userType: "admin",
       ip: getClientIp(req),
       status: "success",
@@ -1976,54 +1869,70 @@ router.post("/contact", async (req, res) => {
   }
 });
 
-router.post(
-  "/admin/migrate-reliability",
-  protect,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const students = await User.find({
-        role: "student",
-        quizCompleted: true,
-      });
-      let updatedCount = 0;
-
-      for (const student of students) {
-        const oldReliability = student.reliability || 0;
-        const rawScore = Math.round((oldReliability / 100) * 10);
-
-        const baseScore = 40;
-        const earnedScore = Math.round(rawScore * 5.8);
-        const newReliability = Math.min(baseScore + earnedScore, 98);
-
-        await User.updateOne(
-          { _id: student._id },
-          { $set: { reliability: newReliability } },
-        );
-        updatedCount++;
-      }
-
-      await ActivityLog.create({
-        action: `Migrated Reliability Scores for ${updatedCount} users`,
-        user: req.user.fullName,
-        userType: req.user.role,
-        ip: getClientIp(req),
-        status: "success",
-      });
-
-      res.json({
-        success: true,
-        message: `Successfully updated ${updatedCount} users to the new Reliability Algorithm.`,
-      });
-    } catch (err) {
-      console.error("Migration Error:", err);
-      res.status(500).json({
-        success: false,
-        message: "Migration failed. Check server console for details.",
-      });
+router.post("/admin/migrate-reliability", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader.startsWith("Bearer null")) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No token provided" });
     }
-  },
-);
+
+    const token = authHeader.split(" ")[1];
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || "test_key");
+    } catch (jwtErr) {
+      return res.status(401).json({ message: "Unauthorized: Invalid token" });
+    }
+
+    const adminUser = await User.findById(decoded.id);
+    if (
+      !adminUser ||
+      (adminUser.role !== "admin" && adminUser.role !== "super-admin")
+    ) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const students = await User.find({ role: "student", quizCompleted: true });
+    let updatedCount = 0;
+
+    for (const student of students) {
+      const oldReliability = student.reliability || 0;
+      const rawScore = Math.round((oldReliability / 100) * 10);
+
+      const baseScore = 40;
+      const earnedScore = Math.round(rawScore * 5.8);
+      const newReliability = Math.min(baseScore + earnedScore, 98);
+
+      await User.updateOne(
+        { _id: student._id },
+        { $set: { reliability: newReliability } },
+      );
+      updatedCount++;
+    }
+
+    await ActivityLog.create({
+      action: `Migrated Reliability Scores for ${updatedCount} users`,
+      user: adminUser.fullName,
+      userType: adminUser.role,
+      ip: getClientIp(req),
+      status: "success",
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully updated ${updatedCount} users to the new Reliability Algorithm.`,
+    });
+  } catch (err) {
+    console.error("Migration Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Migration failed. Check server console for details.",
+    });
+  }
+});
 
 router.put("/track-time", async (req, res) => {
   try {
