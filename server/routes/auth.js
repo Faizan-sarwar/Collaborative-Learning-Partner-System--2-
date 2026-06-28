@@ -1225,6 +1225,11 @@ router.get("/matches/:userId", async (req, res) => {
     const candidates = await User.find({
       _id: { $ne: currentUser._id },
       role: { $nin: ["admin", "super-admin", "moderator"] },
+      // Only show users who've actually been through the reliability quiz.
+      // Anyone who skips/hasn't taken it has reliability stuck at the
+      // un-assessed default (0) and shouldn't appear as a potential partner.
+      quizCompleted: true,
+      reliability: { $gt: 0 },
     }).select("-picture");
 
     const safeToString = (id) => (id ? id.toString() : "");
